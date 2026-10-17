@@ -43,8 +43,16 @@ function Ready() {
   });
   const setup = interview?.setup ?? defaultSetup;
   const start = useMutation({
-    mutationFn: async () =>
-      interviewId && interview?.status === "active" ? interview : Api.startInterview(setup),
+    mutationFn: async () => {
+      const result =
+        interviewId && interview?.status === "active" ? interview : await Api.startInterview(setup);
+      if (typeof result?.id !== "string" || !result.id.trim()) {
+        throw new Error(
+          "The backend did not return an interview ID. Please start a new interview from Setup.",
+        );
+      }
+      return result;
+    },
     onSuccess: (result) => navigate({ to: "/interview", search: { interviewId: result.id } }),
   });
   return (

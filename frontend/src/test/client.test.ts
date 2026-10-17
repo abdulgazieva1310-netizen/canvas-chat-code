@@ -5,7 +5,11 @@ import { defaultSetup } from "@/lib/api/default-setup";
 afterEach(() => vi.unstubAllGlobals());
 
 it("uses backend endpoints with cookies and JSON bodies", async () => {
-  const fetch = vi.fn().mockImplementation(() => Promise.resolve(new Response("{}")));
+  const fetch = vi
+    .fn()
+    .mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify({ id: "session-123", setup: defaultSetup }))),
+    );
   vi.stubGlobal("fetch", fetch);
   await Api.login("demo@example.com", "demo-password");
   await Api.register({ name: "Test", email: "a@b.com", password: "secret" });
@@ -57,4 +61,18 @@ it("preserves backend errors and signals expired sessions", async () => {
     status: 502,
     message: "Request failed (502).",
   });
+});
+
+it.each([
+  null,
+  {},
+  { id: "" },
+  { id: "   " },
+  { interviewId: "session-123" },
+  { id: "session-123" },
+])("rejects invalid start responses: %j", async (body) => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(body))));
+  await expect(Api.startInterview(defaultSetup)).rejects.toThrow(
+    "did not return a valid interview",
+  );
 });

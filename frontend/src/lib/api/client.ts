@@ -47,7 +47,13 @@ const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 export const Api = {
   login: (email: string, password: string) => request<User>("/auth/login", { email, password }),
   register: (data: RegisterData) => request<User>("/auth/register", data),
-  startInterview: (setup: InterviewSetup) => request<Interview>("/interviews", setup),
+  async startInterview(setup: InterviewSetup): Promise<Interview> {
+    const interview = await request<Interview>("/interviews", setup);
+    if (typeof interview?.id !== "string" || !interview.id.trim() || !interview.setup) {
+      throw new Error("The backend did not return a valid interview. Please try starting again.");
+    }
+    return interview;
+  },
   getInterview: (id: string) => request<Interview>(interviewPath(id)),
   sendMessage: (id: string, text: string) =>
     request<Interview>(`${interviewPath(id)}/messages`, { text }),

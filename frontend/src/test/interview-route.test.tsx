@@ -19,7 +19,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function openInterview() {
+function openInterview(url = "/interview?interviewId=session-123") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
   const interview = createRoute({
@@ -27,11 +27,19 @@ function openInterview() {
     path: "/interview",
     validateSearch: Route.options.validateSearch!,
     component: Route.options.component!,
+    beforeLoad: Route.options.beforeLoad!,
   });
   const router = createRouter({
     context: { queryClient: client },
-    routeTree: root.addChildren([interview]),
-    history: createMemoryHistory({ initialEntries: ["/interview?interviewId=session-123"] }),
+    routeTree: root.addChildren([
+      interview,
+      createRoute({
+        getParentRoute: () => root,
+        path: "/setup",
+        component: () => <p>Setup page</p>,
+      }),
+    ]),
+    history: createMemoryHistory({ initialEntries: [url] }),
   });
   render(
     <QueryClientProvider client={client}>
@@ -78,3 +86,14 @@ it("shows a recovery link when the backend returns no interview", async () => {
   expect(screen.getByRole("link", { name: "New interview" })).toHaveAttribute("href", "/setup");
   client.clear();
 });
+
+it.each(["/interview", "/interview?interviewId=", "/interview?interviewId=%20%20"])(
+  "redirects %s to setup without fetching",
+  async (url) => {
+    const getInterview = vi.spyOn(Api, "getInterview");
+    const client = openInterview(url);
+    await screen.findByText("Setup page");
+    expect(getInterview).not.toHaveBeenCalled();
+    client.clear();
+  },
+);

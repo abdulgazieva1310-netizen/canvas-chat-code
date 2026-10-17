@@ -62,7 +62,7 @@ function Setup() {
       setSetup((s) => ({ ...s, [key]: value }));
   const start = useMutation({
     mutationFn: () => Api.startInterview(setup),
-    onSuccess: (interview) => navigate({ to: "/ready", search: { interviewId: interview.id } }),
+    onSuccess: (interview) => navigate({ to: "/interview", search: { interviewId: interview.id } }),
   });
   return (
     <AppShell>
@@ -154,7 +154,7 @@ function Setup() {
             onClick={() => start.mutate()}
             className="btn btn-primary mt-6 w-full"
           >
-            {start.isPending ? "Starting…" : "Continue →"}
+            {start.isPending ? "Starting…" : "Start interview"}
           </button>
         </aside>
       </div>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import type { Interview as InterviewData } from "@/lib/api/types";
@@ -6,8 +6,11 @@ import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/interview")({
   validateSearch: (search: Record<string, unknown>) => ({
-    interviewId: typeof search["interviewId"] === "string" ? search["interviewId"] : "",
+    interviewId: typeof search["interviewId"] === "string" ? search["interviewId"].trim() : "",
   }),
+  beforeLoad: ({ search }) => {
+    if (!search.interviewId) throw redirect({ to: "/setup", replace: true });
+  },
   head: () => ({
     meta: [
       { title: "Live interview — Interview Mirror" },
@@ -31,7 +34,12 @@ function Interview() {
     data: interview,
     error,
     isPending,
-  } = useQuery({ queryKey, queryFn: () => Api.getInterview(interviewId), retry: false });
+  } = useQuery({
+    queryKey,
+    queryFn: () => Api.getInterview(interviewId),
+    enabled: !!interviewId,
+    retry: false,
+  });
   const [text, setText] = useState("");
   const [sec, setSec] = useState(0);
   const [listening, setListening] = useState(false);

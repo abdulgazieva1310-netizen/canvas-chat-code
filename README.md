@@ -1,4 +1,4 @@
-# Canvas Chat Code
+# Interview Mirror
 
 The next design step should be a clickable UX prototype covering five screens: interviewer dashboard, create-session form, candidate lobby, live interview canvas, and ended-session review. In parallel, engineering should run a short technical spike comparing suitable canvas renderers and CRDT approaches against the acceptance criteria, especially connectors, text editing, freehand performance, scoped undo, and reconnect behavior.
 

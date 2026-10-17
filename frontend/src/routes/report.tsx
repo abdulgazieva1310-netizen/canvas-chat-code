@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MockApi } from "@/lib/api/mock-api";
+import { Api } from "@/lib/api/client";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 
@@ -28,7 +28,7 @@ function Report() {
   const { interviewId } = Route.useSearch();
   const { data, error, isPending } = useQuery({
     queryKey: ["report", interviewId],
-    queryFn: () => MockApi.getReport(interviewId),
+    queryFn: () => Api.getReport(interviewId),
     retry: false,
   });
   if (isPending)

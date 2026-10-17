@@ -9,15 +9,8 @@ import type {
   User,
 } from "./types";
 
-export const defaultSetup: InterviewSetup = {
-  role: "Frontend Developer",
-  level: "Middle",
-  mode: "Practice",
-  questionCount: 10,
-  type: "Technical",
-  input: "Voice",
-  language: "English",
-};
+import { defaultSetup } from "./default-setup";
+export { defaultSetup } from "./default-setup";
 
 const delay = () => new Promise<void>((resolve) => setTimeout(resolve, 500));
 const copy = <T>(value: T): T => structuredClone(value);

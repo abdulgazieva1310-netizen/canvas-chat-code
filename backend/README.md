@@ -37,5 +37,5 @@ scores, and coaching are deterministic demo fixtures, matching the frontend mock
 there is no AI evaluation or audio processing.
 
 Data and tokens reset on restart. Run one worker: multiple workers would have
-independent stores. The existing frontend still uses `MockApi`; this change adds
-the HTTP backend without switching the frontend transport.
+independent stores. The frontend uses this HTTP backend with cookie authentication; see
+`../frontend/README.md` for connection settings.

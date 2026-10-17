@@ -25,16 +25,20 @@ npm i
 npm run dev
 ```
 
-## Mock backend
+## Backend connection
 
-`src/lib/api/types.ts` defines the shared entities. `src/lib/api/mock-api.ts`
-exports `MockApi`; every operation is asynchronous with 500 ms simulated latency.
-The setup, lobby, interview, report, and saved-session history use this service.
-Interview IDs travel in route search parameters; sessions are kept in browser
-`sessionStorage` so reloading a page preserves the current mock interview.
+Start the backend from the repository root with `make run`, then run
+`npm run dev` from `frontend`. Authentication and interview operations use
+`src/lib/api/client.ts`. Sign in with **demo@example.com / demo-password**, or
+create an account. Sessions use HttpOnly cookies; expired sessions show sign-in.
 
-Login and registration return fake users without checking real credentials.
-Questions, scores, and coaching are illustrative fixtures; there is no AI or
-speech integration. Real Interview mode withholds live hints and scores.
-The dashboard summary statistics and charts remain demo fixtures.
-No backend HTTP endpoints or authentication transport have been chosen yet.
+The default API URL is `http://localhost:8000/api`. Copy `.env.example` to
+`.env.local` to override `VITE_API_BASE_URL` (including `/api`). For deployment,
+use `/api` behind a same-origin reverse proxy, or configure backend `CORS_ORIGINS`
+for the frontend origin. Cookie authentication requires same-site hosting;
+set `SECURE_COOKIES=true` with HTTPS.
+
+Restarting the backend clears its in-memory sessions and interviews. Questions,
+scores, and coaching remain deterministic fixtures; voice input submits text.
+Dashboard summary statistics and charts remain demo fixtures. `mock-api.ts`
+is retained for fixture tests only; application routes use HTTP.

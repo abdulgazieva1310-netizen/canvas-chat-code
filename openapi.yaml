@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: |
     Backend contract derived from frontend/src/lib/api/types.ts and mock-api.ts.
-    The frontend currently calls an in-browser mock, not HTTP. Paths, status codes,
-    error envelopes, and cookie authentication below are proposed transport choices.
+    The frontend HTTP client uses these paths, status codes, error envelopes,
+    and cookie authentication.
     Successful JSON bodies match the mock's return values directly, without wrappers.
     All interview operations require a session and access only the current user's data.
     Login and registration establish that session. No token field is added to User.

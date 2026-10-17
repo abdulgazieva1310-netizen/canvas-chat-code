@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { MockApi, defaultSetup } from "@/lib/api/mock-api";
+import { Api } from "@/lib/api/client";
+import { defaultSetup } from "@/lib/api/default-setup";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 
@@ -36,14 +37,14 @@ function Ready() {
     isPending,
   } = useQuery({
     queryKey: ["interview", sourceId],
-    queryFn: () => MockApi.getInterview(sourceId),
+    queryFn: () => Api.getInterview(sourceId),
     enabled: !!sourceId,
     retry: false,
   });
   const setup = interview?.setup ?? defaultSetup;
   const start = useMutation({
     mutationFn: async () =>
-      interviewId && interview?.status === "active" ? interview : MockApi.startInterview(setup),
+      interviewId && interview?.status === "active" ? interview : Api.startInterview(setup),
     onSuccess: (result) => navigate({ to: "/interview", search: { interviewId: result.id } }),
   });
   return (

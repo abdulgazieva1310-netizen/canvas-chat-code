@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MockApi } from "@/lib/api/mock-api";
+import { Api } from "@/lib/api/client";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/")({
@@ -33,7 +33,7 @@ function Dashboard() {
     data: history = [],
     error: historyError,
     isPending: historyPending,
-  } = useQuery({ queryKey: ["history"], queryFn: () => MockApi.getHistory() });
+  } = useQuery({ queryKey: ["history"], queryFn: () => Api.getHistory() });
   const max = 10;
   const pts = trend
     .map((v, i) => `${(i / (trend.length - 1)) * 100},${100 - (v / max) * 100}`)

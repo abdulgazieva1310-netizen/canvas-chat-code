@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MockApi } from "@/lib/api/mock-api";
+import { Api } from "@/lib/api/client";
 import type { Interview as InterviewData } from "@/lib/api/types";
 import { useEffect, useState } from "react";
 
@@ -31,7 +31,7 @@ function Interview() {
     data: interview,
     error,
     isPending,
-  } = useQuery({ queryKey, queryFn: () => MockApi.getInterview(interviewId), retry: false });
+  } = useQuery({ queryKey, queryFn: () => Api.getInterview(interviewId), retry: false });
   const [text, setText] = useState("");
   const [sec, setSec] = useState(0);
   const [listening, setListening] = useState(false);
@@ -40,17 +40,17 @@ function Interview() {
     if (updated.status !== "active") await navigate({ to: "/report", search: { interviewId } });
   };
   const answer = useMutation({
-    mutationFn: (value: string) => MockApi.sendMessage(interviewId, value),
+    mutationFn: (value: string) => Api.sendMessage(interviewId, value),
     onSuccess: async (updated) => {
       setText("");
       await receive(updated);
     },
   });
   const end = useMutation({
-    mutationFn: () => MockApi.endInterview(interviewId),
+    mutationFn: () => Api.endInterview(interviewId),
     onSuccess: receive,
   });
-  const hint = useMutation({ mutationFn: () => MockApi.getHint(interviewId), onSuccess: receive });
+  const hint = useMutation({ mutationFn: () => Api.getHint(interviewId), onSuccess: receive });
   const busy = answer.isPending || end.isPending || hint.isPending;
   useEffect(() => {
     const startedAt = interview?.startedAt;

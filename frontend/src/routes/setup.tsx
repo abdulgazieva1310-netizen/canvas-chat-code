@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { MockApi, defaultSetup } from "@/lib/api/mock-api";
+import { Api } from "@/lib/api/client";
+import { defaultSetup } from "@/lib/api/default-setup";
 import type { InterviewSetup } from "@/lib/api/types";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -60,7 +61,7 @@ function Setup() {
     (value: InterviewSetup[K]) =>
       setSetup((s) => ({ ...s, [key]: value }));
   const start = useMutation({
-    mutationFn: () => MockApi.startInterview(setup),
+    mutationFn: () => Api.startInterview(setup),
     onSuccess: (interview) => navigate({ to: "/ready", search: { interviewId: interview.id } }),
   });
   return (

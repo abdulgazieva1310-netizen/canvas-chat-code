@@ -1,0 +1,393 @@
+openapi: 3.0.3
+info:
+  title: Interview Mirror API
+  version: 1.0.0
+  description: |
+    Backend contract derived from frontend/src/lib/api/types.ts and mock-api.ts.
+    The frontend currently calls an in-browser mock, not HTTP. Paths, status codes,
+    error envelopes, and cookie authentication below are proposed transport choices.
+    Successful JSON bodies match the mock's return values directly, without wrappers.
+    All interview operations require a session and access only the current user's data.
+    Login and registration establish that session. No token field is added to User.
+    Voice input currently submits text; audio upload, transcription, streaming,
+    logout, profile updates, and dashboard statistics have no client operations.
+servers:
+  - url: /api
+security:
+  - sessionCookie: []
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate and establish a session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string, minLength: 1, writeOnly: true}
+      responses:
+        '200':
+          description: Authenticated user
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionCookie'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/register:
+    post:
+      operationId: register
+      summary: Create a user and establish a session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterData'
+      responses:
+        '201':
+          description: Registered user
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionCookie'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /interviews:
+    post:
+      operationId: startInterview
+      summary: Start an interview
+      description: Returns an active interview with its first AI question, zero answers, and null endedAt and lastFeedback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterviewSetup'
+      responses:
+        '201':
+          $ref: '#/components/responses/InterviewResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    get:
+      operationId: getHistory
+      summary: Get saved interview history
+      description: Returns complete and incomplete interviews only, newest startedAt first. Returns an empty array when none exist. No request body or query parameters.
+      responses:
+        '200':
+          description: Current user's ended interviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Interview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /interviews/{interviewId}:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    get:
+      operationId: getInterview
+      summary: Get an interview including its messages
+      description: No request body.
+      responses:
+        '200':
+          $ref: '#/components/responses/InterviewResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /interviews/{interviewId}/messages:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    post:
+      operationId: sendMessage
+      summary: Submit an answer and advance the interview
+      description: |
+        Trims text and rejects empty answers. Appends the user's message and increments
+        answeredCount. Appends the next AI question unless questionCount is reached,
+        when status becomes complete and endedAt is set. Practice mode returns live
+        lastFeedback scores; Real Interview mode keeps lastFeedback null.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  minLength: 1
+                  pattern: '\S'
+      responses:
+        '200':
+          $ref: '#/components/responses/InterviewResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidState'
+  /interviews/{interviewId}/hint:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    post:
+      operationId: getHint
+      summary: Append a coaching hint
+      description: Only allowed for active Practice interviews. Appends a hint message and returns the updated interview. No request body.
+      responses:
+        '200':
+          $ref: '#/components/responses/InterviewResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidState'
+  /interviews/{interviewId}/end:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    post:
+      operationId: endInterview
+      summary: End an interview early
+      description: Sets an active interview to incomplete and records endedAt. Already ended interviews are returned unchanged, including complete status. No request body.
+      responses:
+        '200':
+          $ref: '#/components/responses/InterviewResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /interviews/{interviewId}/report:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    get:
+      operationId: getReport
+      summary: Get feedback for an ended interview
+      description: |
+        Requires complete or incomplete status. With no answers, overall and scores
+        are null and strengths, gaps, and questions are empty arrays. Otherwise,
+        questions contains feedback for each submitted answer. No request body.
+      responses:
+        '200':
+          description: Interview and its feedback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidState'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie established by login or registration; required for every interview operation.
+  headers:
+    SessionCookie:
+      description: Establishes an HttpOnly session cookie (Secure in production).
+      schema:
+        type: string
+        example: session=opaque-session-id; Path=/api; HttpOnly; Secure; SameSite=Lax
+  parameters:
+    InterviewId:
+      name: interviewId
+      in: path
+      required: true
+      description: Opaque interview identifier returned by startInterview.
+      schema:
+        type: string
+  responses:
+    InterviewResult:
+      description: Full interview state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Interview'
+    BadRequest:
+      description: Missing or invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Invalid login credentials or missing/expired session
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Interview does not exist or is not accessible to the current user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InvalidState:
+      description: Operation is unavailable in the interview's current status or mode
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Role:
+      type: string
+      enum: [Frontend Developer, Backend Developer, Full Stack Developer, QA Engineer, Data Analyst, DevOps Engineer]
+    Level:
+      type: string
+      enum: [Junior, Middle, Senior]
+    User:
+      type: object
+      required: [id, name, email, targetRole, level, preferredLanguage]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        email: {type: string, format: email}
+        targetRole:
+          $ref: '#/components/schemas/Role'
+        level:
+          $ref: '#/components/schemas/Level'
+        preferredLanguage: {type: string, enum: [English]}
+    RegisterData:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: {type: string, minLength: 1, pattern: '\S'}
+        email: {type: string, format: email}
+        password: {type: string, minLength: 1, writeOnly: true}
+        targetRole:
+          description: Defaults to Frontend Developer when omitted.
+          allOf:
+            - $ref: '#/components/schemas/Role'
+        level:
+          description: Defaults to Middle when omitted.
+          allOf:
+            - $ref: '#/components/schemas/Level'
+    InterviewSetup:
+      type: object
+      required: [role, level, mode, questionCount, type, input, language]
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+        level:
+          $ref: '#/components/schemas/Level'
+        mode: {type: string, enum: [Practice, Real Interview]}
+        questionCount: {type: integer, enum: [5, 10, 15]}
+        type: {type: string, enum: [Technical, Behavioral, Role-specific]}
+        input: {type: string, enum: [Voice, Text]}
+        language: {type: string, enum: [English]}
+        jobDescription: {type: string}
+    Message:
+      type: object
+      required: [id, interviewId, from, text, createdAt]
+      properties:
+        id: {type: string}
+        interviewId: {type: string}
+        from: {type: string, enum: [ai, you, hint]}
+        text: {type: string}
+        createdAt: {type: string, format: date-time}
+    Scores:
+      type: object
+      required: [accuracy, completeness, clarity, structure]
+      properties:
+        accuracy: {type: number}
+        completeness: {type: number}
+        clarity: {type: number}
+        structure: {type: number}
+    Interview:
+      type: object
+      required: [id, setup, status, startedAt, endedAt, answeredCount, messages, lastFeedback]
+      properties:
+        id: {type: string}
+        setup:
+          $ref: '#/components/schemas/InterviewSetup'
+        status: {type: string, enum: [active, complete, incomplete]}
+        startedAt: {type: string, format: date-time}
+        endedAt: {type: string, format: date-time, nullable: true}
+        answeredCount: {type: integer, minimum: 0}
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        lastFeedback:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Scores'
+    Feedback:
+      type: object
+      required: [interviewId, overall, scores, strengths, gaps, questions]
+      properties:
+        interviewId: {type: string}
+        overall: {type: number, nullable: true}
+        scores:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Scores'
+        strengths:
+          type: array
+          items: {type: string}
+        gaps:
+          type: array
+          items: {type: string}
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionFeedback'
+    QuestionFeedback:
+      type: object
+      required: [q, answer, score, good, miss, better]
+      properties:
+        q: {type: string}
+        answer: {type: string}
+        score: {type: number}
+        good: {type: string}
+        miss: {type: string}
+        better: {type: string}
+    InterviewReport:
+      type: object
+      required: [interview, feedback]
+      properties:
+        interview:
+          $ref: '#/components/schemas/Interview'
+        feedback:
+          $ref: '#/components/schemas/Feedback'
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: Human-readable error suitable for display by the client.

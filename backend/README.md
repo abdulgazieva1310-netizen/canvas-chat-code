@@ -1,5 +1,9 @@
 # Interview Mirror backend
 
+From the repository root, use `make install`, `make run`, and `make test`.
+`make run` installs missing dependencies automatically. Override the address with
+`make run HOST=0.0.0.0 PORT=8080`; run `make help` to list commands.
+
 From this directory:
 
 ```sh

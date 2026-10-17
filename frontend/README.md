@@ -24,3 +24,17 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Mock backend
+
+`src/lib/api/types.ts` defines the shared entities. `src/lib/api/mock-api.ts`
+exports `MockApi`; every operation is asynchronous with 500 ms simulated latency.
+The setup, lobby, interview, report, and saved-session history use this service.
+Interview IDs travel in route search parameters; sessions are kept in browser
+`sessionStorage` so reloading a page preserves the current mock interview.
+
+Login and registration return fake users without checking real credentials.
+Questions, scores, and coaching are illustrative fixtures; there is no AI or
+speech integration. Real Interview mode withholds live hints and scores.
+The dashboard summary statistics and charts remain demo fixtures.
+No backend HTTP endpoints or authentication transport have been chosen yet.

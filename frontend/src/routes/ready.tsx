@@ -1,12 +1,23 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { MockApi, defaultSetup } from "@/lib/api/mock-api";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/ready")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { interviewId?: string; retryId?: string } => ({
+    interviewId: typeof search["interviewId"] === "string" ? search["interviewId"] : "",
+    retryId: typeof search["retryId"] === "string" ? search["retryId"] : "",
+  }),
   head: () => ({
     meta: [
       { title: "Get ready — Interview Mirror" },
-      { name: "description", content: "Check your microphone and review the rules before your interview starts." },
+      {
+        name: "description",
+        content: "Check your microphone and review the rules before your interview starts.",
+      },
       { property: "og:title", content: "Get ready — Interview Mirror" },
       { property: "og:description", content: "Pre-interview lobby." },
     ],
@@ -16,30 +27,58 @@ export const Route = createFileRoute("/ready")({
 
 function Ready() {
   const [mic, setMic] = useState(false);
+  const { interviewId, retryId } = Route.useSearch();
+  const navigate = useNavigate();
+  const sourceId = interviewId || retryId || "";
+  const {
+    data: interview,
+    error,
+    isPending,
+  } = useQuery({
+    queryKey: ["interview", sourceId],
+    queryFn: () => MockApi.getInterview(sourceId),
+    enabled: !!sourceId,
+    retry: false,
+  });
+  const setup = interview?.setup ?? defaultSetup;
+  const start = useMutation({
+    mutationFn: async () =>
+      interviewId && interview?.status === "active" ? interview : MockApi.startInterview(setup),
+    onSuccess: (result) => navigate({ to: "/interview", search: { interviewId: result.id } }),
+  });
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl text-center">
         <p className="eyebrow">Lobby</p>
         <h1 className="mt-2 text-4xl md:text-5xl">Take a breath.</h1>
-        <p className="mt-3 text-muted-foreground">Frontend Developer · Technical · Middle · Practice mode · 10 questions</p>
+        <p className="mt-3 text-muted-foreground">
+          {setup.role} · {setup.type} · {setup.level} · {setup.mode} mode · {setup.questionCount}{" "}
+          questions
+        </p>
       </div>
       <div className="mx-auto mt-10 grid max-w-3xl gap-4 md:grid-cols-2">
         <div className="card-surface p-6">
           <h2 className="text-xl">Microphone</h2>
           <div className="mt-6 flex h-16 items-end gap-1">
             {Array.from({ length: 24 }).map((_, i) => (
-              <div key={i} className={`flex-1 rounded-full ${mic ? "bg-primary" : "bg-muted"}`} style={{ height: mic ? `${20 + ((i * 37) % 80)}%` : "15%" }} />
+              <div
+                key={i}
+                className={`flex-1 rounded-full ${mic ? "bg-primary" : "bg-muted"}`}
+                style={{ height: mic ? `${20 + ((i * 37) % 80)}%` : "15%" }}
+              />
             ))}
           </div>
           <button className="btn btn-ghost mt-6 w-full" onClick={() => setMic(!mic)}>
             {mic ? "✓ Mic working" : "Test microphone"}
           </button>
-          <p className="mt-3 text-xs text-muted-foreground">Audio is transcribed live and never stored.</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Audio is transcribed live and never stored.
+          </p>
         </div>
         <div className="card-surface p-6">
           <h2 className="text-xl">How it works</h2>
           <ul className="mt-4 space-y-3 text-sm">
-            <li>• 10 main questions; follow-ups don't count.</li>
+            <li>• {setup.questionCount} main questions; follow-ups don't count.</li>
             <li>• Difficulty adapts to your answers.</li>
             <li>• Ask for a hint any time (Practice mode).</li>
             <li>• No time limit — elapsed time is shown.</li>
@@ -47,9 +86,18 @@ function Ready() {
           </ul>
         </div>
       </div>
+      {(error || start.error) && <p role="alert">{(error || start.error)?.message}</p>}
       <div className="mt-10 flex justify-center gap-3">
-        <Link to="/setup" className="btn btn-ghost">Change settings</Link>
-        <Link to="/interview" className="btn btn-primary">Start interview</Link>
+        <Link to="/setup" className="btn btn-ghost">
+          Change settings
+        </Link>
+        <button
+          disabled={start.isPending || (!!sourceId && isPending) || !!error}
+          onClick={() => start.mutate()}
+          className="btn btn-primary"
+        >
+          {start.isPending ? "Starting…" : "Start interview"}
+        </button>
       </div>
     </AppShell>
   );

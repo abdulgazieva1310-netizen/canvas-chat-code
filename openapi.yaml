@@ -1,40 +1,19 @@
 openapi: 3.0.3
 info:
-  title: Interview Mirror — Current Frontend API Contract
+  title: Interview Mirror — Frontend API Contract
   version: 0.0.0
   description: |
-    No backend API contract is currently defined by the frontend.
+    The frontend currently uses an asynchronous mock service defined in
+    frontend/src/lib/api/mock-api.ts, with entity types in types.ts.
+    Setup, interview, report, lobby, and session history call this mock service.
+    It simulates latency and stores interview sessions in browser sessionStorage;
+    it does not make HTTP requests or implement real authentication.
 
-    Inspection of frontend/src found no API client, outgoing backend requests,
-    server functions, WebSocket connections, or authentication integration.
-    Consequently, there are no evidenced endpoint methods, paths, request
-    bodies, response bodies, or endpoint authentication requirements to list.
-    The empty paths object is intentional.
+    HTTP endpoint methods, paths, request/response payloads, and authentication
+    transport have not yet been defined. The empty paths object is intentional
+    until the mock service is used to design the backend API contract.
 
-    Current behavior and source evidence:
-    - frontend/src/routes/index.tsx: dashboard statistics, trends, categories,
-      and session history are hardcoded.
-    - frontend/src/routes/setup.tsx: interview settings use local React state;
-      Continue only navigates to /ready and does not submit a request body.
-    - frontend/src/routes/ready.tsx: microphone testing toggles local state;
-      Start interview only navigates to /interview.
-    - frontend/src/routes/interview.tsx: messages and feedback are hardcoded;
-      sending an answer appends local messages, and End early navigates to
-      /report without saving to a backend. No speech API is connected.
-    - frontend/src/routes/report.tsx: scores and feedback are hardcoded;
-      report expansion uses local state.
-    - frontend/src/components/AppShell.tsx: user initials are hardcoded;
-      there is no login, token, or session handling.
-
-    The URLs /, /setup, /ready, /interview, and /report are frontend page
-    routes, not backend API endpoints. frontend/src/server.ts delegates
-    incoming requests to the TanStack Start renderer; its fetch handler is
-    not an outgoing API client. frontend/src/start.ts configures framework
-    middleware, including CSRF protection, but defines no API operations.
-
-    docs/spec.md describes planned product capabilities, including required
-    accounts and email/password authentication. It does not specify HTTP
-    methods, endpoint paths, wire payloads, or an authentication transport.
-    Those capabilities cannot be presented as an existing client contract.
-    Add operations and security schemes here when that contract is defined.
+    The URLs /, /setup, /ready, /interview, and /report are frontend page routes,
+    not backend API endpoints. docs/spec.md describes planned product features,
+    including required accounts, but does not define their HTTP contract.
 paths: {}

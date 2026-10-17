@@ -1,13 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { MockApi } from "@/lib/api/mock-api";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — Interview Mirror" },
-      { name: "description", content: "Track your interview practice progress, scores and weak areas." },
+      {
+        name: "description",
+        content: "Track your interview practice progress, scores and weak areas.",
+      },
       { property: "og:title", content: "Dashboard — Interview Mirror" },
-      { property: "og:description", content: "Track your interview practice progress, scores and weak areas." },
+      {
+        property: "og:description",
+        content: "Track your interview practice progress, scores and weak areas.",
+      },
     ],
   }),
   component: Dashboard,
@@ -20,16 +28,16 @@ const categories = [
   { name: "Clarity", score: 8.1 },
   { name: "Structure", score: 5.9 },
 ];
-const history = [
-  { title: "Frontend · Technical", date: "Oct 15", score: 7.4, mode: "Real", status: "Complete" },
-  { title: "Frontend · Behavioral", date: "Oct 12", score: 7.0, mode: "Practice", status: "Complete" },
-  { title: "Full Stack · Role-specific", date: "Oct 9", score: 6.1, mode: "Real", status: "Incomplete" },
-  { title: "Frontend · Technical", date: "Oct 4", score: 6.7, mode: "Practice", status: "Complete" },
-];
-
 function Dashboard() {
+  const {
+    data: history = [],
+    error: historyError,
+    isPending: historyPending,
+  } = useQuery({ queryKey: ["history"], queryFn: () => MockApi.getHistory() });
   const max = 10;
-  const pts = trend.map((v, i) => `${(i / (trend.length - 1)) * 100},${100 - (v / max) * 100}`).join(" ");
+  const pts = trend
+    .map((v, i) => `${(i / (trend.length - 1)) * 100},${100 - (v / max) * 100}`)
+    .join(" ");
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-6">
@@ -39,8 +47,12 @@ function Dashboard() {
           <p className="mt-2 text-muted-foreground">Target: Middle Frontend Developer · English</p>
         </div>
         <div className="flex gap-3">
-          <Link to="/setup" className="btn btn-ghost">Custom setup</Link>
-          <Link to="/ready" className="btn btn-primary">Quick Start →</Link>
+          <Link to="/setup" className="btn btn-ghost">
+            Custom setup
+          </Link>
+          <Link to="/ready" className="btn btn-primary">
+            Quick Start →
+          </Link>
         </div>
       </div>
 
@@ -64,29 +76,55 @@ function Dashboard() {
             <h2 className="text-xl">Score trend</h2>
             <span className="text-xs text-muted-foreground">Frontend · Technical only</span>
           </div>
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="mt-6 h-44 w-full overflow-visible">
-            <polyline points={pts} fill="none" stroke="var(--color-primary)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="mt-6 h-44 w-full overflow-visible"
+          >
+            <polyline
+              points={pts}
+              fill="none"
+              stroke="var(--color-primary)"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
             {trend.map((v, i) => (
-              <circle key={i} cx={(i / (trend.length - 1)) * 100} cy={100 - (v / max) * 100} r="1.4" fill="var(--color-accent)" />
+              <circle
+                key={i}
+                cx={(i / (trend.length - 1)) * 100}
+                cy={100 - (v / max) * 100}
+                r="1.4"
+                fill="var(--color-accent)"
+              />
             ))}
           </svg>
-          <p className="mt-3 text-xs text-muted-foreground">Scores are AI coaching estimates, not measures of hiring readiness.</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Scores are AI coaching estimates, not measures of hiring readiness.
+          </p>
         </div>
         <div className="card-surface p-6">
           <h2 className="text-xl">By category</h2>
           <div className="mt-5 space-y-4">
             {categories.map((c) => (
               <div key={c.name}>
-                <div className="flex justify-between text-sm"><span>{c.name}</span><span className="font-semibold">{c.score}</span></div>
+                <div className="flex justify-between text-sm">
+                  <span>{c.name}</span>
+                  <span className="font-semibold">{c.score}</span>
+                </div>
                 <div className="mt-1.5 h-2 rounded-full bg-muted">
-                  <div className="h-2 rounded-full bg-primary" style={{ width: `${c.score * 10}%` }} />
+                  <div
+                    className="h-2 rounded-full bg-primary"
+                    style={{ width: `${c.score * 10}%` }}
+                  />
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-6 rounded-lg bg-secondary p-3 text-sm">
             <p className="font-semibold">Suggested practice</p>
-            <p className="text-muted-foreground">Structure answers with STAR — 5 behavioral questions.</p>
+            <p className="text-muted-foreground">
+              Structure answers with STAR — 5 behavioral questions.
+            </p>
           </div>
         </div>
       </div>
@@ -94,18 +132,39 @@ function Dashboard() {
       <div className="card-surface mt-4 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl">Recent sessions</h2>
-          <input placeholder="Search role, type…" className="rounded-full border border-input bg-background px-4 py-2 text-sm" />
+          <input
+            placeholder="Search role, type…"
+            className="rounded-full border border-input bg-background px-4 py-2 text-sm"
+          />
         </div>
         <div className="mt-4 divide-y divide-border">
-          {history.map((h, i) => (
-            <Link key={i} to="/report" className="flex items-center justify-between py-3 hover:opacity-80">
+          {historyPending && <p role="status">Loading sessions…</p>}
+          {historyError && <p role="alert">{historyError.message}</p>}
+          {!historyPending && !historyError && history.length === 0 && (
+            <p>No saved sessions yet.</p>
+          )}
+          {history.map((h) => (
+            <Link
+              key={h.id}
+              to="/report"
+              search={{ interviewId: h.id }}
+              className="flex items-center justify-between py-3 hover:opacity-80"
+            >
               <div>
-                <p className="font-medium">{h.title}</p>
-                <p className="text-xs text-muted-foreground">{h.date} · {h.mode} mode</p>
+                <p className="font-medium">
+                  {h.setup.role} · {h.setup.type}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(h.startedAt).toLocaleDateString()} · {h.setup.mode} mode
+                </p>
               </div>
               <div className="flex items-center gap-4">
-                {h.status === "Incomplete" && <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">Incomplete</span>}
-                <span className="font-display text-xl">{h.score}</span>
+                {h.status === "incomplete" && (
+                  <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">Incomplete</span>
+                )}
+                <span className="font-display text-xl">
+                  {h.answeredCount} / {h.setup.questionCount}
+                </span>
               </div>
             </Link>
           ))}

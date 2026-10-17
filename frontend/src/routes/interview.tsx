@@ -77,8 +77,10 @@ function Interview() {
         {error?.message ?? "Interview unavailable."} <Link to="/setup">New interview</Link>
       </p>
     );
+  const setup = interview.setup;
+  if (!setup) return <p role="status">Loading interview setup…</p>;
   const msgs = interview.messages;
-  const practice = interview.setup.mode === "Practice";
+  const practice = setup.mode === "Practice";
   const mm = String(Math.floor(sec / 60)).padStart(2, "0");
   const ss = String(sec % 60).padStart(2, "0");
 
@@ -88,16 +90,14 @@ function Interview() {
         <div className="flex items-center gap-3">
           <span className="h-2.5 w-2.5 rounded-full bg-destructive pulse-dot" />
           <span className="font-display text-lg">
-            {interview.setup.role} · {interview.setup.type}
+            {setup.role} · {setup.type}
           </span>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
-            {interview.setup.mode}
-          </span>
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{setup.mode}</span>
         </div>
         <div className="flex items-center gap-6 text-sm">
           <span>
-            Question <b>{Math.min(interview.answeredCount + 1, interview.setup.questionCount)}</b> /{" "}
-            {interview.setup.questionCount}
+            Question <b>{Math.min(interview.answeredCount + 1, setup.questionCount)}</b> /{" "}
+            {setup.questionCount}
           </span>
           <span className="tabular-nums text-muted-foreground">
             {mm}:{ss}
@@ -110,7 +110,7 @@ function Interview() {
       <div className="h-1 bg-muted">
         <div
           className="h-1 bg-accent"
-          style={{ width: `${(interview.answeredCount / interview.setup.questionCount) * 100}%` }}
+          style={{ width: `${(interview.answeredCount / setup.questionCount) * 100}%` }}
         />
       </div>
 

@@ -1,0 +1,99 @@
+"""Wire models use the frontend's camelCase field names."""
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+Role = Literal['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'QA Engineer', 'Data Analyst', 'DevOps Engineer']
+Level = Literal['Junior', 'Middle', 'Senior']
+
+
+class LoginData(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1)
+
+
+class RegisterData(LoginData):
+    name: str = Field(min_length=1, pattern=r'\S')
+    targetRole: Role = 'Frontend Developer'
+    level: Level = 'Middle'
+
+
+class User(BaseModel):
+    id: str
+    name: str
+    email: EmailStr
+    targetRole: Role = 'Frontend Developer'
+    level: Level = 'Middle'
+    preferredLanguage: Literal['English'] = 'English'
+
+
+class InterviewSetup(BaseModel):
+    role: Role
+    level: Level
+    mode: Literal['Practice', 'Real Interview']
+    questionCount: Literal[5, 10, 15]
+    type: Literal['Technical', 'Behavioral', 'Role-specific']
+    input: Literal['Voice', 'Text']
+    language: Literal['English']
+    jobDescription: str = ""
+
+    @field_validator('questionCount', mode='before')
+    @classmethod
+    def integer_count(cls, value):
+        if type(value) is not int:
+            raise ValueError('questionCount must be an integer')
+        return value
+
+
+class Answer(BaseModel):
+    text: str = Field(min_length=1, pattern=r'\S')
+
+
+class Message(BaseModel):
+    id: str
+    interviewId: str
+    sender: Literal['ai', 'you', 'hint'] = Field(alias='from')
+    text: str
+    createdAt: datetime
+
+
+class Scores(BaseModel):
+    accuracy: float = 7.6
+    completeness: float = 6.1
+    clarity: float = 7.8
+    structure: float = 5.9
+
+
+class Interview(BaseModel):
+    id: str
+    setup: InterviewSetup
+    status: Literal['active', 'complete', 'incomplete'] = 'active'
+    startedAt: datetime
+    endedAt: datetime | None = None
+    answeredCount: int = 0
+    messages: list[Message]
+    lastFeedback: Scores | None = None
+
+
+class QuestionFeedback(BaseModel):
+    q: str
+    answer: str
+    score: float
+    good: str
+    miss: str
+    better: str
+
+
+class Feedback(BaseModel):
+    interviewId: str
+    overall: float | None
+    scores: Scores | None
+    strengths: list[str]
+    gaps: list[str]
+    questions: list[QuestionFeedback]
+
+
+class InterviewReport(BaseModel):
+    interview: Interview
+    feedback: Feedback

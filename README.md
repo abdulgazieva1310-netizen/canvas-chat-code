@@ -1,14 +1,18 @@
-# Welcome to your Lovable project
+# Canvas Chat Code
+
+The next design step should be a clickable UX prototype covering five screens: interviewer dashboard, create-session form, candidate lobby, live interview canvas, and ended-session review. In parallel, engineering should run a short technical spike comparing suitable canvas renderers and CRDT approaches against the acceptance criteria, especially connectors, text editing, freehand performance, scoped undo, and reconnect behavior.
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://canvas-chat-code.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/653602a7-1dbe-4cb6-a584-142b3b245686).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +24,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS

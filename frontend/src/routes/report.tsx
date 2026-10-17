@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { useState } from "react";
@@ -6,8 +6,11 @@ import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/report")({
   validateSearch: (search: Record<string, unknown>) => ({
-    interviewId: typeof search["interviewId"] === "string" ? search["interviewId"] : "",
+    interviewId: typeof search["interviewId"] === "string" ? search["interviewId"].trim() : "",
   }),
+  beforeLoad: ({ search }) => {
+    if (!search.interviewId) throw redirect({ to: "/", replace: true });
+  },
   head: () => ({
     meta: [
       { title: "Interview report — Interview Mirror" },
@@ -29,6 +32,7 @@ function Report() {
   const { data, error, isPending } = useQuery({
     queryKey: ["report", interviewId],
     queryFn: () => Api.getReport(interviewId),
+    enabled: !!interviewId.trim(),
     retry: false,
   });
   if (isPending)

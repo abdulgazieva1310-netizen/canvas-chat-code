@@ -30,12 +30,20 @@ npm run dev
 Start the backend from the repository root with `make run`, then run
 `npm run dev` from `frontend`. Authentication and interview operations use
 `src/lib/api/client.ts`. Sign in with **demo@example.com / demo-password**, or
-create an account. Sessions use HttpOnly cookies; expired sessions show sign-in.
+create an account at `/register`; `/login` is the sign-in page. Unauthenticated
+private pages redirect to `/login` and return to the original page after sign-in.
+
+Login and registration establish an HttpOnly cookie and return an Authorization
+header. The frontend keeps that bearer token in tab-scoped `sessionStorage`,
+restores it after reload, and sends it on subsequent API requests alongside
+`credentials: "include"`. Expired tokens are cleared. Passwords are never stored.
+Cookie authentication remains available when browser storage is disabled.
 
 The default API URL is `http://localhost:8000/api`. Copy `.env.example` to
 `.env.local` to override `VITE_API_BASE_URL` (including `/api`). For deployment,
 use `/api` behind a same-origin reverse proxy, or configure backend `CORS_ORIGINS`
-for the frontend origin. Cookie authentication requires same-site hosting;
+for the frontend origin and expose the `Authorization` response header (the
+backend does this by default). Cookie authentication requires same-site hosting;
 set `SECURE_COOKIES=true` with HTTPS.
 
 Restarting the backend clears its in-memory sessions and interviews. Questions,

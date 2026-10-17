@@ -2,7 +2,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  sessionStorage.clear();
+});
 
 it("uses backend endpoints with cookies and JSON bodies", async () => {
   const fetch = vi
@@ -75,4 +78,29 @@ it.each([
   await expect(Api.startInterview(defaultSetup)).rejects.toThrow(
     "did not return a valid interview",
   );
+});
+
+it("clears expired authorization after a 401", async () => {
+  sessionStorage.setItem("interview-mirror.authorization", "Bearer expired");
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockImplementation(
+        async () => new Response('{"message":"Authentication required."}', { status: 401 }),
+      ),
+  );
+  await expect(Api.getHistory()).rejects.toMatchObject({ status: 401 });
+  expect(sessionStorage.getItem("interview-mirror.authorization")).toBeNull();
+});
+
+it("keeps cookie authentication when no bearer response header is available", async () => {
+  const fetch = vi.fn().mockImplementation(async () => new Response("{}"));
+  vi.stubGlobal("fetch", fetch);
+  await Api.login("demo@example.com", "secret");
+  await Api.getHistory();
+  expect(sessionStorage.getItem("interview-mirror.authorization")).toBeNull();
+  expect(fetch.mock.calls[1]?.[1].credentials).toBe("include");
+  expect(fetch.mock.calls[1]?.[1].headers).not.toHaveProperty("Authorization");
+  expect(JSON.stringify(sessionStorage)).not.toContain("secret");
 });

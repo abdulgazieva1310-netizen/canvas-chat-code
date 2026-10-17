@@ -1,3 +1,4 @@
+import { getAuthorization, saveAuthorization } from "./session";
 import type { Interview, InterviewReport, InterviewSetup, RegisterData, User } from "./types";
 
 const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api").replace(
@@ -21,18 +22,27 @@ async function request<T>(
   method = body === undefined ? "GET" : "POST",
   { notifyUnauthorized = true }: { notifyUnauthorized?: boolean } = {},
 ): Promise<T> {
+  const isAuthRequest = path === "/auth/login" || path === "/auth/register";
+  const authorization = isAuthRequest ? null : getAuthorization();
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     credentials: "include",
     headers: {
       Accept: "application/json",
+      ...(authorization ? { Authorization: authorization } : {}),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    if (notifyUnauthorized && response.status === 401 && typeof window !== "undefined") {
+    if (response.status === 401 && !isAuthRequest) saveAuthorization(null);
+    if (
+      !isAuthRequest &&
+      notifyUnauthorized &&
+      response.status === 401 &&
+      typeof window !== "undefined"
+    ) {
       window.dispatchEvent(new Event("api:unauthorized"));
     }
     throw new ApiError(
@@ -40,7 +50,12 @@ async function request<T>(
       typeof error?.message === "string" ? error.message : `Request failed (${response.status}).`,
     );
   }
-  return response.json() as Promise<T>;
+  const data = (await response.json()) as T;
+  if (isAuthRequest) {
+    const authorization = response.headers.get("Authorization");
+    saveAuthorization(authorization?.startsWith("Bearer ") ? authorization : null);
+  }
+  return data;
 }
 
 const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;

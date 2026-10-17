@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { InterviewSetup } from "@/lib/api/types";
@@ -54,6 +54,7 @@ function Choice<T extends string>({
 
 function Setup() {
   const navigate = useNavigate();
+  const client = useQueryClient();
   const [setup, setSetup] = useState<InterviewSetup>(defaultSetup);
   const { type, role, level, mode, input, questionCount: count } = setup;
   const update =
@@ -61,8 +62,11 @@ function Setup() {
     (value: InterviewSetup[K]) =>
       setSetup((s) => ({ ...s, [key]: value }));
   const start = useMutation({
-    mutationFn: () => Api.startInterview(setup),
-    onSuccess: (interview) => navigate({ to: "/interview", search: { interviewId: interview.id } }),
+    mutationFn: (setupData: InterviewSetup) => Api.startInterview(setupData),
+    onSuccess: async (interview) => {
+      client.setQueryData(["interview", interview.id], interview);
+      await navigate({ to: "/interview", search: { interviewId: interview.id } });
+    },
   });
   return (
     <AppShell>
@@ -148,10 +152,11 @@ function Setup() {
               ? "Hints and feedback after each answer."
               : "No hints. Feedback at the end only."}
           </p>
-          {start.error && <p role="alert">{start.error.message}</p>}
+          {start.error && <p role="alert">Could not start interview: {start.error.message}</p>}
           <button
             disabled={start.isPending}
-            onClick={() => start.mutate()}
+            type="button"
+            onClick={() => start.mutate(setup)}
             className="btn btn-primary mt-6 w-full"
           >
             {start.isPending ? "Starting…" : "Start interview"}

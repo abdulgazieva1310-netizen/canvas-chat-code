@@ -19,6 +19,7 @@ async function request<T>(
   path: string,
   body?: unknown,
   method = body === undefined ? "GET" : "POST",
+  { notifyUnauthorized = true }: { notifyUnauthorized?: boolean } = {},
 ): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
     method,
@@ -31,7 +32,7 @@ async function request<T>(
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-    if (response.status === 401 && typeof window !== "undefined") {
+    if (notifyUnauthorized && response.status === 401 && typeof window !== "undefined") {
       window.dispatchEvent(new Event("api:unauthorized"));
     }
     throw new ApiError(
@@ -48,7 +49,9 @@ export const Api = {
   login: (email: string, password: string) => request<User>("/auth/login", { email, password }),
   register: (data: RegisterData) => request<User>("/auth/register", data),
   async startInterview(setup: InterviewSetup): Promise<Interview> {
-    const interview = await request<Interview>("/interviews", setup);
+    const interview = await request<Interview>("/interviews", setup, "POST", {
+      notifyUnauthorized: false,
+    });
     if (typeof interview?.id !== "string" || !interview.id.trim() || !interview.setup) {
       throw new Error("The backend did not return a valid interview. Please try starting again.");
     }

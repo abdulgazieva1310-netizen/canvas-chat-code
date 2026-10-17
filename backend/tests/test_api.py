@@ -169,3 +169,16 @@ def test_secure_cookie_and_cors():
             assert response.headers['access-control-allow-credentials'] == 'true'
             assert 'PUT' in response.headers['access-control-allow-methods']
             assert response.headers['access-control-allow-headers'] == 'X-Custom-Header'
+
+
+def test_create_returns_created_interview(client):
+    login(client)
+    response = client.post('/api/interviews', json=SETUP, headers={'Origin': 'http://localhost:8080'})
+    assert response.status_code == 201
+    created = response.json()
+    assert isinstance(created['id'], str) and created['id'].strip()
+    assert all(created['setup'][key] == value for key, value in SETUP.items())
+    assert created['status'] == 'active'
+    assert created['messages'][0]['interviewId'] == created['id']
+    assert response.headers['access-control-allow-origin'] == 'http://localhost:8080'
+    assert client.get('/api/interviews/' + created['id']).json() == created

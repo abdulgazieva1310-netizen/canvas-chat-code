@@ -161,6 +161,11 @@ def test_responses_match_contract(client):
 def test_secure_cookie_and_cors():
     with TestClient(create_app(secure_cookies=True)) as client:
         assert 'Secure' in login(client).headers['set-cookie']
-        response = client.options('/api/interviews', headers={'Origin': 'http://localhost:5173',
-            'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'Authorization'})
-        assert response.headers['access-control-allow-origin'] == 'http://localhost:5173'
+        for origin in ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:8080']:
+            response = client.options('/api/interviews', headers={'Origin': origin,
+                'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'X-Custom-Header'})
+            assert response.status_code == 200
+            assert response.headers['access-control-allow-origin'] == origin
+            assert response.headers['access-control-allow-credentials'] == 'true'
+            assert 'PUT' in response.headers['access-control-allow-methods']
+            assert response.headers['access-control-allow-headers'] == 'X-Custom-Header'

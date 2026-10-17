@@ -16,9 +16,9 @@ def create_app(*, seed=True, secure_cookies=None):
     app.state.secure_cookies = (os.getenv('SECURE_COOKIES', 'false').lower() == 'true'
                                 if secure_cookies is None else secure_cookies)
     app.add_middleware(CORSMiddleware,
-        allow_origins=os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(','),
-        allow_credentials=True, allow_methods=['GET', 'POST'],
-        allow_headers=['Authorization', 'Content-Type'], expose_headers=['Authorization'])
+        allow_origins=os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000,http://localhost:5173').split(','),
+        allow_credentials=True, allow_methods=['*'],
+        allow_headers=['*'], expose_headers=['Authorization'])
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):

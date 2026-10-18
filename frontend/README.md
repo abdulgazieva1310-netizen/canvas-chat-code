@@ -46,7 +46,22 @@ for the frontend origin and expose the `Authorization` response header (the
 backend does this by default). Cookie authentication requires same-site hosting;
 set `SECURE_COOKIES=true` with HTTPS.
 
-Restarting the backend clears its in-memory sessions and interviews. Questions,
-scores, and coaching remain deterministic fixtures; voice input submits text.
+The backend persists sessions and interviews in its configured database. Question
+generation and answer evaluation use Groq when configured; see `../backend/README.md`.
 Dashboard summary statistics and charts remain demo fixtures. `mock-api.ts`
 is retained for fixture tests only; application routes use HTTP.
+
+In Setup choose **Voice** under **Answer by**. In the interview room, click the
+microphone, grant permission, and speak in English. Transcription appears in the
+answer field as you speak. Stop the microphone to review the transcript, edit it
+if needed, then click Send (or press Enter). Speech never submits automatically;
+existing typed text is preserved when starting dictation. Editing the field stops
+recognition so later speech results cannot overwrite edits. Sending, ending the
+interview, and leaving the room also stop recognition.
+
+The implementation supports `SpeechRecognition` and `webkitSpeechRecognition`.
+Use localhost or HTTPS and a browser with speech recognition support. Unsupported
+browsers retain text input; permission, microphone, and network errors are shown
+with a typing fallback. The application sends only the resulting text to its
+backend, without recording or storing audio. The browser's recognition service
+may process audio remotely; see [MDN SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition).

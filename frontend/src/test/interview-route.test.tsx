@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createMemoryHistory,
@@ -13,10 +13,12 @@ import { Route } from "@/routes/interview";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { Interview } from "@/lib/api/types";
+import type { BrowserSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 function openInterview(url = "/interview?interviewId=session-123") {
@@ -199,6 +201,81 @@ it("preserves typed text and re-enables input after a failed send", async () => 
   await screen.findByRole("alert");
   expect(input).toHaveValue("Keep my answer");
   expect(input).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  client.clear();
+});
+
+class RoomRecognition implements BrowserSpeechRecognition {
+  static last: RoomRecognition;
+  lang = "";
+  continuous = false;
+  interimResults = false;
+  onresult: BrowserSpeechRecognition["onresult"] = null;
+  onerror: BrowserSpeechRecognition["onerror"] = null;
+  onend: BrowserSpeechRecognition["onend"] = null;
+  start = vi.fn();
+  stop = vi.fn();
+  abort = vi.fn();
+  constructor() { RoomRecognition.last = this; }
+}
+
+it("transcribes a Voice answer into the input and sends it through the existing API", async () => {
+  vi.stubGlobal("SpeechRecognition", RoomRecognition);
+  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
+    setup: { ...defaultSetup, input: "Voice" } };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const send = vi.spyOn(Api, "sendMessage").mockResolvedValue({ ...active, answeredCount: 2 });
+  const client = openInterview();
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  const mic = screen.getByRole("button", { name: "Start microphone" });
+  await waitFor(() => expect(mic).toBeEnabled());
+  fireEvent.change(input, { target: { value: "My approach:" } });
+  fireEvent.click(mic);
+  expect(RoomRecognition.last.start).toHaveBeenCalledOnce();
+  expect(screen.getByRole("button", { name: "Stop microphone" })).toHaveAttribute("aria-pressed", "true");
+  act(() => RoomRecognition.last.onresult?.({ results: [[{ transcript: "use a hash map" }]] }));
+  expect(input).toHaveValue("My approach: use a hash map");
+  fireEvent.click(screen.getByRole("button", { name: "Stop microphone" }));
+  expect(RoomRecognition.last.stop).toHaveBeenCalledOnce();
+  act(() => RoomRecognition.last.onresult?.({ results: [[{ transcript: "use a hash map for lookups." }]] }));
+  act(() => RoomRecognition.last.onend?.());
+  expect(input).toHaveValue("My approach: use a hash map for lookups.");
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, "My approach: use a hash map for lookups."));
+  await waitFor(() => expect(input).toHaveValue(""));
+  client.clear();
+});
+
+it("stops listening when the candidate edits the transcript", async () => {
+  vi.stubGlobal("SpeechRecognition", RoomRecognition);
+  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null });
+  const client = openInterview();
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));
+  const lateResult = RoomRecognition.last.onresult!;
+  act(() => lateResult({ results: [[{ transcript: "spoken draft" }]] }));
+  fireEvent.change(input, { target: { value: "Edited draft" } });
+  expect(RoomRecognition.last.abort).toHaveBeenCalledOnce();
+  act(() => lateResult({ results: [[{ transcript: "late speech" }]] }));
+  expect(input).toHaveValue("Edited draft");
+  client.clear();
+});
+
+it.each(["Voice", "Text"] as const)("keeps %s input usable without speech recognition support", async (inputMode) => {
+  vi.stubGlobal("SpeechRecognition", undefined);
+  vi.stubGlobal("webkitSpeechRecognition", undefined);
+  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
+    setup: { ...defaultSetup, input: inputMode } });
+  const client = openInterview();
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  if (inputMode === "Voice") {
+    expect(screen.getByRole("button", { name: "Start microphone" })).toBeDisabled();
+    expect(screen.getByText(/Voice transcription is unavailable/)).toBeInTheDocument();
+  } else {
+    expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
+  }
+  fireEvent.change(input, { target: { value: "Typed answer" } });
+  expect(input).toHaveValue("Typed answer");
   expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   client.clear();
 });

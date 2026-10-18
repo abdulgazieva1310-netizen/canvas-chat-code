@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import type { Interview as InterviewData } from "@/lib/api/types";
 import { useEffect, useState } from "react";
+import { Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 export const Route = createFileRoute("/interview")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -48,7 +50,6 @@ function Interview() {
   });
   const [text, setText] = useState("");
   const [sec, setSec] = useState(0);
-  const [listening, setListening] = useState(false);
   const receive = async (updated: InterviewData) => {
     client.setQueryData(queryKey, updated);
     if (updated.status !== "active") await navigate({ to: "/report", search: { interviewId } });
@@ -66,6 +67,12 @@ function Interview() {
   });
   const hint = useMutation({ mutationFn: () => Api.getHint(interviewId), onSuccess: receive });
   const busy = answer.isPending || end.isPending || hint.isPending;
+  const voiceMode = interview?.setup?.input === "Voice";
+  const speech = useSpeechRecognition(
+    voiceMode && interview?.status === "active" && !busy && !error,
+    interviewId,
+    setText,
+  );
   useEffect(() => {
     const startedAt = interview?.startedAt;
     const endedAt = interview?.endedAt;
@@ -82,7 +89,10 @@ function Interview() {
     return () => clearInterval(timer);
   }, [interview?.startedAt, interview?.endedAt]);
   const send = () => {
-    if (text.trim() && !busy && interview?.status === "active") answer.mutate(text.trim());
+    if (text.trim() && !busy && interview?.status === "active") {
+      speech.cancel();
+      answer.mutate(text.trim());
+    }
   };
   if (isPending) return <p role="status">Loading interview…</p>;
   if (error || !interview)
@@ -116,7 +126,14 @@ function Interview() {
           <span className="tabular-nums text-muted-foreground">
             {mm}:{ss}
           </span>
-          <button disabled={busy || interview.status !== "active"} onClick={() => end.mutate()} className="btn btn-ghost py-1.5">
+          <button
+            disabled={busy || interview.status !== "active"}
+            onClick={() => {
+              speech.cancel();
+              end.mutate();
+            }}
+            className="btn btn-ghost py-1.5"
+          >
             {end.isPending ? "Ending…" : "End interview"}
           </button>
         </div>
@@ -155,19 +172,32 @@ function Interview() {
             )}
           </div>
           <div className="card-surface mt-6 flex items-center gap-3 p-3">
-            <button
-              onClick={() => setListening(!listening)}
-              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
-              aria-label="Toggle microphone"
-            >
-              ●
-            </button>
+            {voiceMode && (
+              <button
+                type="button"
+                disabled={!speech.supported || busy || interview.status !== "active"}
+                onClick={() => (speech.listening ? speech.stop() : speech.start(text))}
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50 ${speech.listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
+                aria-label={speech.listening ? "Stop microphone" : "Start microphone"}
+                aria-pressed={speech.listening}
+              >
+                {speech.listening ? (
+                  <MicOff aria-hidden="true" size={20} />
+                ) : (
+                  <Mic aria-hidden="true" size={20} />
+                )}
+              </button>
+            )}
             <input
               disabled={busy || interview.status !== "active"}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                speech.cancel();
+                setText(e.target.value);
+              }}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder={listening ? "Listening… or type your answer" : "Type your answer"}
+              placeholder={speech.listening ? "Listening… or type your answer" : "Type your answer"}
+              aria-label="Your answer"
               className="flex-1 bg-transparent px-2 text-sm outline-none"
             />
             <button
@@ -178,6 +208,21 @@ function Interview() {
               {answer.isPending ? "Sending…" : "Send"}
             </button>
           </div>
+          {voiceMode && !speech.supported && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Voice transcription is unavailable in this browser. You can type your answer instead.
+            </p>
+          )}
+          {voiceMode && speech.listening && (
+            <p role="status" className="mt-2 text-sm text-muted-foreground">
+              Listening… Stop the microphone to review your answer, then select Send.
+            </p>
+          )}
+          {speech.error && (
+            <p role="alert" className="mt-2 text-sm">
+              {speech.error}
+            </p>
+          )}
         </section>
         <aside className="space-y-4">
           <div className="card-surface p-5">
@@ -212,9 +257,15 @@ function Interview() {
           )}
           {practice && interview.lastAnswerFeedback && (
             <div className="card-surface space-y-3 p-5 text-sm">
-              <p><b>What went well:</b> {interview.lastAnswerFeedback.went_well}</p>
-              <p><b>What was missing:</b> {interview.lastAnswerFeedback.missing}</p>
-              <p><b>Stronger answer:</b> {interview.lastAnswerFeedback.stronger_answer}</p>
+              <p>
+                <b>What went well:</b> {interview.lastAnswerFeedback.went_well}
+              </p>
+              <p>
+                <b>What was missing:</b> {interview.lastAnswerFeedback.missing}
+              </p>
+              <p>
+                <b>Stronger answer:</b> {interview.lastAnswerFeedback.stronger_answer}
+              </p>
             </div>
           )}
           {practice && (

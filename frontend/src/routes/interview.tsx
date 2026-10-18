@@ -36,7 +36,13 @@ function Interview() {
     isPending,
   } = useQuery({
     queryKey,
-    queryFn: () => Api.getInterview(interviewId),
+    queryFn: async () => {
+      const saved = await Api.getInterview(interviewId);
+      if (saved?.status !== "incomplete") return saved;
+      const resumed = await Api.resumeInterview(interviewId);
+      void client.invalidateQueries({ queryKey: ["history"] });
+      return resumed;
+    },
     enabled: !!interviewId,
     retry: false,
   });
@@ -76,7 +82,7 @@ function Interview() {
     return () => clearInterval(timer);
   }, [interview?.startedAt, interview?.endedAt]);
   const send = () => {
-    if (text.trim() && !busy) answer.mutate(text);
+    if (text.trim() && !busy && interview?.status === "active") answer.mutate(text.trim());
   };
   if (isPending) return <p role="status">Loading interview…</p>;
   if (error || !interview)
@@ -110,7 +116,7 @@ function Interview() {
           <span className="tabular-nums text-muted-foreground">
             {mm}:{ss}
           </span>
-          <button disabled={busy} onClick={() => end.mutate()} className="btn btn-ghost py-1.5">
+          <button disabled={busy || interview.status !== "active"} onClick={() => end.mutate()} className="btn btn-ghost py-1.5">
             {end.isPending ? "Ending…" : "End interview"}
           </button>
         </div>

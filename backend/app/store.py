@@ -133,6 +133,15 @@ class Repository:
         self.loaded[ident] = record
         return Interview.model_validate(record.payload)
 
+    def resume(self, interview):
+        if interview.status == 'complete' or interview.answeredCount >= interview.setup.questionCount:
+            raise HTTPException(409, 'Completed interviews cannot be resumed.')
+        if interview.status == 'incomplete':
+            interview.status = 'active'
+            interview.endedAt = None
+            self.save(interview)
+        return interview
+
     def answer(self, interview, text, next_question=None, evaluation=None):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')

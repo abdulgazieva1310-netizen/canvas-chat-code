@@ -23,6 +23,7 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
   await Api.getHint("a/b");
   await Api.endInterview("a/b");
   await Api.getReport("a/b");
+  await Api.resumeInterview("a/b");
   expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
     ["http://localhost:8000/api/auth/login", "POST"],
     ["http://localhost:8000/api/auth/register", "POST"],
@@ -33,6 +34,7 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
     ["http://localhost:8000/api/interviews/a%2Fb/hint", "POST"],
     ["http://localhost:8000/api/interviews/a%2Fb/end", "POST"],
     ["http://localhost:8000/api/interviews/a%2Fb/report", "GET"],
+    ["http://localhost:8000/api/interviews/a%2Fb/resume", "POST"],
   ]);
   for (const [, options] of fetch.mock.calls) expect(options.credentials).toBe("include");
   expect(fetch.mock.calls[0]?.[1].body).toBe(
@@ -41,6 +43,7 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
   expect(fetch.mock.calls[2]?.[1].body).toBe(JSON.stringify(defaultSetup));
   expect(fetch.mock.calls[5]?.[1].body).toBe(JSON.stringify({ text: "Answer" }));
   expect(fetch.mock.calls[6]?.[1]).not.toHaveProperty("body");
+  expect(fetch.mock.calls[9]?.[1]).not.toHaveProperty("body");
 });
 
 it("preserves backend errors and signals expired sessions", async () => {

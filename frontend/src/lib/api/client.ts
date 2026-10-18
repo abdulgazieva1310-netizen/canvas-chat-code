@@ -73,6 +73,7 @@ export const Api = {
     return interview;
   },
   getInterview: (id: string) => request<Interview>(interviewPath(id)),
+  resumeInterview: (id: string) => request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
   sendMessage: (id: string, text: string) =>
     request<Interview>(`${interviewPath(id)}/messages`, { text }),
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),

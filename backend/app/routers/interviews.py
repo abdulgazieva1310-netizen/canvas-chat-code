@@ -31,6 +31,13 @@ def get(interviewId: str, request: Request, user: CurrentUser):
         return store.find(user.id, interviewId).model_copy(deep=True)
 
 
+@router.post('/{interviewId}/resume', response_model=Interview)
+def resume(interviewId: str, request: Request, user: CurrentUser):
+    store = request.app.state.store
+    with store.transaction() as store:
+        return store.resume(store.find(user.id, interviewId)).model_copy(deep=True)
+
+
 @router.post('/{interviewId}/messages', response_model=Interview)
 def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
     store = request.app.state.store

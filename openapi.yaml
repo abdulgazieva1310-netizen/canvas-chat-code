@@ -121,6 +121,26 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /interviews/{interviewId}/resume:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    post:
+      operationId: resumeInterview
+      summary: Resume an incomplete interview
+      description: |
+        Changes incomplete to active and clears endedAt, preserving the ID, setup,
+        transcript, answer count, pending question, and stored evaluations. Already
+        active interviews are returned unchanged. Completed interviews return 409.
+        No request body. Inaccessible interviews return 404.
+      responses:
+        '200':
+          $ref: '#/components/responses/InterviewResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidState'
   /interviews/{interviewId}/messages:
     parameters:
       - $ref: '#/components/parameters/InterviewId'

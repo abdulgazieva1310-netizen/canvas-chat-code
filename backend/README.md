@@ -101,3 +101,9 @@ columns. Sessions commit on success and roll back on failure, following the
 
 The frontend uses this HTTP backend with cookie authentication; see
 `../frontend/README.md` for connection settings.
+
+Opening an incomplete interview in the room calls `POST /api/interviews/{id}/resume`
+before enabling input. Resume restores active status and clears `endedAt` while
+preserving the existing transcript, pending question, answer count, and evaluations.
+It is idempotent for active interviews; completed interviews cannot be resumed.
+GET requests remain read-only.

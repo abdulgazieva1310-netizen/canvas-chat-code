@@ -69,7 +69,7 @@ def test_register_and_ownership(client):
     assert client.get('/api/interviews').json() == []
     for suffix in ['', '/report']:
         assert client.get(f'/api/interviews/{ident}{suffix}').status_code == 404
-    for suffix, body in [('/messages', {'text': 'answer'}), ('/hint', None), ('/end', None)]:
+    for suffix, body in [('/messages', {'text': 'answer'}), ('/hint', None), ('/end', None), ('/resume', None)]:
         assert client.post(f'/api/interviews/{ident}{suffix}', json=body).status_code == 404
     assert client.post('/api/auth/register', json={'name': 'Other', 'email': 'new@example.com', 'password': 'x'}).status_code == 409
     assert client.post('/api/auth/login', json={'email': 'new@example.com', 'password': 'secret'}).status_code == 200
@@ -384,3 +384,49 @@ def test_report_averages_only_successful_evaluations(client, monkeypatch):
     assert feedback['scores'] == dict(accuracy=8, completeness=6, clarity=10, structure=4)
     assert [q['score'] for q in feedback['questions']] == [7, None]
     assert feedback['strengths'] == ['Clear explanation']
+
+
+@pytest.mark.parametrize('mode', ['Practice', 'Real Interview'])
+def test_resume_incomplete_interview_preserves_progress(client, mode):
+    login(client)
+    interview = start(client, mode=mode)
+    path = '/api/interviews/' + interview['id']
+    client.post(path + '/messages', json={'text': 'First saved answer'})
+    ended = client.post(path + '/end').json()
+    partial = client.get(path + '/report').json()['feedback']
+    assert ended['status'] == 'incomplete'
+    assert client.get(path).json() == ended  # Reading does not reopen the interview.
+    response = client.post(path + '/resume')
+    assert response.status_code == 200
+    resumed = response.json()
+    assert resumed == ended | {'status': 'active', 'endedAt': None}
+    assert client.post(path + '/resume').json() == resumed
+    assert client.get(path).json() == resumed
+    assert all(item['id'] != interview['id'] for item in client.get('/api/interviews').json())
+    assert client.get(path + '/report').status_code == 409
+    assert client.post(path + '/hint').status_code == (200 if mode == 'Practice' else 409)
+    for index in range(4):
+        response = client.post(path + '/messages', json={'text': f'Resumed answer {index}'})
+        assert response.status_code == 200
+    completed = response.json()
+    assert completed['status'] == 'complete'
+    assert completed['answeredCount'] == 5
+    assert len([m for m in completed['messages'] if m['from'] == 'ai']) == 5
+    assert client.get(path + '/report').json()['feedback']['questions'][0] == partial['questions'][0]
+    assert client.post(path + '/resume').status_code == 409
+    assert client.get(path).json() == completed
+
+
+def test_resume_requires_authentication_and_persists(tmp_path):
+    url = f'sqlite:///{tmp_path / "resume.db"}'
+    with TestClient(create_app(database_url=url)) as first:
+        assert first.post('/api/interviews/missing/resume').status_code == 401
+        token = login(first).headers['authorization']
+        path = '/api/interviews/' + start(first)['id']
+        assert first.post('/api/interviews/missing/resume').status_code == 404
+        first.post(path + '/end')
+        resumed = first.post(path + '/resume').json()
+    with TestClient(create_app(database_url=url)) as restarted:
+        assert restarted.get(path, headers={'Authorization': token}).json() == resumed
+        assert restarted.post(path + '/messages', headers={'Authorization': token},
+                              json={'text': 'Answer after restart'}).status_code == 200

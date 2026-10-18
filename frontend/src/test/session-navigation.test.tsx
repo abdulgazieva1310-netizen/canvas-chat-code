@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, expect, it, vi } from "vitest";
 import { Route as DashboardRoute } from "@/routes/index";
+import { AppShell } from "@/components/AppShell";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { Interview } from "@/lib/api/types";
@@ -50,7 +51,7 @@ const sessions: Interview[] = [
     lastFeedback: null,
   },
 ];
-function openDashboard(history: Interview[]) {
+function openDashboard(history: Interview[], initialEntry = "/") {
   vi.spyOn(Api, "getHistory").mockResolvedValue(history);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
@@ -74,12 +75,12 @@ function openDashboard(history: Interview[]) {
   const setup = createRoute({
     getParentRoute: () => root,
     path: "/setup",
-    component: () => <p>Setup destination</p>,
+    component: () => <AppShell><p>Setup destination</p></AppShell>,
   });
   const router = createRouter({
     context: { queryClient: client },
     routeTree: root.addChildren([dashboard, report, interview, setup]),
-    history: createMemoryHistory({ initialEntries: ["/"] }),
+    history: createMemoryHistory({ initialEntries: [initialEntry] }),
   });
   render(
     <QueryClientProvider client={client}>
@@ -163,5 +164,34 @@ it("opens the unfinished interview when clicking the top navigation", async () =
   fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }));
   await screen.findByText("Interview destination");
   expect(router.state.location.href).toBe("/interview?interviewId=unfinished-new");
+  client.clear();
+});
+
+it("reads history cache without creating a query or fetching from AppShell", async () => {
+  const { client, router } = openDashboard([], "/setup");
+  await screen.findByText("Setup destination");
+  expect(Api.getHistory).not.toHaveBeenCalled();
+  expect(client.getQueryCache().find({ queryKey: ["history"] })).toBeUndefined();
+  client.setQueryData(["history"], sessions);
+  const nav = within(screen.getByRole("navigation"));
+  await waitFor(() => expect(nav.getByRole("link", { name: "Report" })).toHaveAttribute(
+    "href", "/report?interviewId=completed-new",
+  ));
+  fireEvent.click(nav.getByRole("link", { name: "Report" }));
+  await screen.findByText("Report destination");
+  expect(router.state.location.href).toBe("/report?interviewId=completed-new");
+  client.clear();
+});
+
+it("preserves the history query function on refetch and opens Dashboard", async () => {
+  const { client, router } = openDashboard(sessions, "/setup");
+  await screen.findByText("Setup destination");
+  fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: "Dashboard" }));
+  await screen.findByRole("link", { name: /QA Engineer/ });
+  expect(router.state.location.pathname).toBe("/");
+  expect(Api.getHistory).toHaveBeenCalledTimes(1);
+  expect(client.getQueryCache().find({ queryKey: ["history"] })?.options.queryFn).toBeTypeOf("function");
+  await client.refetchQueries({ queryKey: ["history"] }, { throwOnError: true });
+  expect(Api.getHistory).toHaveBeenCalledTimes(2);
   client.clear();
 });

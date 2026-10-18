@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Interview } from "@/lib/api/types";
 import { useCallback, useSyncExternalStore, type ReactNode } from "react";
 
@@ -12,13 +12,18 @@ const steps = [
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  // AuthGate loads history; observing its cache avoids another API request here.
-  const { data: history = [] } = useQuery<Interview[]>({ queryKey: ["history"], enabled: false });
   const client = useQueryClient();
   const subscribe = useCallback(
     (changed: () => void) => client.getQueryCache().subscribe(changed),
     [client],
   );
+  // AuthGate/Dashboard own fetching. Subscribe directly without creating a query
+  // observer that can overwrite their query options with a missing queryFn.
+  const getHistory = useCallback(
+    () => client.getQueryData<Interview[]>(["history"]),
+    [client],
+  );
+  const history = useSyncExternalStore(subscribe, getHistory, () => undefined) ?? [];
   const getActiveInterview = useCallback(
     () =>
       client

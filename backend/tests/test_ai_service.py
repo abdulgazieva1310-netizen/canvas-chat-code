@@ -123,3 +123,63 @@ def test_masked_key_is_printed_before_request(monkeypatch, capsys):
 def test_missing_key_diagnostic(monkeypatch, capsys):
     assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
     assert 'Groq AI_API_KEY=None' in capsys.readouterr().out
+
+
+def evaluation_payload():
+    return dict(accuracy=8.5, completeness=6, clarity=9, structure=7,
+        went_well='Explained indexing correctly.', missing='Discuss write overhead.',
+        stronger_answer='An index speeds up reads but adds write and storage costs.')
+
+
+def test_evaluation_sends_question_answer_and_validates_json(monkeypatch):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def handler(request):
+        payload = json.loads(request.content)
+        assert payload['response_format'] == {'type': 'json_object'}
+        assert json.loads(payload['messages'][1]['content']) == {
+            'question': 'What is an index?', 'user_answer': 'Speeds up lookups.'}
+        assert '1 to 10' in payload['messages'][0]['content']
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': json.dumps(evaluation_payload())}}]})
+    mock_provider(monkeypatch, handler)
+    result = ai_service.evaluate_answer('What is an index?', 'Speeds up lookups.')
+    assert result.model_dump() == evaluation_payload()
+
+
+@pytest.mark.parametrize('failure', ['missing_field', 'out_of_range', 'bool_score', 'text_score',
+    'empty_feedback', 'invalid_json', 'truncated', 'timeout', 'http_error', 'nan'])
+def test_invalid_evaluation_is_not_scored(monkeypatch, failure, caplog):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def handler(request):
+        if failure == 'timeout':
+            raise httpx.ReadTimeout('test-secret', request=request)
+        if failure == 'http_error':
+            return httpx.Response(401, text='test-secret')
+        result = evaluation_payload()
+        if failure == 'missing_field':
+            del result['accuracy']
+        elif failure == 'out_of_range':
+            result['accuracy'] = 11
+        elif failure == 'bool_score':
+            result['accuracy'] = True
+        elif failure == 'text_score':
+            result['accuracy'] = '9'
+        elif failure == 'empty_feedback':
+            result['went_well'] = '   '
+        elif failure == 'nan':
+            result['accuracy'] = float('nan')
+        return httpx.Response(200, json={'choices': [{
+            'finish_reason': 'length' if failure == 'truncated' else 'stop',
+            'message': {'content': 'not JSON' if failure == 'invalid_json' else json.dumps(result)},
+        }]})
+    mock_provider(monkeypatch, handler)
+    assert ai_service.evaluate_answer('Question?', 'Answer') is None
+    assert 'answer saved without scores' in caplog.text
+    assert 'test-secret' not in caplog.text
+
+
+def test_missing_key_skips_evaluation_network(monkeypatch):
+    def unexpected(**kwargs):
+        pytest.fail('No API request expected')
+    monkeypatch.setattr(ai_service.httpx, 'Client', unexpected)
+    assert ai_service.evaluate_answer('Question?', 'Answer') is None

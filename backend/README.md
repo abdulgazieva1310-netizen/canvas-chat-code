@@ -46,8 +46,27 @@ and candidate answers. Missing/placeholder keys, API errors, timeouts, and inval
 responses automatically use the existing hardcoded question for that turn. Requests
 have a 10-second timeout per network operation (3 seconds to connect), with no
 automatic retries. No generation is requested after the final answer. Seeded demo
-interviews remain deterministic and do not call the API. Scores, hints, and coaching
-remain demo fixtures; there is no AI evaluation or audio processing.
+interviews remain deterministic and do not call the API. Hints remain demo fixtures;
+there is no audio processing.
+
+Each submitted answer is evaluated with the same Groq key/model using
+[JSON object mode](https://console.groq.com/docs/structured-outputs).
+The response is validated for numeric 1–10 accuracy, completeness, clarity, and
+structure scores, plus nonempty `went_well`, `missing`, and `stronger_answer` text.
+Invalid or unavailable evaluations never receive fabricated scores: the answer is
+saved and the report marks it as unscored. Practice mode returns `lastFeedback`
+scores and `lastAnswerFeedback` text immediately; Real Interview mode keeps both
+null and reveals evaluations only in the final report.
+
+The `answer_evaluations` table stores each result with its interview, question,
+and answer IDs. It is created automatically for existing databases at startup;
+no existing columns need to change. Stored results survive restarts and report
+requests do not call Groq again. Older sessions without evaluations are shown as
+unscored. Reports average each category across successfully evaluated answers;
+overall scores average all four categories across those answers, rounded to one
+decimal. Per-question category scores and written feedback remain available, and
+unscored answers remain in the report with null scores. All scores are approximate
+AI coaching estimates, not hiring predictions.
 
 Users, password hashes, session token digests, and interviews persist across restarts.
 By default the database is SQLite at `backend/interview.db`, independent of the

@@ -97,3 +97,33 @@ it.each(["/interview", "/interview?interviewId=", "/interview?interviewId=%20%20
     client.clear();
   },
 );
+
+it.each(["Practice", "Real Interview"] as const)(
+  "shows written evaluation during %s only when permitted",
+  async (mode) => {
+    const feedback = {
+      accuracy: 8, completeness: 7, clarity: 9, structure: 6,
+      went_well: "You explained the mechanism clearly.",
+      missing: "Discuss memory usage.",
+      stronger_answer: "Compare time and memory trade-offs with an example.",
+    };
+    vi.spyOn(Api, "getInterview").mockResolvedValue({
+      id: "session-123", setup: { ...defaultSetup, mode }, status: "active",
+      startedAt: new Date().toISOString(), endedAt: null, answeredCount: 1,
+      messages: [], lastFeedback: { accuracy: 8, completeness: 7, clarity: 9, structure: 6 },
+      lastAnswerFeedback: feedback,
+    });
+    const client = openInterview();
+    await screen.findByRole("button", { name: "Send" });
+    if (mode === "Practice") {
+      expect(screen.getByText(/You explained the mechanism clearly/)).toBeInTheDocument();
+      expect(screen.getByText(/Discuss memory usage/)).toBeInTheDocument();
+      expect(screen.getByText(/Compare time and memory/)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByText(/You explained the mechanism clearly/)).toBeNull();
+      expect(screen.queryByText(/Discuss memory usage/)).toBeNull();
+      expect(screen.queryByText(/Compare time and memory/)).toBeNull();
+    }
+    client.clear();
+  },
+);

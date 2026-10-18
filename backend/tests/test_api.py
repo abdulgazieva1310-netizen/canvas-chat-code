@@ -76,7 +76,12 @@ def test_register_and_ownership(client):
 
 
 @pytest.mark.parametrize('mode', ['Practice', 'Real Interview'])
-def test_complete_lifecycle(client, mode):
+def test_complete_lifecycle(client, mode, monkeypatch):
+    from app.services import ai_service
+    from app.models import AnswerEvaluation
+    evaluation = AnswerEvaluation(accuracy=8, completeness=7, clarity=9, structure=6,
+        went_well='Clear example.', missing='Discuss trade-offs.', stronger_answer='Explain the result and trade-offs.')
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args: evaluation)
     login(client)
     interview = start(client, mode=mode)
     path = '/api/interviews/' + interview['id']
@@ -297,3 +302,85 @@ def test_question_fallback_during_api_outage(client, monkeypatch):
     response = client.post('/api/interviews/' + interview['id'] + '/messages', json={'text': 'Answer'})
     assert response.status_code == 200
     assert response.json()['messages'][-1]['text'] == question(setup, 1)
+
+
+@pytest.mark.parametrize('mode', ['Practice', 'Real Interview'])
+def test_ai_feedback_persisted_and_report_averaged(tmp_path, monkeypatch, mode):
+    from app.services import ai_service
+    from app.models import AnswerEvaluation
+    from app.database import AnswerEvaluationRecord
+    from sqlalchemy import select
+    values = [AnswerEvaluation(accuracy=2, completeness=4, clarity=6, structure=8,
+                  went_well='First strength', missing='First gap', stronger_answer='First improved answer'),
+              AnswerEvaluation(accuracy=8, completeness=10, clarity=8, structure=10,
+                  went_well='Second strength', missing='Second gap', stronger_answer='Second improved answer')]
+    calls = []
+    def evaluate(question, answer):
+        calls.append((question, answer))
+        return values[len(calls) - 1]
+    monkeypatch.setattr(ai_service, 'evaluate_answer', evaluate)
+    url = f'sqlite:///{tmp_path / "feedback.db"}'
+    with TestClient(create_app(database_url=url)) as client:
+        token = login(client).headers['authorization']
+        interview = start(client, mode=mode)
+        path = '/api/interviews/' + interview['id']
+        for index, evaluation in enumerate(values):
+            question = interview['messages'][-1]['text']
+            interview = client.post(path + '/messages', json={'text': f' Answer {index} '}).json()
+            assert calls[-1] == (question, f'Answer {index}')
+            assert interview['lastFeedback'] == (evaluation.category_scores().model_dump() if mode == 'Practice' else None)
+            assert interview['lastAnswerFeedback'] == (evaluation.model_dump() if mode == 'Practice' else None)
+            assert 'evaluations' not in interview
+        with client.app.state.store.sessions() as session:
+            records = list(session.scalars(select(AnswerEvaluationRecord).where(
+                AnswerEvaluationRecord.interview_id == interview['id'])))
+            assert len(records) == 2
+            assert {r.result['went_well'] for r in records} == {'First strength', 'Second strength'}
+            assert all(r.answer_id and r.question_id for r in records)
+        client.post(path + '/end')
+        report = client.get(path + '/report').json()['feedback']
+        assert report['scores'] == dict(accuracy=5, completeness=7, clarity=7, structure=9)
+        assert report['overall'] == 7
+        assert [q['score'] for q in report['questions']] == [5, 9]
+        assert report['questions'][0]['good'] == 'First strength'
+        assert report['questions'][1]['better'] == 'Second improved answer'
+        assert report['strengths'] == ['First strength', 'Second strength']
+        assert report['gaps'] == ['First gap', 'Second gap']
+    with TestClient(create_app(database_url=url)) as restarted:
+        assert restarted.get(path + '/report', headers={'Authorization': token}).json()['feedback'] == report
+    assert len(calls) == 2
+
+
+def test_unavailable_evaluation_saves_unscored_answer(client, monkeypatch):
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args: None)
+    login(client)
+    interview = start(client)
+    path = '/api/interviews/' + interview['id']
+    response = client.post(path + '/messages', json={'text': 'My unscored answer'})
+    assert response.status_code == 200
+    assert response.json()['lastFeedback'] is None
+    client.post(path + '/end')
+    report = client.get(path + '/report').json()['feedback']
+    assert report['overall'] is None and report['scores'] is None
+    assert report['questions'][0]['score'] is None
+    assert report['questions'][0]['answer'] == 'My unscored answer'
+    assert 'unavailable' in report['questions'][0]['good']
+
+
+def test_report_averages_only_successful_evaluations(client, monkeypatch):
+    from app.services import ai_service
+    from app.models import AnswerEvaluation
+    results = iter([AnswerEvaluation(accuracy=8, completeness=6, clarity=10, structure=4,
+        went_well='Clear explanation', missing='Add examples', stronger_answer='Use a concrete example'), None])
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args: next(results))
+    login(client)
+    path = '/api/interviews/' + start(client)['id']
+    client.post(path + '/messages', json={'text': 'Scored answer'})
+    client.post(path + '/messages', json={'text': 'Unscored answer'})
+    client.post(path + '/end')
+    feedback = client.get(path + '/report').json()['feedback']
+    assert feedback['overall'] == 7
+    assert feedback['scores'] == dict(accuracy=8, completeness=6, clarity=10, structure=4)
+    assert [q['score'] for q in feedback['questions']] == [7, None]
+    assert feedback['strengths'] == ['Clear explanation']

@@ -119,7 +119,7 @@ function Report() {
                   <span className="font-medium">
                     {i + 1}. {x.q}
                   </span>
-                  <span className="font-display text-xl">{x.score}</span>
+                  <span className="font-display text-xl">{x.score ?? "Not scored"}</span>
                 </button>
                 {open === i && (
                   <div className="mt-3 space-y-3 text-sm">

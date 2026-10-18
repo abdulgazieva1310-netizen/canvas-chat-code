@@ -42,6 +42,12 @@ export interface Scores {
   structure: number;
 }
 
+export interface AnswerEvaluation extends Scores {
+  went_well: string;
+  missing: string;
+  stronger_answer: string;
+}
+
 export interface Feedback {
   interviewId: string;
   overall: number | null;
@@ -51,7 +57,8 @@ export interface Feedback {
   questions: {
     q: string;
     answer: string;
-    score: number;
+    score: number | null;
+    scores?: Scores | null;
     good: string;
     miss: string;
     better: string;
@@ -67,6 +74,7 @@ export interface Interview {
   answeredCount: number;
   messages: Message[];
   lastFeedback: Scores | null;
+  lastAnswerFeedback?: AnswerEvaluation | null;
 }
 
 export interface InterviewReport {

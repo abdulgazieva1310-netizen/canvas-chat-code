@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from ..auth import CurrentUser
 from ..models import Answer, Interview, InterviewReport, InterviewSetup
-from ..store import message, now, report
+from ..store import message, now
 from ..services import ai_service
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
@@ -38,13 +38,15 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         interview = store.find(user.id, interviewId)
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
+        current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
+        evaluation = ai_service.evaluate_answer(current_question, data.text.strip())
         next_question = None
         if interview.answeredCount + 1 < interview.setup.questionCount:
             setup = interview.setup
             conversation = [*interview.messages, message(interviewId, 'you', data.text.strip())]
             next_question = ai_service.generate_question(setup.role, setup.level, conversation,
                 interview_type=setup.type, job_description=setup.jobDescription)
-        return store.answer(interview, data.text, next_question=next_question).model_copy(deep=True)
+        return store.answer(interview, data.text, next_question=next_question, evaluation=evaluation).model_copy(deep=True)
 
 
 @router.post('/{interviewId}/hint', response_model=Interview)
@@ -78,4 +80,4 @@ def get_report(interviewId: str, request: Request, user: CurrentUser):
         interview = store.find(user.id, interviewId)
         if interview.status == 'active':
             raise HTTPException(409, 'End the interview before viewing its report.')
-        return InterviewReport(interview=interview.model_copy(deep=True), feedback=report(interview))
+        return InterviewReport(interview=interview.model_copy(deep=True), feedback=store.report(interview))

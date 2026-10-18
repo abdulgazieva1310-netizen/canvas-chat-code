@@ -8,12 +8,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import StaleDataError
 
-from .database import Base, InterviewRecord, TokenRecord, UserRecord, database_engine
+from .database import AnswerEvaluationRecord, Base, InterviewRecord, TokenRecord, UserRecord, database_engine
 
 from fastapi import HTTPException
 
 from .auth import hasher
-from .models import Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
+from .models import AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
 
 
 def now():
@@ -32,17 +32,28 @@ def question(setup, index):
     return f'Question {index + 1} ({setup.level}): {prompts[index % len(prompts)]}'
 
 
-def report(interview):
+def report(interview, evaluations=None):
+    evaluations = evaluations or {}
     answers = [m for m in interview.messages if m.sender == 'you']
     questions = [m for m in interview.messages if m.sender == 'ai']
-    return Feedback(interviewId=interview.id, overall=6.9 if answers else None,
-                    scores=Scores() if answers else None,
-                    strengths=['You provided an answer to the question.'] if answers else [],
-                    gaps=['Practice adding concrete examples and measurable results.'] if answers else [],
-                    questions=[QuestionFeedback(q=q.text, answer=a.text, score=6.9,
-                        good='You engaged with the question.', miss='Consider explaining trade-offs and edge cases.',
-                        better='State the situation, describe your approach with a concrete example, and close with the result.')
-                        for q, a in zip(questions, answers)])
+    evaluated = [evaluations[a.id] for a in answers if evaluations.get(a.id) is not None]
+    scores = Scores(**{name: round(sum(getattr(e, name) for e in evaluated) / len(evaluated), 1)
+                       for name in Scores.model_fields}) if evaluated else None
+    overall = round(sum(sum(getattr(e, name) for name in Scores.model_fields) / 4
+                        for e in evaluated) / len(evaluated), 1) if evaluated else None
+    feedback = []
+    for q, a in zip(questions, answers):
+        evaluation = evaluations.get(a.id)
+        feedback.append(QuestionFeedback(q=q.text, answer=a.text,
+            score=round(sum(getattr(evaluation, name) for name in Scores.model_fields) / 4, 1)
+                if evaluation else None,
+            scores=evaluation.category_scores() if evaluation else None,
+            good=evaluation.went_well if evaluation else 'AI evaluation unavailable for this answer.',
+            miss=evaluation.missing if evaluation else 'This answer has not been scored.',
+            better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.'))
+    return Feedback(interviewId=interview.id, overall=overall, scores=scores,
+        strengths=list(dict.fromkeys(e.went_well for e in evaluated)),
+        gaps=list(dict.fromkeys(e.missing for e in evaluated)), questions=feedback)
 
 
 class Store:
@@ -122,12 +133,18 @@ class Repository:
         self.loaded[ident] = record
         return Interview.model_validate(record.payload)
 
-    def answer(self, interview, text, next_question=None):
+    def answer(self, interview, text, next_question=None, evaluation=None):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
-        interview.messages.append(message(interview.id, 'you', text.strip()))
+        question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
+        answer_message = message(interview.id, 'you', text.strip())
+        interview.messages.append(answer_message)
+        self.session.add(AnswerEvaluationRecord(answer_id=answer_message.id,
+            interview_id=interview.id, question_id=question_message.id,
+            result=evaluation.model_dump(mode='json') if evaluation else None))
         interview.answeredCount += 1
-        interview.lastFeedback = Scores() if interview.setup.mode == 'Practice' else None
+        interview.lastFeedback = evaluation.category_scores() if evaluation and interview.setup.mode == 'Practice' else None
+        interview.lastAnswerFeedback = evaluation if interview.setup.mode == 'Practice' else None
         if interview.answeredCount == interview.setup.questionCount:
             interview.status = 'complete'
             interview.endedAt = now()
@@ -135,6 +152,13 @@ class Repository:
             interview.messages.append(message(interview.id, 'ai', next_question or question(interview.setup, interview.answeredCount)))
         self.save(interview)
         return interview
+
+    def report(self, interview):
+        records = self.session.scalars(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview.id))
+        evaluations = {record.answer_id: AnswerEvaluation.model_validate(record.result)
+                       if record.result else None for record in records}
+        return report(interview, evaluations)
 
     def seed(self):
         user = User(id='demo-user', name='Aruzhan', email='demo@example.com')

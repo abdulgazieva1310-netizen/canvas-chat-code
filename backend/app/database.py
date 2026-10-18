@@ -38,6 +38,14 @@ class InterviewRecord(Base):
     __mapper_args__ = {'version_id_col': version}
 
 
+class AnswerEvaluationRecord(Base):
+    __tablename__ = 'answer_evaluations'
+    answer_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), index=True)
+    question_id: Mapped[str] = mapped_column(String(36))
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
 def database_engine(url=None):
     default = 'sqlite:///' + str(Path(__file__).resolve().parents[1] / 'interview.db')
     url = make_url(url if url is not None else os.getenv('DATABASE_URL', default))

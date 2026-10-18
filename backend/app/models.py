@@ -59,10 +59,19 @@ class Message(BaseModel):
 
 
 class Scores(BaseModel):
-    accuracy: float = 7.6
-    completeness: float = 6.1
-    clarity: float = 7.8
-    structure: float = 5.9
+    accuracy: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    completeness: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    clarity: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    structure: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+
+
+class AnswerEvaluation(Scores):
+    went_well: str = Field(min_length=1, pattern=r'\S', max_length=10000)
+    missing: str = Field(min_length=1, pattern=r'\S', max_length=10000)
+    stronger_answer: str = Field(min_length=1, pattern=r'\S', max_length=10000)
+
+    def category_scores(self):
+        return Scores(**{name: getattr(self, name) for name in Scores.model_fields})
 
 
 class Interview(BaseModel):
@@ -74,12 +83,14 @@ class Interview(BaseModel):
     answeredCount: int = 0
     messages: list[Message]
     lastFeedback: Scores | None = None
+    lastAnswerFeedback: AnswerEvaluation | None = None
 
 
 class QuestionFeedback(BaseModel):
     q: str
     answer: str
-    score: float
+    score: float | None
+    scores: Scores | None = None
     good: str
     miss: str
     better: str

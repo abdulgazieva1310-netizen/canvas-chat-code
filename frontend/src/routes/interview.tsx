@@ -204,6 +204,13 @@ function Interview() {
               </div>
             </div>
           )}
+          {practice && interview.lastAnswerFeedback && (
+            <div className="card-surface space-y-3 p-5 text-sm">
+              <p><b>What went well:</b> {interview.lastAnswerFeedback.went_well}</p>
+              <p><b>What was missing:</b> {interview.lastAnswerFeedback.missing}</p>
+              <p><b>Stronger answer:</b> {interview.lastAnswerFeedback.stronger_answer}</p>
+            </div>
+          )}
           {practice && (
             <button
               disabled={busy || interview.status !== "active"}

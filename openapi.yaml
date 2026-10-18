@@ -131,7 +131,8 @@ paths:
         Trims text and rejects empty answers. Appends the user's message and increments
         answeredCount. Appends the next AI question unless questionCount is reached,
         when status becomes complete and endedAt is set. Practice mode returns live
-        lastFeedback scores; Real Interview mode keeps lastFeedback null.
+        lastFeedback scores and lastAnswerFeedback text when evaluation succeeds;
+        Real Interview mode keeps both null. Unavailable evaluations return null feedback.
       requestBody:
         required: true
         content:
@@ -194,7 +195,11 @@ paths:
       description: |
         Requires complete or incomplete status. With no answers, overall and scores
         are null and strengths, gaps, and questions are empty arrays. Otherwise,
-        questions contains feedback for each submitted answer. No request body.
+        questions contains feedback for each submitted answer. Category and overall scores
+        average only successfully evaluated answers. Answers without evaluation have
+        null score/scores and an unavailable notice; overall and scores are null when
+        none were evaluated. Stored evaluations are reused; this endpoint does not call AI.
+        No request body.
       responses:
         '200':
           description: Interview and its feedback
@@ -321,10 +326,19 @@ components:
       type: object
       required: [accuracy, completeness, clarity, structure]
       properties:
-        accuracy: {type: number}
-        completeness: {type: number}
-        clarity: {type: number}
-        structure: {type: number}
+        accuracy: {type: number, minimum: 1, maximum: 10}
+        completeness: {type: number, minimum: 1, maximum: 10}
+        clarity: {type: number, minimum: 1, maximum: 10}
+        structure: {type: number, minimum: 1, maximum: 10}
+    AnswerEvaluation:
+      allOf:
+        - $ref: '#/components/schemas/Scores'
+        - type: object
+          required: [went_well, missing, stronger_answer]
+          properties:
+            went_well: {type: string}
+            missing: {type: string}
+            stronger_answer: {type: string}
     Interview:
       type: object
       required: [id, setup, status, startedAt, endedAt, answeredCount, messages, lastFeedback]
@@ -345,6 +359,11 @@ components:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/Scores'
+        lastAnswerFeedback:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/AnswerEvaluation'
     Feedback:
       type: object
       required: [interviewId, overall, scores, strengths, gaps, questions]
@@ -372,7 +391,12 @@ components:
       properties:
         q: {type: string}
         answer: {type: string}
-        score: {type: number}
+        score: {type: number, nullable: true}
+        scores:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Scores'
         good: {type: string}
         miss: {type: string}
         better: {type: string}

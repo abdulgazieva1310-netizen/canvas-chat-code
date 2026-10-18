@@ -101,13 +101,13 @@ it.each([
   expect(router.state.location.href).toBe(href);
   client.clear();
 });
-it("uses setup for Interview and the newest completed session for Report", async () => {
+it("uses the incomplete session for Interview and the newest completed session for Report", async () => {
   const { client } = openDashboard(sessions);
   await screen.findByRole("link", { name: /QA Engineer/ });
   const nav = within(screen.getByRole("navigation"));
   expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute(
     "href",
-    "/setup",
+    "/interview?interviewId=unfinished-new",
   );
   expect(nav.getByRole("link", { name: "Report" })).toHaveAttribute(
     "href",
@@ -117,7 +117,6 @@ it("uses setup for Interview and the newest completed session for Report", async
 });
 it.each([
   ["empty history", []],
-  ["unfinished sessions", sessions],
   ["only completed sessions", sessions.filter((session) => session.status === "complete")],
 ])("opens setup from Interview with %s", async (_, history) => {
   const { client, router } = openDashboard(history);
@@ -141,7 +140,7 @@ it("keeps Report disabled without completed sessions", async () => {
 });
 
 it("opens setup even with an active interview in the cache", async () => {
-  const { client, router } = openDashboard(sessions);
+  const { client, router } = openDashboard(sessions.filter((session) => session.status === "complete"));
   await screen.findByRole("link", { name: /QA Engineer/ });
   const active = { ...sessions[0]!, id: "active-new", status: "active" as const, endedAt: null };
   client.setQueryData(["interview", active.id], active);
@@ -180,5 +179,32 @@ it("preserves the history query function on refetch and opens Dashboard", async 
   expect(client.getQueryCache().find({ queryKey: ["history"] })?.options.queryFn).toBeTypeOf("function");
   await client.refetchQueries({ queryKey: ["history"] }, { throwOnError: true });
   expect(Api.getHistory).toHaveBeenCalledTimes(2);
+  client.clear();
+});
+
+it("opens the newest incomplete interview from the top navigation", async () => {
+  const older = { ...sessions[0]!, id: "unfinished-old", startedAt: "2026-10-01T12:00:00Z" };
+  const { client, router } = openDashboard([older, ...sessions]);
+  await screen.findByRole("link", { name: /QA Engineer/ });
+  const link = within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" });
+  expect(link).toHaveAttribute("href", "/interview?interviewId=unfinished-new");
+  fireEvent.click(link);
+  await screen.findByText("Interview destination");
+  expect(router.state.location.href).toBe("/interview?interviewId=unfinished-new");
+  client.clear();
+});
+
+it("updates Interview when incomplete sessions arrive or disappear from local history", async () => {
+  const { client } = openDashboard([], "/setup");
+  await screen.findByText("Setup destination");
+  const nav = within(screen.getByRole("navigation"));
+  expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup");
+  client.setQueryData(["history"], sessions);
+  await waitFor(() => expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute(
+    "href", "/interview?interviewId=unfinished-new",
+  ));
+  client.setQueryData(["history"], sessions.map((session) => ({ ...session, status: "complete" })));
+  await waitFor(() => expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup"));
+  expect(Api.getHistory).not.toHaveBeenCalled();
   client.clear();
 });

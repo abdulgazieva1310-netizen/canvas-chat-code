@@ -101,13 +101,13 @@ it.each([
   expect(router.state.location.href).toBe(href);
   client.clear();
 });
-it("adds the newest matching session IDs to top navigation", async () => {
+it("uses setup for Interview and the newest completed session for Report", async () => {
   const { client } = openDashboard(sessions);
   await screen.findByRole("link", { name: /QA Engineer/ });
   const nav = within(screen.getByRole("navigation"));
   expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute(
     "href",
-    "/interview?interviewId=unfinished-new",
+    "/setup",
   );
   expect(nav.getByRole("link", { name: "Report" })).toHaveAttribute(
     "href",
@@ -117,6 +117,7 @@ it("adds the newest matching session IDs to top navigation", async () => {
 });
 it.each([
   ["empty history", []],
+  ["unfinished sessions", sessions],
   ["only completed sessions", sessions.filter((session) => session.status === "complete")],
 ])("opens setup from Interview with %s", async (_, history) => {
   const { client, router } = openDashboard(history);
@@ -139,31 +140,17 @@ it("keeps Report disabled without completed sessions", async () => {
   client.clear();
 });
 
-it("points Interview at a newly created active session from the cache", async () => {
-  const { client } = openDashboard(sessions);
+it("opens setup even with an active interview in the cache", async () => {
+  const { client, router } = openDashboard(sessions);
   await screen.findByRole("link", { name: /QA Engineer/ });
   const active = { ...sessions[0]!, id: "active-new", status: "active" as const, endedAt: null };
   client.setQueryData(["interview", active.id], active);
-  await waitFor(() =>
-    expect(
-      within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }),
-    ).toHaveAttribute("href", "/interview?interviewId=active-new"),
-  );
-  client.setQueryData(["interview", active.id], { ...active, status: "complete" });
-  await waitFor(() =>
-    expect(
-      within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }),
-    ).toHaveAttribute("href", "/interview?interviewId=unfinished-new"),
-  );
-  client.clear();
-});
-
-it("opens the unfinished interview when clicking the top navigation", async () => {
-  const { client, router } = openDashboard(sessions);
-  await screen.findByRole("link", { name: /Backend Developer/ });
-  fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }));
-  await screen.findByText("Interview destination");
-  expect(router.state.location.href).toBe("/interview?interviewId=unfinished-new");
+  const link = within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" });
+  expect(link).toHaveAttribute("href", "/setup");
+  fireEvent.click(link);
+  await screen.findByText("Setup destination");
+  expect(router.state.location.href).toBe("/setup");
+  expect(router.state.location.search).not.toHaveProperty("interviewId");
   client.clear();
 });
 

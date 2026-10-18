@@ -24,22 +24,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     [client],
   );
   const history = useSyncExternalStore(subscribe, getHistory, () => undefined) ?? [];
-  const getActiveInterview = useCallback(
-    () =>
-      client
-        .getQueriesData<Interview>({ queryKey: ["interview"] })
-        .map(([, interview]) => interview)
-        .filter(
-          (interview): interview is Interview =>
-            !!interview && interview.status === "active" && !!interview.id?.trim(),
-        )
-        .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null,
-    [client],
-  );
-  const activeInterview = useSyncExternalStore(subscribe, getActiveInterview, () => null);
-  const latestInterview =
-    activeInterview ??
-    history.find((session) => session.status !== "complete" && session.id.trim());
   const latestReport = history.find(
     (session) => session.status === "complete" && session.id.trim(),
   );
@@ -55,12 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <nav className="hidden gap-1 md:flex">
             {steps.map((s) => {
-              const session =
-                s.to === "/interview"
-                  ? latestInterview
-                  : s.to === "/report"
-                    ? latestReport
-                    : undefined;
+              const session = s.to === "/report" ? latestReport : undefined;
               if (s.to === "/report" && !session) {
                 return (
                   <span
@@ -76,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               return (
                 <Link
                   key={s.to}
-                  to={s.to === "/interview" && !session ? "/setup" : s.to}
+                  to={s.to === "/interview" ? "/setup" : s.to}
                   {...(session ? { search: { interviewId: session.id } } : {})}
                   className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                   activeProps={{ className: "bg-muted text-foreground" }}

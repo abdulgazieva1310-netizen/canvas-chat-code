@@ -13,8 +13,8 @@ uv run pytest
 ```
 
 The API is under `http://localhost:8000/api`; interactive docs are at `/docs`.
-Code is split into request/response models, authentication, an in-memory store,
-and auth/interview routers. `create_app(seed=False)` creates an empty isolated store.
+Code is split into request/response models, authentication, SQLAlchemy database
+records and a transactional repository, and auth/interview routers.
 
 Log in with **demo@example.com / demo-password** to see a completed Practice
 interview and an incomplete Real Interview with reports. New users have empty
@@ -36,6 +36,35 @@ both return 404. Invalid input returns 400 with `{ "message": "..." }`, as in
 scores, and coaching are deterministic demo fixtures, matching the frontend mock;
 there is no AI evaluation or audio processing.
 
-Data and tokens reset on restart. Run one worker: multiple workers would have
-independent stores. The frontend uses this HTTP backend with cookie authentication; see
+Users, password hashes, session token digests, and interviews persist across restarts.
+By default the database is SQLite at `backend/interview.db`, independent of the
+server's working directory. Configure the connection with `DATABASE_URL`:
+
+```sh
+DATABASE_URL=sqlite:////absolute/path/interview.db uv run uvicorn app.main:app --port 8000
+```
+
+Relative SQLite paths (such as `sqlite:///interview.db`) resolve from the server's
+working directory. The parent directory must already exist. Environment variables
+must be exported or passed to the process; `.env` files are not loaded automatically.
+See `.env.example` for settings.
+
+Tables are created automatically if missing. This does not migrate existing schemas;
+future schema changes will need migrations. Demo data is inserted only when the demo
+account is absent, so restarting does not duplicate interviews or reset their state.
+For an empty database use `create_app(seed=False, database_url=...)`; tests use a
+fresh SQLite file per test, and `sqlite:///:memory:` is also supported.
+
+The repository uses SQLAlchemy types and queries with separate transactions for
+API operations. User emails are unique in the database. Interview writes use version
+checks to reject stale updates with 409. Multiple server instances can use the same
+database. SQLite connection options are applied only to SQLite; another SQLAlchemy
+URL (for example `postgresql+psycopg://user:password@host/interviews`) will select
+that dialect after its driver is installed using `uv add`. PostgreSQL integration
+is not yet tested. Interview setup, messages, feedback, and user profile fields use
+portable JSON columns; ownership, status, timestamps, and credentials have dedicated
+columns. Sessions commit on success and roll back on failure, following the
+[SQLAlchemy transaction pattern](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#framing-out-a-begin-commit-rollback-block).
+
+The frontend uses this HTTP backend with cookie authentication; see
 `../frontend/README.md` for connection settings.

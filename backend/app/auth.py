@@ -19,9 +19,9 @@ def token_key(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def establish_session(request: Request, response: Response, user_id: str):
+def establish_session(request: Request, response: Response, user_id: str, store):
     token = secrets.token_urlsafe(32)
-    request.app.state.store.tokens[token_key(token)] = (user_id, datetime.now(timezone.utc) + TOKEN_TTL)
+    store.add_token(token_key(token), user_id, datetime.now(timezone.utc) + TOKEN_TTL)
     response.headers['Authorization'] = f'Bearer {token}'
     response.headers['Cache-Control'] = 'no-store'
     response.set_cookie('session', token, max_age=int(TOKEN_TTL.total_seconds()),
@@ -36,11 +36,11 @@ def current_user(request: Request,
     token = credentials.credentials if credentials else session
     if 'authorization' in request.headers and credentials is None:
         token = None
-    store = request.app.state.store
-    record = store.tokens.get(token_key(token)) if token else None
-    if not record or record[1] <= datetime.now(timezone.utc):
+    with request.app.state.store.transaction() as store:
+        user = store.token_user(token_key(token)) if token else None
+    if user is None:
         raise HTTPException(401, 'Authentication required.', headers={'WWW-Authenticate': 'Bearer'})
-    return store.users[record[0]]
+    return user
 
 
 CurrentUser = Annotated[object, Depends(current_user)]

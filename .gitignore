@@ -1,0 +1,5 @@
+# Local SQL databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

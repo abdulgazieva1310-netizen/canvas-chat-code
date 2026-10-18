@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,9 +11,16 @@ from .routers import auth, interviews
 from .store import Store
 
 
-def create_app(*, seed=True, secure_cookies=None):
-    app = FastAPI(title='Interview Mirror API', version='1.0.0')
-    app.state.store = Store(seed=seed)
+def create_app(*, seed=True, secure_cookies=None, database_url=None):
+    store = Store(seed=seed, database_url=database_url)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+        store.engine.dispose()
+
+    app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
+    app.state.store = store
     app.state.secure_cookies = (os.getenv('SECURE_COOKIES', 'false').lower() == 'true'
                                 if secure_cookies is None else secure_cookies)
     app.add_middleware(CORSMiddleware,

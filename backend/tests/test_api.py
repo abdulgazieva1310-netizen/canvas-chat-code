@@ -8,6 +8,7 @@ from jsonschema import Draft4Validator, RefResolver
 
 from app.auth import hasher, token_key
 from app.main import create_app
+from app.database import TokenRecord, UserRecord
 from app.store import now
 
 SETUP = dict(role='Backend Developer', level='Middle', mode='Practice', questionCount=5,
@@ -15,8 +16,8 @@ SETUP = dict(role='Backend Developer', level='Middle', mode='Practice', question
 
 
 @pytest.fixture
-def client():
-    with TestClient(create_app()) as client:
+def client(tmp_path):
+    with TestClient(create_app(database_url=f'sqlite:///{tmp_path / "test.db"}')) as client:
         yield client
 
 
@@ -41,16 +42,20 @@ def test_authentication_and_seed(client):
     assert 'Path=/api' in response.headers['set-cookie']
     token = response.headers['authorization'].split()[1]
     store = client.app.state.store
-    assert token not in store.tokens
-    assert hasher.verify('demo-password', store.passwords['demo-user'])
-    assert store.passwords['demo-user'] != 'demo-password'
+    with store.sessions() as session:
+        assert session.get(TokenRecord, token) is None
+        assert session.get(TokenRecord, token_key(token)) is not None
+        password_hash = session.get(UserRecord, 'demo-user').password_hash
+        assert hasher.verify('demo-password', password_hash)
+        assert password_hash != 'demo-password'
     history = client.get('/api/interviews').json()
     assert len(history) == 2
     assert history[0]['startedAt'] > history[1]['startedAt']
     assert client.get('/api/interviews', headers={'Authorization': 'Bearer invalid'}).status_code == 401
     client.cookies.clear()
     assert client.get('/api/interviews', headers={'Authorization': f'Bearer {token}'}).status_code == 200
-    store.tokens[token_key(token)] = ('demo-user', now() - timedelta(seconds=1))
+    with store.sessions.begin() as session:
+        session.get(TokenRecord, token_key(token)).expires_at = (now() - timedelta(seconds=1)).timestamp()
     assert client.get('/api/interviews', headers={'Authorization': f'Bearer {token}'}).status_code == 401
 
 
@@ -159,7 +164,7 @@ def test_responses_match_contract(client):
 
 
 def test_secure_cookie_and_cors():
-    with TestClient(create_app(secure_cookies=True)) as client:
+    with TestClient(create_app(secure_cookies=True, database_url='sqlite:///:memory:')) as client:
         assert 'Secure' in login(client).headers['set-cookie']
         for origin in ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:8080']:
             response = client.options('/api/interviews', headers={'Origin': origin,
@@ -182,3 +187,66 @@ def test_create_returns_created_interview(client):
     assert created['messages'][0]['interviewId'] == created['id']
     assert response.headers['access-control-allow-origin'] == 'http://localhost:8080'
     assert client.get('/api/interviews/' + created['id']).json() == created
+
+
+def test_persistence_and_shared_database(tmp_path, monkeypatch):
+    url = f'sqlite:///{tmp_path / "persistent.db"}'
+    monkeypatch.setenv('DATABASE_URL', url)
+    with TestClient(create_app(seed=False)) as first:
+        registered = first.post('/api/auth/register', json={
+            'name': 'Persistent', 'email': 'persistent@example.com', 'password': 'secret'})
+        assert registered.status_code == 201
+        headers = {'Authorization': registered.headers['authorization']}
+        interview = start(first)
+        path = '/api/interviews/' + interview['id']
+        first.post(path + '/hint')
+        first.post(path + '/messages', json={'text': 'Stored answer'})
+        with TestClient(create_app(seed=False)) as second:
+            saved = second.get(path, headers=headers).json()
+            assert saved['answeredCount'] == 1
+            assert any(m['from'] == 'hint' for m in saved['messages'])
+            ended = second.post(path + '/end', headers=headers).json()
+            assert first.get(path).json() == ended
+    with TestClient(create_app(seed=False)) as restarted:
+        assert restarted.get(path, headers=headers).json() == ended
+        assert restarted.get('/api/interviews', headers=headers).json() == [ended]
+        report = restarted.get(path + '/report', headers=headers).json()
+        assert report['feedback']['questions'][0]['answer'] == 'Stored answer'
+        assert restarted.post('/api/auth/login', json={
+            'email': 'persistent@example.com', 'password': 'secret'}).status_code == 200
+
+
+def test_seed_is_idempotent(tmp_path):
+    url = f'sqlite:///{tmp_path / "seed.db"}'
+    with TestClient(create_app(database_url=url)) as first:
+        login(first)
+        history = first.get('/api/interviews').json()
+    with TestClient(create_app(database_url=url)) as second:
+        login(second)
+        assert second.get('/api/interviews').json() == history
+
+
+def test_transaction_rollback_and_concurrent_updates(tmp_path):
+    from fastapi import HTTPException
+    from app.store import Store
+    from app.models import InterviewSetup
+
+    store = Store(database_url=f'sqlite:///{tmp_path / "transactions.db"}')
+    with store.transaction() as repository:
+        interview = repository.start('demo-user', InterviewSetup(**SETUP))
+    with pytest.raises(RuntimeError):
+        with store.transaction() as repository:
+            repository.answer(repository.find('demo-user', interview.id), 'Rolled back')
+            raise RuntimeError('abort')
+    with store.transaction() as repository:
+        assert repository.find('demo-user', interview.id).answeredCount == 0
+    with pytest.raises(HTTPException) as error:
+        with store.transaction() as stale:
+            old = stale.find('demo-user', interview.id)
+            with store.transaction() as current:
+                current.answer(current.find('demo-user', interview.id), 'Committed')
+            stale.answer(old, 'Stale update')
+    assert error.value.status_code == 409
+    with store.transaction() as repository:
+        assert repository.find('demo-user', interview.id).answeredCount == 1
+    store.engine.dispose()

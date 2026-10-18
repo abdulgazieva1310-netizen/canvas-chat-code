@@ -1,7 +1,14 @@
-"""Process-local demo store. Routers serialize access with the store lock."""
+"""Transactional database repository and deterministic interview fixtures."""
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from threading import RLock
 from uuid import uuid4
+
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import StaleDataError
+
+from .database import Base, InterviewRecord, TokenRecord, UserRecord, database_engine
 
 from fastapi import HTTPException
 
@@ -39,29 +46,81 @@ def report(interview):
 
 
 class Store:
-    def __init__(self, seed=True):
-        self.lock = RLock()
-        self.users = {}
-        self.emails = {}
-        self.passwords = {}
-        self.tokens = {}
-        self.interviews = {}
-        self.owners = {}
+    def __init__(self, seed=True, database_url=None):
+        self.engine = database_engine(database_url)
+        self.sessions = sessionmaker(self.engine, expire_on_commit=False)
+        Base.metadata.create_all(self.engine)
         if seed:
-            self.seed()
+            try:
+                with self.transaction() as repository:
+                    if repository.session.get(UserRecord, 'demo-user') is None:
+                        repository.seed()
+            except IntegrityError:
+                # Another worker may have seeded the same account first.
+                with self.sessions() as session:
+                    if session.get(UserRecord, 'demo-user') is None:
+                        raise
+
+    @contextmanager
+    def transaction(self):
+        try:
+            with self.sessions.begin() as session:
+                yield Repository(session)
+        except StaleDataError as exc:
+            raise HTTPException(409, 'Interview changed. Reload and try again.') from exc
+
+
+class Repository:
+    def __init__(self, session):
+        self.session = session
+        self.loaded = {}
+
+    def user_by_email(self, email):
+        return self.session.scalar(select(UserRecord).where(UserRecord.email == email))
+
+    def add_user(self, user, password_hash):
+        self.session.add(UserRecord(id=user.id, email=str(user.email),
+                                    password_hash=password_hash, profile=user.model_dump(mode='json')))
+        self.session.flush()
+
+    def add_token(self, digest, user_id, expires_at):
+        self.session.add(TokenRecord(digest=digest, user_id=user_id, expires_at=expires_at.timestamp()))
+
+    def token_user(self, digest):
+        token = self.session.get(TokenRecord, digest)
+        if token is None or token.expires_at <= now().timestamp():
+            return None
+        return User.model_validate(self.session.get(UserRecord, token.user_id).profile)
+
+    def save(self, interview):
+        record = self.loaded.get(interview.id) or self.session.get(InterviewRecord, interview.id)
+        record.payload = interview.model_dump(mode='json', by_alias=True)
+        record.status = interview.status
+        record.started_at = interview.startedAt.timestamp()
+
+    def history(self, user_id):
+        records = self.session.scalars(select(InterviewRecord).where(
+            InterviewRecord.owner_id == user_id, InterviewRecord.status != 'active'
+        ).order_by(InterviewRecord.started_at.desc(), InterviewRecord.id))
+        return [Interview.model_validate(record.payload) for record in records]
 
     def start(self, user_id, setup):
         ident = str(uuid4())
         interview = Interview(id=ident, setup=setup, startedAt=now(),
                               messages=[message(ident, 'ai', question(setup, 0))])
-        self.interviews[ident] = interview
-        self.owners[ident] = user_id
+        self.session.add(InterviewRecord(id=ident, owner_id=user_id,
+            started_at=interview.startedAt.timestamp(), status=interview.status,
+            payload=interview.model_dump(mode='json', by_alias=True)))
+        self.session.flush()
         return interview
 
     def find(self, user_id, ident):
-        if self.owners.get(ident) != user_id:
+        record = self.session.scalar(select(InterviewRecord).where(
+            InterviewRecord.id == ident, InterviewRecord.owner_id == user_id).with_for_update())
+        if record is None:
             raise HTTPException(404, 'Interview not found.')
-        return self.interviews[ident]
+        self.loaded[ident] = record
+        return Interview.model_validate(record.payload)
 
     def answer(self, interview, text):
         if interview.status != 'active':
@@ -74,13 +133,12 @@ class Store:
             interview.endedAt = now()
         else:
             interview.messages.append(message(interview.id, 'ai', question(interview.setup, interview.answeredCount)))
+        self.save(interview)
         return interview
 
     def seed(self):
         user = User(id='demo-user', name='Aruzhan', email='demo@example.com')
-        self.users[user.id] = user
-        self.emails[str(user.email)] = user.id
-        self.passwords[user.id] = hasher.hash('demo-password')
+        self.add_user(user, hasher.hash('demo-password'))
         for days, mode, count in [(3, 'Practice', 5), (1, 'Real Interview', 2)]:
             setup = InterviewSetup(role='Frontend Developer', level='Middle', mode=mode,
                                   questionCount=5, type='Technical', input='Text', language='English')
@@ -94,3 +152,4 @@ class Store:
             interview.endedAt -= timedelta(days=days)
             for msg in interview.messages:
                 msg.createdAt -= timedelta(days=days)
+            self.save(interview)

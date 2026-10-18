@@ -24,8 +24,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     [client],
   );
   const history = useSyncExternalStore(subscribe, getHistory, () => undefined) ?? [];
+  const getActiveInterview = useCallback(
+    () => client.getQueriesData<Interview>({ queryKey: ["interview"] })
+      .map(([, session]) => session)
+      .filter((session): session is Interview =>
+        !!session && session.status === "active" && !!session.id?.trim(),
+      )
+      .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0] ?? null,
+    [client],
+  );
+  const activeInterview = useSyncExternalStore(subscribe, getActiveInterview, () => null);
   const incompleteInterview = history
-    .filter((session) => session.status === "incomplete" && session.id.trim())
+    .filter((session) => (session.status === "incomplete" || session.status === "active") && session.id.trim())
     .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
   const latestReport = history.find(
     (session) => session.status === "complete" && session.id.trim(),
@@ -44,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {steps.map((s) => {
               const session =
                 s.to === "/interview"
-                  ? incompleteInterview
+                  ? activeInterview ?? incompleteInterview
                   : s.to === "/report"
                     ? latestReport
                     : undefined;
@@ -64,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={s.to}
                   to={s.to === "/interview" && !session ? "/setup" : s.to}
-                  {...(session ? { search: { interviewId: session.id } } : {})}
+                  search={session ? { interviewId: session.id } : {}}
                   className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                   activeProps={{ className: "bg-muted text-foreground" }}
                   activeOptions={{ exact: true }}

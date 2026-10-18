@@ -91,9 +91,11 @@ it.each(["/interview", "/interview?interviewId=", "/interview?interviewId=%20%20
   "redirects %s to setup without fetching",
   async (url) => {
     const getInterview = vi.spyOn(Api, "getInterview");
+    const startInterview = vi.spyOn(Api, "startInterview");
     const client = openInterview(url);
     await screen.findByText("Setup page");
     expect(getInterview).not.toHaveBeenCalled();
+    expect(startInterview).not.toHaveBeenCalled();
     client.clear();
   },
 );

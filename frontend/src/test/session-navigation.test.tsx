@@ -139,17 +139,19 @@ it("keeps Report disabled without completed sessions", async () => {
   client.clear();
 });
 
-it("opens setup even with an active interview in the cache", async () => {
+it("opens an existing active interview from the cache without creating a session", async () => {
+  const start = vi.spyOn(Api, "startInterview");
   const { client, router } = openDashboard(sessions.filter((session) => session.status === "complete"));
   await screen.findByRole("link", { name: /QA Engineer/ });
   const active = { ...sessions[0]!, id: "active-new", status: "active" as const, endedAt: null };
   client.setQueryData(["interview", active.id], active);
   const link = within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" });
-  expect(link).toHaveAttribute("href", "/setup");
+  await waitFor(() => expect(link).toHaveAttribute("href", "/interview?interviewId=active-new"));
   fireEvent.click(link);
-  await screen.findByText("Setup destination");
-  expect(router.state.location.href).toBe("/setup");
-  expect(router.state.location.search).not.toHaveProperty("interviewId");
+  await screen.findByText("Interview destination");
+  expect(router.state.location.href).toBe("/interview?interviewId=active-new");
+
+  expect(start).not.toHaveBeenCalled();
   client.clear();
 });
 
@@ -206,5 +208,19 @@ it("updates Interview when incomplete sessions arrive or disappear from local hi
   client.setQueryData(["history"], sessions.map((session) => ({ ...session, status: "complete" })));
   await waitFor(() => expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup"));
   expect(Api.getHistory).not.toHaveBeenCalled();
+  client.clear();
+});
+
+it("returns Interview to setup when the cached active session completes", async () => {
+  const { client } = openDashboard([], "/setup");
+  await screen.findByText("Setup destination");
+  const active: Interview = { ...sessions[0]!, id: "active", status: "active", endedAt: null };
+  const nav = within(screen.getByRole("navigation"));
+  client.setQueryData(["interview", active.id], active);
+  await waitFor(() => expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute(
+    "href", "/interview?interviewId=active",
+  ));
+  client.setQueryData(["interview", active.id], { ...active, status: "complete" });
+  await waitFor(() => expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup"));
   client.clear();
 });

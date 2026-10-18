@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createMemoryHistory,
@@ -221,3 +221,21 @@ it("displays a navigation failure on Setup", async () => {
   expect(router.state.location.pathname).toBe("/setup");
   client.clear();
 });
+
+it.each(["/ready", "/setup"] as const)(
+  "opens the setup form from Interview on %s without starting a default session",
+  async (path) => {
+    const fetch = vi.fn().mockImplementation(async () => new Response("[]"));
+    vi.stubGlobal("fetch", fetch);
+    const { client, router } = openStartPage(path, true);
+    const link = within(await screen.findByRole("navigation")).getByRole("link", { name: "Interview" });
+    expect(link).toHaveAttribute("href", "/setup");
+    fireEvent.click(link);
+    await screen.findByRole("heading", { name: "Shape your interview." });
+    expect(router.state.location.href).toBe("/setup");
+    expect(screen.getByRole("button", { name: "Start interview" })).toBeEnabled();
+    expect(fetch.mock.calls.every(([, options]) => options.method === "GET")).toBe(true);
+    expect(client.getQueriesData({ queryKey: ["interview"] }).every(([, data]) => data === undefined)).toBe(true);
+    client.clear();
+  },
+);

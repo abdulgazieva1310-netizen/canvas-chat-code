@@ -146,7 +146,7 @@ function Dashboard() {
           {history.map((h) => (
             <Link
               key={h.id}
-              to="/report"
+              to={h.status === "complete" ? "/report" : "/interview"}
               search={{ interviewId: h.id }}
               className="flex items-center justify-between py-3 hover:opacity-80"
             >

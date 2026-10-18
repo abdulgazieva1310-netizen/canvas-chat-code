@@ -34,7 +34,7 @@ All interviews are private to their owner. Missing and inaccessible interviews
 both return 404. Invalid input returns 400 with `{ "message": "..." }`, as in
 `../openapi.yaml`. Hints and state transitions enforce the contract. Questions are generated dynamically through the
 [Groq Chat Completions API](https://console.groq.com/docs/text-chat) using `httpx`.
-Export `AI_API_KEY` with your Groq key to enable generation; `AI_MODEL` defaults to
+Set `AI_API_KEY` in `backend/.env` or export it with your Groq key to enable generation; `AI_MODEL` defaults to
 `llama-3.3-70b-versatile`. For example, from the backend directory:
 
 ```sh
@@ -58,9 +58,10 @@ DATABASE_URL=sqlite:////absolute/path/interview.db uv run uvicorn app.main:app -
 ```
 
 Relative SQLite paths (such as `sqlite:///interview.db`) resolve from the server's
-working directory. The parent directory must already exist. Environment variables
-must be exported or passed to the process; `.env` files are not loaded automatically.
-See `.env.example` for settings.
+working directory. The parent directory must already exist. The server automatically loads `backend/.env` at startup, regardless of its working
+directory. Existing process environment variables take precedence over `.env` values.
+Copy `.env.example` to `.env` and edit the settings; `.env` is ignored by Git.
+Restart the server after changing settings.
 
 Tables are created automatically if missing. This does not migrate existing schemas;
 future schema changes will need migrations. Demo data is inserted only when the demo

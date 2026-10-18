@@ -3,3 +3,6 @@
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Local environment secrets
+.env

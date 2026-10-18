@@ -1,3 +1,11 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Resolve from this file so startup also works from the repository root.
+# Existing process environment variables take precedence over .env values.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
 import os
 from contextlib import asynccontextmanager
 

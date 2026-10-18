@@ -71,9 +71,14 @@ function openDashboard(history: Interview[]) {
     validateSearch: (search: Record<string, unknown>) => ({ interviewId: search["interviewId"] }),
     component: () => <p>Interview destination</p>,
   });
+  const setup = createRoute({
+    getParentRoute: () => root,
+    path: "/setup",
+    component: () => <p>Setup destination</p>,
+  });
   const router = createRouter({
     context: { queryClient: client },
-    routeTree: root.addChildren([dashboard, report, interview]),
+    routeTree: root.addChildren([dashboard, report, interview, setup]),
     history: createMemoryHistory({ initialEntries: ["/"] }),
   });
   render(
@@ -109,25 +114,27 @@ it("adds the newest matching session IDs to top navigation", async () => {
   );
   client.clear();
 });
-it("disables both session navigation items for empty history", async () => {
+it.each([
+  ["empty history", []],
+  ["only completed sessions", sessions.filter((session) => session.status === "complete")],
+])("opens setup from Interview with %s", async (_, history) => {
+  const { client, router } = openDashboard(history);
+  if (history.length) await screen.findByRole("link", { name: /QA Engineer/ });
+  else await screen.findByText("No saved sessions yet.");
+  const link = within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" });
+  expect(link).toHaveAttribute("href", "/setup");
+  fireEvent.click(link);
+  await screen.findByText("Setup destination");
+  expect(router.state.location.href).toBe("/setup");
+  client.clear();
+});
+
+it("keeps Report disabled without completed sessions", async () => {
   const { client } = openDashboard([]);
   await screen.findByText("No saved sessions yet.");
   const nav = within(screen.getByRole("navigation"));
-  for (const label of ["Interview", "Report"]) {
-    expect(nav.queryByRole("link", { name: label })).toBeNull();
-    expect(nav.getByText(label)).toHaveAttribute("aria-disabled", "true");
-  }
-  client.clear();
-});
-it("disables Interview when history contains only completed sessions", async () => {
-  const { client } = openDashboard(sessions.filter((session) => session.status === "complete"));
-  await screen.findByRole("link", { name: /QA Engineer/ });
-  const nav = within(screen.getByRole("navigation"));
-  expect(nav.getByText("Interview")).toHaveAttribute("aria-disabled", "true");
-  expect(nav.getByRole("link", { name: "Report" })).toHaveAttribute(
-    "href",
-    "/report?interviewId=completed-new",
-  );
+  expect(nav.queryByRole("link", { name: "Report" })).toBeNull();
+  expect(nav.getByText("Report")).toHaveAttribute("aria-disabled", "true");
   client.clear();
 });
 
@@ -147,5 +154,14 @@ it("points Interview at a newly created active session from the cache", async ()
       within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }),
     ).toHaveAttribute("href", "/interview?interviewId=unfinished-new"),
   );
+  client.clear();
+});
+
+it("opens the unfinished interview when clicking the top navigation", async () => {
+  const { client, router } = openDashboard(sessions);
+  await screen.findByRole("link", { name: /Backend Developer/ });
+  fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }));
+  await screen.findByText("Interview destination");
+  expect(router.state.location.href).toBe("/interview?interviewId=unfinished-new");
   client.clear();
 });

@@ -56,18 +56,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   : s.to === "/report"
                     ? latestReport
                     : undefined;
-              const needsSession = s.to === "/interview" || s.to === "/report";
-              if (needsSession && !session) {
+              if (s.to === "/report" && !session) {
                 return (
                   <span
                     key={s.to}
                     aria-disabled="true"
                     className="cursor-not-allowed rounded-full px-3 py-1.5 text-sm text-muted-foreground opacity-50"
-                    title={
-                      s.to === "/interview"
-                        ? "No unfinished interviews yet"
-                        : "No completed interviews yet"
-                    }
+                    title="No completed interviews yet"
                   >
                     {s.label}
                   </span>
@@ -76,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               return (
                 <Link
                   key={s.to}
-                  to={s.to}
+                  to={s.to === "/interview" && !session ? "/setup" : s.to}
                   {...(session ? { search: { interviewId: session.id } } : {})}
                   className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                   activeProps={{ className: "bg-muted text-foreground" }}

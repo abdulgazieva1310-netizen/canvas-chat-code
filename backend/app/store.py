@@ -104,10 +104,10 @@ class Repository:
         ).order_by(InterviewRecord.started_at.desc(), InterviewRecord.id))
         return [Interview.model_validate(record.payload) for record in records]
 
-    def start(self, user_id, setup):
+    def start(self, user_id, setup, first_question=None):
         ident = str(uuid4())
         interview = Interview(id=ident, setup=setup, startedAt=now(),
-                              messages=[message(ident, 'ai', question(setup, 0))])
+                              messages=[message(ident, 'ai', first_question or question(setup, 0))])
         self.session.add(InterviewRecord(id=ident, owner_id=user_id,
             started_at=interview.startedAt.timestamp(), status=interview.status,
             payload=interview.model_dump(mode='json', by_alias=True)))
@@ -122,7 +122,7 @@ class Repository:
         self.loaded[ident] = record
         return Interview.model_validate(record.payload)
 
-    def answer(self, interview, text):
+    def answer(self, interview, text, next_question=None):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         interview.messages.append(message(interview.id, 'you', text.strip()))
@@ -132,7 +132,7 @@ class Repository:
             interview.status = 'complete'
             interview.endedAt = now()
         else:
-            interview.messages.append(message(interview.id, 'ai', question(interview.setup, interview.answeredCount)))
+            interview.messages.append(message(interview.id, 'ai', next_question or question(interview.setup, interview.answeredCount)))
         self.save(interview)
         return interview
 

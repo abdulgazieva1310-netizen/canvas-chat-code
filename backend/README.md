@@ -32,9 +32,22 @@ header. Set `CORS_ORIGINS` to a comma-separated list of frontend origins and set
 
 All interviews are private to their owner. Missing and inaccessible interviews
 both return 404. Invalid input returns 400 with `{ "message": "..." }`, as in
-`../openapi.yaml`. Hints and state transitions enforce the contract. Questions,
-scores, and coaching are deterministic demo fixtures, matching the frontend mock;
-there is no AI evaluation or audio processing.
+`../openapi.yaml`. Hints and state transitions enforce the contract. Questions are generated dynamically through the
+[Groq Chat Completions API](https://console.groq.com/docs/text-chat) using `httpx`.
+Export `AI_API_KEY` with your Groq key to enable generation; `AI_MODEL` defaults to
+`llama-3.3-70b-versatile`. For example, from the backend directory:
+
+```sh
+AI_API_KEY=your_groq_key uv run uvicorn app.main:app --reload --port 8000
+```
+
+Generation uses the role, level, interview type, job description, earlier questions,
+and candidate answers. Missing/placeholder keys, API errors, timeouts, and invalid
+responses automatically use the existing hardcoded question for that turn. Requests
+have a 10-second timeout per network operation (3 seconds to connect), with no
+automatic retries. No generation is requested after the final answer. Seeded demo
+interviews remain deterministic and do not call the API. Scores, hints, and coaching
+remain demo fixtures; there is no AI evaluation or audio processing.
 
 Users, password hashes, session token digests, and interviews persist across restarts.
 By default the database is SQLite at `backend/interview.db`, independent of the

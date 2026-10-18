@@ -3,15 +3,18 @@ from fastapi import APIRouter, HTTPException, Request
 from ..auth import CurrentUser
 from ..models import Answer, Interview, InterviewReport, InterviewSetup
 from ..store import message, now, report
+from ..services import ai_service
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
 
 
 @router.post('', response_model=Interview, response_model_exclude_none=False, status_code=201)
 def start(data: InterviewSetup, request: Request, user: CurrentUser):
+    first_question = ai_service.generate_question(data.role, data.level, [],
+        interview_type=data.type, job_description=data.jobDescription)
     store = request.app.state.store
     with store.transaction() as store:
-        return store.start(user.id, data).model_copy(deep=True)
+        return store.start(user.id, data, first_question=first_question).model_copy(deep=True)
 
 
 @router.get('', response_model=list[Interview])
@@ -32,7 +35,16 @@ def get(interviewId: str, request: Request, user: CurrentUser):
 def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
     store = request.app.state.store
     with store.transaction() as store:
-        return store.answer(store.find(user.id, interviewId), data.text).model_copy(deep=True)
+        interview = store.find(user.id, interviewId)
+        if interview.status != 'active':
+            raise HTTPException(409, 'This interview has ended.')
+        next_question = None
+        if interview.answeredCount + 1 < interview.setup.questionCount:
+            setup = interview.setup
+            conversation = [*interview.messages, message(interviewId, 'you', data.text.strip())]
+            next_question = ai_service.generate_question(setup.role, setup.level, conversation,
+                interview_type=setup.type, job_description=setup.jobDescription)
+        return store.answer(interview, data.text, next_question=next_question).model_copy(deep=True)
 
 
 @router.post('/{interviewId}/hint', response_model=Interview)

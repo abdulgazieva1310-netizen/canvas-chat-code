@@ -250,3 +250,50 @@ def test_transaction_rollback_and_concurrent_updates(tmp_path):
     with store.transaction() as repository:
         assert repository.find('demo-user', interview.id).answeredCount == 1
     store.engine.dispose()
+
+
+def test_dynamic_questions_and_final_answer(client, monkeypatch):
+    from app.services import ai_service
+    calls = []
+    def generate(role, level, previous_messages, **context):
+        calls.append((role, level, list(previous_messages), context))
+        return f'Dynamic question {len(calls)}?'
+    monkeypatch.setattr(ai_service, 'generate_question', generate)
+    login(client)
+    interview = start(client, type='Behavioral', jobDescription='Team leadership')
+    path = '/api/interviews/' + interview['id']
+    assert interview['messages'][0]['text'] == 'Dynamic question 1?'
+    assert calls[0] == ('Backend Developer', 'Middle', [],
+                        {'interview_type': 'Behavioral', 'job_description': 'Team leadership'})
+    for index in range(5):
+        result = client.post(path + '/messages', json={'text': f' Answer {index} '})
+        assert result.status_code == 200
+        if index < 4:
+            assert result.json()['messages'][-1]['text'] == f'Dynamic question {index + 2}?'
+            assert calls[-1][2][-1].text == f'Answer {index}'
+            assert calls[-1][2][-1].sender == 'you'
+    assert len(calls) == 5
+    assert result.json()['status'] == 'complete'
+    assert client.post(path + '/messages', json={'text': 'extra'}).status_code == 409
+    assert len(calls) == 5
+    assert client.get(path).json() == result.json()
+
+
+def test_question_fallback_during_api_outage(client, monkeypatch):
+    import httpx
+    from app.services import ai_service
+    from app.models import InterviewSetup
+    from app.store import question
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def unavailable(*args, **kwargs):
+        raise httpx.ConnectError('unavailable')
+    client_class = httpx.Client
+    monkeypatch.setattr(ai_service.httpx, 'Client', lambda **kwargs: client_class(
+        transport=httpx.MockTransport(unavailable), **kwargs))
+    login(client)
+    interview = start(client, type='Behavioral')
+    setup = InterviewSetup(**(SETUP | {'type': 'Behavioral'}))
+    assert interview['messages'][0]['text'] == question(setup, 0)
+    response = client.post('/api/interviews/' + interview['id'] + '/messages', json={'text': 'Answer'})
+    assert response.status_code == 200
+    assert response.json()['messages'][-1]['text'] == question(setup, 1)

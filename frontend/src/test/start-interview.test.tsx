@@ -239,3 +239,22 @@ it.each(["/ready", "/setup"] as const)(
     client.clear();
   },
 );
+
+it.each(["Java Developer", "Python Developer", "C++ Developer"] as const)(
+  "offers %s on Setup and sends the selected role to the backend",
+  async (role) => {
+    const fetch = vi.fn().mockImplementation(async (_url: string, options: RequestInit) =>
+      new Response(JSON.stringify({ ...createdInterview, setup: JSON.parse(options.body as string) }), { status: 201 }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const { client, router } = openStartPage("/setup");
+    const choice = await screen.findByRole("button", { name: role });
+    fireEvent.click(choice);
+    expect(choice).toHaveAttribute("data-active", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
+    await screen.findByText("Live interview");
+    expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toEqual({ ...defaultSetup, role });
+    expect(router.state.location.href).toBe("/interview?interviewId=created-session-123");
+    client.clear();
+  },
+);

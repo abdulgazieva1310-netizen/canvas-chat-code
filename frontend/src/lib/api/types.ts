@@ -2,6 +2,9 @@ export type Role =
   | "Frontend Developer"
   | "Backend Developer"
   | "Full Stack Developer"
+  | "Java Developer"
+  | "Python Developer"
+  | "C++ Developer"
   | "QA Engineer"
   | "Data Analyst"
   | "DevOps Engineer";

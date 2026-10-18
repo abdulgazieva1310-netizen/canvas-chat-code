@@ -73,6 +73,7 @@ The product should teach users *why* an answer was strong or weak, not merely as
 - Natural AI-led conversation with relevant follow-up questions.
 - Hybrid source of curated and AI-generated questions.
 - Difficulty adapts to how well the user answers, starting at an appropriate experience level.
+- Technical interviews for Java, Python, C++, Backend, and Full Stack Developers exclusively use algorithmic/coding challenges. Language-specific roles use their named language. Behavioral and role-specific interviews retain their own question types.
 - Follow-up questions do not count against the selected main question total.
 - Session ends after the chosen number of main questions, or when the user ends it early.
 - Display elapsed time without a hard time cutoff.
@@ -124,9 +125,10 @@ The product should teach users *why* an answer was strong or weak, not merely as
 **Why:** Useful Quick Start personalization without burdensome onboarding.  
 **Other options:** Basic name/email only (too little personalization); detailed career profile with CV and skills (too much for MVP).
 
-### Decision 2 — Six starting IT roles
+### Decision 2 — Nine starting IT roles
 
-**Chosen:** Frontend Developer, Backend Developer, Full Stack Developer, QA Engineer, Data Analyst, DevOps Engineer.  
+**Chosen:** Frontend Developer, Backend Developer, Full Stack Developer, Java Developer, Python Developer, C++ Developer, QA Engineer, Data Analyst, DevOps Engineer.
+
 **Why:** Broad enough to be useful while keeping question quality manageable.  
 **Other options:** One role only (too narrow); all possible roles (too broad).
 

@@ -501,3 +501,37 @@ def test_delete_rolls_back_interview_and_evaluations(client):
     with client.app.state.store.sessions() as session:
         assert session.scalar(select(AnswerEvaluationRecord).where(
             AnswerEvaluationRecord.interview_id == interview['id'])) is not None
+
+
+@pytest.mark.parametrize('role, language', [
+    ('Java Developer', 'Java'), ('Python Developer', 'Python'), ('C++ Developer', 'C++'),
+])
+def test_new_developer_roles_register_start_and_persist(client, role, language):
+    response = client.post('/api/auth/register', json={
+        'name': 'Developer', 'email': 'developer@example.com', 'password': 'secret', 'targetRole': role,
+    })
+    assert response.status_code == 201
+    assert response.json()['targetRole'] == role
+    interview = start(client, role=role)
+    assert interview['setup']['role'] == role
+    assert f'Implement in {language}' in interview['messages'][0]['text']
+    path = '/api/interviews/' + interview['id']
+    response = client.post(path + '/messages', json={'text': 'I would use a hash map.'})
+    assert response.status_code == 200
+    assert f'Implement in {language}' in response.json()['messages'][-1]['text']
+    assert client.get(path).json() == response.json()
+    spec = yaml.safe_load((Path(__file__).resolve().parents[2] / 'openapi.yaml').read_text())
+    assert role in spec['components']['schemas']['Role']['enum']
+
+
+@pytest.mark.parametrize('role', ['Java Developer', 'Python Developer', 'C++ Developer',
+                                 'Backend Developer', 'Full Stack Developer'])
+def test_offline_coding_questions_do_not_mix_interview_types(role):
+    from app.models import InterviewSetup
+    from app.store import question
+    for index in range(3):
+        technical = question(InterviewSetup(**(SETUP | {'role': role})), index)
+        assert 'Example:' in technical and 'Constraints:' in technical
+        assert 'Implement in' in technical and 'time and space complexity' in technical
+        assert 'Implement in' not in question(InterviewSetup(**(SETUP | {
+            'role': role, 'type': 'Behavioral'})), index)

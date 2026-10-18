@@ -13,7 +13,7 @@ from .database import AnswerEvaluationRecord, Base, InterviewRecord, TokenRecord
 from fastapi import HTTPException
 
 from .auth import hasher
-from .models import AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
+from .models import CODING_ROLES, AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
 
 
 def now():
@@ -25,6 +25,21 @@ def message(interview_id, sender, text):
 
 
 def question(setup, index):
+    if setup.type == 'Technical' and setup.role in CODING_ROLES:
+        language = {'Java Developer': 'Java', 'Python Developer': 'Python',
+                    'C++ Developer': 'C++'}.get(setup.role, 'a language of your choice')
+        prompts = [
+            'Given an integer array nums and a target, return indices of two distinct elements '
+            'whose sum equals target. Exactly one solution exists. Constraints: 2 <= len(nums) <= 10000; '
+            'values and target are between -1000000 and 1000000. Example: [2,7,11,15], target=9 -> [0,1].',
+            'Given a string s, return the length of its longest substring without repeated characters. '
+            'Constraints: 0 <= len(s) <= 100000 ASCII characters. Example: "abcabcbb" -> 3.',
+            'Given a list of closed intervals [start,end], merge all overlapping intervals and return '
+            'the result sorted by start. Constraints: 1 <= len(intervals) <= 10000; '
+            '0 <= start <= end <= 1000000. Example: [[1,3],[2,6],[8,10]] -> [[1,6],[8,10]].',
+        ]
+        return (f'Question {index + 1} ({setup.level}): {prompts[index % len(prompts)]} '
+                f'Implement in {language} and explain time and space complexity.')
     prompts = (['Tell me about a difficult problem you solved.', 'Describe a disagreement with a teammate.',
                 'How did you respond to critical feedback?'] if setup.type == 'Behavioral' else
                [f'Describe a core concept you use as a {setup.role}.', 'How would you investigate a production issue?',

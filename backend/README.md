@@ -113,3 +113,11 @@ including its transcript/messages and stored evaluations, in one transaction.
 Success returns 204 with no body. Missing or inaccessible interviews return 404.
 The Dashboard trash button removes deleted sessions from local caches and refetches
 history; a failed delete leaves the session visible and shows an error.
+
+Setup supports Java Developer, Python Developer, and C++ Developer in addition to
+the existing roles. Technical interviews for these roles, Backend Developer, and
+Full Stack Developer use only LeetCode-style algorithmic/coding challenges, with
+input/output examples, constraints, and implementation/complexity requirements.
+Named language roles use Java, Python, or C++; Backend and Full Stack candidates
+may choose their language. The offline question fallback follows the same rule.
+Behavioral and Role-specific interviews keep their respective question prompts.

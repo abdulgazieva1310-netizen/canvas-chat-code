@@ -75,3 +75,34 @@ def test_provider_failures_fall_back(monkeypatch, failure, caplog):
     assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
     assert 'fallback question' in caplog.text
     assert 'test-secret' not in caplog.text
+
+
+@pytest.mark.parametrize('status, detail', [
+    (401, 'Invalid API Key'),
+    (404, 'The model missing-model does not exist'),
+    (429, 'Rate limit reached'),
+])
+def test_http_errors_log_status_provider_detail_and_traceback(monkeypatch, caplog, status, detail):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    mock_provider(monkeypatch, lambda request: httpx.Response(status, json={
+        'error': {'message': f'{detail}: test-secret'},
+    }))
+    assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
+    assert f'HTTP status: {status}' in caplog.text
+    assert detail in caplog.text
+    assert 'Groq API Error: HTTPStatusError' in caplog.text
+    assert 'Traceback (most recent call last)' in caplog.text
+    assert '[REDACTED]' in caplog.text
+    assert 'test-secret' not in caplog.text
+
+
+def test_timeout_logs_exception_without_exposing_key(monkeypatch, caplog):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def timeout(request):
+        raise httpx.ReadTimeout('Connection timed out: test-secret', request=request)
+    mock_provider(monkeypatch, timeout)
+    assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
+    assert 'ReadTimeout: Connection timed out: [REDACTED]' in caplog.text
+    assert 'HTTP status: no response' in caplog.text
+    assert 'Traceback (most recent call last)' in caplog.text
+    assert 'test-secret' not in caplog.text

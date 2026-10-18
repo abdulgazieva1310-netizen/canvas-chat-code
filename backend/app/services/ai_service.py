@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import traceback
 from collections.abc import Sequence
 
 import httpx
@@ -17,7 +18,7 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
     """Generate one question, or return None when AI is unavailable.
 
     Accepts the existing wire models. Hints are omitted from the conversation,
-    and provider errors/response bodies are never logged (they can contain secrets).
+    and diagnostic logs redact the API key before printing provider errors.
     """
     key = os.getenv('AI_API_KEY', '').strip()
     if not key or key == 'your_api_key_here':
@@ -35,6 +36,7 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
                      'content': item.text[:4000]} for item in previous_messages[-30:]
                     if item.sender in ('ai', 'you'))
     messages.append({'role': 'user', 'content': 'Ask the next interview question now.'})
+    response = None
     try:
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
@@ -47,6 +49,16 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
             if choice.get('finish_reason') != 'stop' or not isinstance(content, str) or not content.strip():
                 raise ValueError('Invalid question response')
             return content.strip()
-    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
-        logger.warning('AI question generation unavailable; using a fallback question.')
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+        # Format the traceback ourselves so secrets are redacted before logging.
+        # No request headers or interview messages are included.
+        status = response.status_code if response is not None else 'no response'
+        provider_error = response.text if isinstance(exc, httpx.HTTPStatusError) else ''
+        diagnostic = (
+            f'Groq API Error: {type(exc).__name__}: {exc}\n'
+            f'HTTP status: {status}\n'
+            f'Provider response: {provider_error}\n'
+            f'{traceback.format_exc()}'
+        ).replace(key, '[REDACTED]')
+        logger.warning('AI question generation unavailable; using a fallback question.\n%s', diagnostic)
         return None

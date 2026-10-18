@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..auth import CurrentUser
 from ..models import Answer, Interview, InterviewReport, InterviewSetup
@@ -36,6 +36,13 @@ def resume(interviewId: str, request: Request, user: CurrentUser):
     store = request.app.state.store
     with store.transaction() as store:
         return store.resume(store.find(user.id, interviewId)).model_copy(deep=True)
+
+
+@router.delete('/{interviewId}', status_code=204)
+def delete(interviewId: str, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        store.delete(user.id, interviewId)
+    return Response(status_code=204)
 
 
 @router.post('/{interviewId}/messages', response_model=Interview)

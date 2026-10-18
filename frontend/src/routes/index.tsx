@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { Api } from "@/lib/api/client";
+import type { Interview } from "@/lib/api/types";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/")({
@@ -29,11 +31,24 @@ const categories = [
   { name: "Structure", score: 5.9 },
 ];
 function Dashboard() {
+  const client = useQueryClient();
   const {
     data: history = [],
     error: historyError,
     isPending: historyPending,
   } = useQuery({ queryKey: ["history"], queryFn: () => Api.getHistory() });
+  const deletion = useMutation({
+    mutationFn: (id: string) => Api.deleteInterview(id),
+    onSuccess: async (_, id) => {
+      await client.cancelQueries({ queryKey: ["history"] });
+      client.setQueryData<Interview[]>(["history"], (sessions) =>
+        sessions?.filter((session) => session.id !== id),
+      );
+      client.removeQueries({ queryKey: ["interview", id], exact: true });
+      client.removeQueries({ queryKey: ["report", id], exact: true });
+      await client.invalidateQueries({ queryKey: ["history"] });
+    },
+  });
   const max = 10;
   const pts = trend
     .map((v, i) => `${(i / (trend.length - 1)) * 100},${100 - (v / max) * 100}`)
@@ -138,35 +153,49 @@ function Dashboard() {
           />
         </div>
         <div className="mt-4 divide-y divide-border">
+          {deletion.error && <p role="alert">Could not delete session: {deletion.error.message}</p>}
           {historyPending && <p role="status">Loading sessions…</p>}
           {historyError && <p role="alert">{historyError.message}</p>}
           {!historyPending && !historyError && history.length === 0 && (
             <p>No saved sessions yet.</p>
           )}
           {history.map((h) => (
-            <Link
-              key={h.id}
-              to={h.status === "complete" ? "/report" : "/interview"}
-              search={{ interviewId: h.id }}
-              className="flex items-center justify-between py-3 hover:opacity-80"
-            >
-              <div>
-                <p className="font-medium">
-                  {h.setup.role} · {h.setup.type}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(h.startedAt).toLocaleDateString()} · {h.setup.mode} mode
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                {h.status === "incomplete" && (
-                  <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">Incomplete</span>
-                )}
-                <span className="font-display text-xl">
-                  {h.answeredCount} / {h.setup.questionCount}
-                </span>
-              </div>
-            </Link>
+            <div key={h.id} className="flex items-center gap-3">
+              <Link
+                to={h.status === "complete" ? "/report" : "/interview"}
+                search={{ interviewId: h.id }}
+                className="flex min-w-0 flex-1 items-center justify-between gap-3 py-3 hover:opacity-80"
+              >
+                <div>
+                  <p className="font-medium">
+                    {h.setup.role} · {h.setup.type}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(h.startedAt).toLocaleDateString()} · {h.setup.mode} mode
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {h.status === "incomplete" && (
+                    <span className="rounded-full bg-warning/30 px-2 py-0.5 text-xs">
+                      Incomplete
+                    </span>
+                  )}
+                  <span className="font-display text-xl">
+                    {h.answeredCount} / {h.setup.questionCount}
+                  </span>
+                </div>
+              </Link>
+              <button
+                type="button"
+                aria-label={`Delete ${h.setup.role} session from ${new Date(h.startedAt).toLocaleDateString()}`}
+                title="Delete session"
+                disabled={deletion.isPending}
+                onClick={() => deletion.mutate(h.id)}
+                className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+              >
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
+              </button>
+            </div>
           ))}
         </div>
       </div>

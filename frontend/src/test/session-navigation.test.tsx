@@ -224,3 +224,60 @@ it("returns Interview to setup when the cached active session completes", async 
   await waitFor(() => expect(nav.getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup"));
   client.clear();
 });
+
+it.each([sessions[0]!, sessions[1]!])("deletes a $status session without navigating and clears its caches", async (target) => {
+  let finish!: () => void;
+  const deletion = vi.spyOn(Api, "deleteInterview").mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
+  const { client, router } = openDashboard(sessions);
+  await screen.findByRole("link", { name: /QA Engineer/ });
+  const invalidation = vi.spyOn(client, "invalidateQueries");
+  const remaining = sessions.filter((session) => session.id !== target.id);
+  vi.mocked(Api.getHistory).mockResolvedValue(remaining);
+  client.setQueryData(["interview", target.id], { ...target, status: "active", endedAt: null });
+  client.setQueryData(["report", target.id], { interview: target });
+  const button = screen.getByRole("button", { name: new RegExp(`Delete ${target.setup.role}`) });
+  expect(button.closest("a")).toBeNull();
+  fireEvent.click(button);
+  await waitFor(() => expect(deletion).toHaveBeenCalledExactlyOnceWith(target.id));
+  expect(button).toBeDisabled();
+  fireEvent.click(button);
+  expect(deletion).toHaveBeenCalledOnce();
+  expect(router.state.location.href).toBe("/");
+  finish();
+  await waitFor(() => expect(screen.queryByRole("link", { name: new RegExp(target.setup.role) })).toBeNull());
+  expect(client.getQueryData(["history"])).toEqual(remaining);
+  expect(client.getQueryData(["interview", target.id])).toBeUndefined();
+  expect(client.getQueryData(["report", target.id])).toBeUndefined();
+  expect(invalidation).toHaveBeenCalledWith({ queryKey: ["history"] });
+  await waitFor(() => expect(Api.getHistory).toHaveBeenCalledTimes(2));
+  expect(router.state.location.href).toBe("/");
+  client.clear();
+});
+
+it("keeps a session visible and allows retrying after a deletion failure", async () => {
+  const deletion = vi.spyOn(Api, "deleteInterview").mockRejectedValue(new Error("Database unavailable"));
+  const { client, router } = openDashboard(sessions);
+  const link = await screen.findByRole("link", { name: /Backend Developer/ });
+  const button = screen.getByRole("button", { name: /Delete Backend Developer/ });
+  fireEvent.click(button);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Could not delete session: Database unavailable");
+  expect(link).toBeInTheDocument();
+  expect(button).toBeEnabled();
+  expect(client.getQueryData(["history"])).toEqual(sessions);
+  expect(Api.getHistory).toHaveBeenCalledOnce();
+  expect(router.state.location.href).toBe("/");
+  expect(deletion).toHaveBeenCalledExactlyOnceWith("unfinished-new");
+  client.clear();
+});
+
+it("shows empty history and sends Interview to setup after deleting the final session", async () => {
+  vi.spyOn(Api, "deleteInterview").mockResolvedValue(undefined);
+  const { client } = openDashboard([sessions[0]!]);
+  await screen.findByRole("link", { name: /Backend Developer/ });
+  vi.mocked(Api.getHistory).mockResolvedValue([]);
+  fireEvent.click(screen.getByRole("button", { name: /Delete Backend Developer/ }));
+  await screen.findByText("No saved sessions yet.");
+  expect(within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup");
+  expect(screen.queryByRole("button", { name: /Delete/ })).toBeNull();
+  client.clear();
+});

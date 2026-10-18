@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import StaleDataError
@@ -141,6 +141,13 @@ class Repository:
             interview.endedAt = None
             self.save(interview)
         return interview
+
+    def delete(self, user_id, ident):
+        self.find(user_id, ident)  # Ownership check and row lock before deleting children.
+        self.session.execute(delete(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == ident))
+        # The transcript (including all messages) lives in the interview payload.
+        self.session.delete(self.loaded[ident])
 
     def answer(self, interview, text, next_question=None, evaluation=None):
         if interview.status != 'active':

@@ -430,3 +430,74 @@ def test_resume_requires_authentication_and_persists(tmp_path):
         assert restarted.get(path, headers={'Authorization': token}).json() == resumed
         assert restarted.post(path + '/messages', headers={'Authorization': token},
                               json={'text': 'Answer after restart'}).status_code == 200
+
+
+@pytest.mark.parametrize('status', ['active', 'incomplete', 'complete'])
+def test_delete_interview_removes_transcript_and_evaluations(client, status):
+    from app.database import AnswerEvaluationRecord, InterviewRecord
+    from sqlalchemy import select
+    token = login(client).headers['authorization']
+    interview = start(client)
+    path = '/api/interviews/' + interview['id']
+    for _ in range(5 if status == 'complete' else 1):
+        assert client.post(path + '/messages', json={'text': 'An answer to delete'}).status_code == 200
+    if status == 'incomplete':
+        client.post(path + '/end')
+    assert client.get(path).json()['status'] == status
+    with client.app.state.store.sessions() as session:
+        assert session.scalar(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview['id'])) is not None
+    response = client.delete(path)
+    assert response.status_code == 204
+    assert response.content == b''
+    assert client.get(path).status_code == 404
+    assert client.get(path + '/report').status_code == 404
+    assert client.post(path + '/resume').status_code == 404
+    assert client.post(path + '/messages', json={'text': 'Cannot answer deleted session'}).status_code == 404
+    assert client.delete(path).status_code == 404
+    assert all(item['id'] != interview['id'] for item in client.get('/api/interviews').json())
+    with client.app.state.store.sessions() as session:
+        assert session.get(InterviewRecord, interview['id']) is None
+        assert session.scalar(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview['id'])) is None
+    # Other sessions and the authenticated user's credentials survive deletion.
+    assert len(client.get('/api/interviews').json()) == 2
+    with TestClient(create_app(database_url=str(client.app.state.store.engine.url))) as restarted:
+        assert restarted.get(path, headers={'Authorization': token}).status_code == 404
+        assert len(restarted.get('/api/interviews', headers={'Authorization': token}).json()) == 2
+
+
+def test_delete_requires_authentication_and_ownership(client):
+    from app.database import AnswerEvaluationRecord
+    from sqlalchemy import select
+    assert client.delete('/api/interviews/missing').status_code == 401
+    token = login(client).headers['authorization']
+    interview = start(client)
+    path = '/api/interviews/' + interview['id']
+    client.post(path + '/messages', json={'text': 'Private answer'})
+    client.post('/api/auth/register', json={'name': 'Other', 'email': 'other@example.com', 'password': 'secret'})
+    assert client.delete(path).status_code == 404
+    assert client.delete('/api/interviews/missing').status_code == 404
+    saved = client.get(path, headers={'Authorization': token})
+    assert saved.status_code == 200 and saved.json()['answeredCount'] == 1
+    with client.app.state.store.sessions() as session:
+        assert session.scalar(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview['id'])) is not None
+
+
+def test_delete_rolls_back_interview_and_evaluations(client):
+    from app.database import AnswerEvaluationRecord
+    from sqlalchemy import select
+    login(client)
+    interview = start(client)
+    path = '/api/interviews/' + interview['id']
+    client.post(path + '/messages', json={'text': 'Keep this answer on rollback'})
+    with pytest.raises(RuntimeError):
+        with client.app.state.store.transaction() as repository:
+            repository.delete('demo-user', interview['id'])
+            repository.session.flush()
+            raise RuntimeError('abort delete')
+    assert client.get(path).json()['answeredCount'] == 1
+    with client.app.state.store.sessions() as session:
+        assert session.scalar(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview['id'])) is not None

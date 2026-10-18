@@ -50,6 +50,7 @@ async function request<T>(
       typeof error?.message === "string" ? error.message : `Request failed (${response.status}).`,
     );
   }
+  if (response.status === 204) return undefined as T;
   const data = (await response.json()) as T;
   if (isAuthRequest) {
     const authorization = response.headers.get("Authorization");
@@ -73,6 +74,7 @@ export const Api = {
     return interview;
   },
   getInterview: (id: string) => request<Interview>(interviewPath(id)),
+  deleteInterview: (id: string) => request<void>(interviewPath(id), undefined, "DELETE"),
   resumeInterview: (id: string) => request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
   sendMessage: (id: string, text: string) =>
     request<Interview>(`${interviewPath(id)}/messages`, { text }),

@@ -107,3 +107,9 @@ before enabling input. Resume restores active status and clears `endedAt` while
 preserving the existing transcript, pending question, answer count, and evaluations.
 It is idempotent for active interviews; completed interviews cannot be resumed.
 GET requests remain read-only.
+
+`DELETE /api/interviews/{id}` permanently deletes an authenticated owner's session,
+including its transcript/messages and stored evaluations, in one transaction.
+Success returns 204 with no body. Missing or inaccessible interviews return 404.
+The Dashboard trash button removes deleted sessions from local caches and refetches
+history; a failed delete leaves the session visible and shows an error.

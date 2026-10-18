@@ -121,6 +121,20 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteInterview
+      summary: Delete an interview and its saved data
+      description: |
+        Permanently deletes the owner's interview, transcript/messages, and answer
+        evaluations in one transaction. Missing and inaccessible interviews return
+        404. Works for active, incomplete, and complete interviews. No request body.
+      responses:
+        '204':
+          description: Interview deleted; no response body
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /interviews/{interviewId}/resume:
     parameters:
       - $ref: '#/components/parameters/InterviewId'

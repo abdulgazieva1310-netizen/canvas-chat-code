@@ -107,3 +107,25 @@ it("keeps cookie authentication when no bearer response header is available", as
   expect(fetch.mock.calls[1]?.[1].headers).not.toHaveProperty("Authorization");
   expect(JSON.stringify(sessionStorage)).not.toContain("secret");
 });
+
+it("deletes the encoded interview ID and accepts an empty 204 response", async () => {
+  const response = new Response(null, { status: 204 });
+  const json = vi.spyOn(response, "json");
+  const fetch = vi.fn().mockResolvedValue(response);
+  vi.stubGlobal("fetch", fetch);
+  await expect(Api.deleteInterview("a/b")).resolves.toBeUndefined();
+  expect(fetch).toHaveBeenCalledWith("http://localhost:8000/api/interviews/a%2Fb", expect.objectContaining({
+    method: "DELETE", credentials: "include",
+  }));
+  expect(fetch.mock.calls[0]?.[1]).not.toHaveProperty("body");
+  expect(json).not.toHaveBeenCalled();
+});
+
+it("preserves deletion errors for the dashboard", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+    JSON.stringify({ message: "Interview not found." }), { status: 404 },
+  )));
+  await expect(Api.deleteInterview("missing")).rejects.toMatchObject({
+    status: 404, message: "Interview not found.",
+  });
+});

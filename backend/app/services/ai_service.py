@@ -4,6 +4,13 @@ import logging
 import os
 import traceback
 from collections.abc import Sequence
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Also support importing this service without importing app.main first.
+ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(ENV_PATH)
 
 import httpx
 
@@ -20,8 +27,13 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
     Accepts the existing wire models. Hints are omitted from the conversation,
     and diagnostic logs redact the API key before printing provider errors.
     """
-    key = os.getenv('AI_API_KEY', '').strip()
+    raw_key = os.getenv('AI_API_KEY')
+    key = (raw_key or '').strip()
+    masked_key = None if raw_key is None else (
+        f'***{key[-4:]} (length={len(key)})' if len(key) > 8 else '*** (empty or short key)'
+    )
     if not key or key == 'your_api_key_here':
+        print(f'Groq AI_API_KEY={masked_key}; dotenv path={ENV_PATH}; exists={ENV_PATH.is_file()}', flush=True)
         return None
     context = json.dumps({'role': role, 'level': level, 'type': interview_type,
                           'jobDescription': job_description[:8000]})
@@ -39,6 +51,7 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
     response = None
     try:
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
+            print(f'Groq AI_API_KEY={masked_key}; dotenv path={ENV_PATH}; exists={ENV_PATH.is_file()}', flush=True)
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
                 'model': os.getenv('AI_MODEL', 'llama-3.3-70b-versatile'),
                 'messages': messages, 'temperature': 0.7, 'max_completion_tokens': 256,

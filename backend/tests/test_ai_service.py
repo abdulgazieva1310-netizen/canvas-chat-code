@@ -106,3 +106,20 @@ def test_timeout_logs_exception_without_exposing_key(monkeypatch, caplog):
     assert 'HTTP status: no response' in caplog.text
     assert 'Traceback (most recent call last)' in caplog.text
     assert 'test-secret' not in caplog.text
+
+
+def test_masked_key_is_printed_before_request(monkeypatch, capsys):
+    monkeypatch.setenv('AI_API_KEY', 'private-key-1234')
+    def handler(request):
+        output = capsys.readouterr().out
+        assert 'Groq AI_API_KEY=***1234 (length=16)' in output
+        assert str(ai_service.ENV_PATH) in output
+        assert 'private-key' not in output
+        return httpx.Response(401, json={'error': {'message': 'Invalid API Key'}})
+    mock_provider(monkeypatch, handler)
+    assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
+
+
+def test_missing_key_diagnostic(monkeypatch, capsys):
+    assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
+    assert 'Groq AI_API_KEY=None' in capsys.readouterr().out

@@ -411,13 +411,14 @@ components:
           $ref: '#/components/schemas/Role'
         level:
           $ref: '#/components/schemas/Level'
-        preferredLanguage: {type: string, enum: [English]}
+        preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Saved preference; MVP interviews remain in English.}
     ProfileUpdate:
       type: object
       additionalProperties: false
       required: [name, targetRole, level]
       properties:
         name: {type: string, minLength: 1, pattern: '\S'}
+        preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Omission preserves the saved preference.}
         targetRole:
           $ref: '#/components/schemas/Role'
         level:

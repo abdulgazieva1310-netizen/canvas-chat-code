@@ -123,8 +123,11 @@ class Repository:
 
     def update_profile(self, user_id, data):
         record = self.session.get(UserRecord, user_id)
-        user = User.model_validate(record.profile).model_copy(update={
-            'name': data.name.strip(), 'targetRole': data.targetRole, 'level': data.level})
+        user = User.model_validate(record.profile)
+        user = user.model_copy(update={
+            'name': data.name.strip(), 'targetRole': data.targetRole, 'level': data.level,
+            'preferredLanguage': (data.preferredLanguage.strip() if 'preferredLanguage' in data.model_fields_set
+                                  else user.preferredLanguage)})
         record.profile = user.model_dump(mode='json')
         return user
 

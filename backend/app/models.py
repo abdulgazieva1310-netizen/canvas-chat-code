@@ -38,7 +38,7 @@ class User(BaseModel):
     email: EmailStr
     targetRole: Role = 'Frontend Developer'
     level: Level = 'Middle'
-    preferredLanguage: Literal['English'] = 'English'
+    preferredLanguage: str = Field(default='English', min_length=1, max_length=80, pattern=r'\S')
 
 
 class ProfileUpdate(BaseModel):
@@ -46,6 +46,7 @@ class ProfileUpdate(BaseModel):
     name: str = Field(min_length=1, pattern=r'\S')
     targetRole: Role
     level: Level
+    preferredLanguage: str = Field(default='English', min_length=1, max_length=80, pattern=r'\S')
 
 
 class InterviewSetup(BaseModel):

@@ -45,6 +45,8 @@ Goal: Let users request and complete a password reset.
 Description: Add recovery and reset forms connected to the password-reset API, including clear handling for expired links and delivery failures. Verify the complete recovery flow with a test mailbox and confirm that the replacement password works for login.
 
 ## 10. Implement professional profile settings
+Status: Complete. Profile form and API save name, all nine roles, level, and language preference while displaying account email and keeping interviews English. Persistence, validation, ownership, and UI saving are verified by backend API and frontend profile tests.
+
 Goal: Save the preferences needed to personalize interview preparation.
 Description: Add profile read/update operations and a settings form for name, target role, Junior/Middle/Senior level, and preferred language, showing the account email. Support the nine roles listed in the product plan, keep MVP interviews in English, and verify persistence and validation of updates.
 

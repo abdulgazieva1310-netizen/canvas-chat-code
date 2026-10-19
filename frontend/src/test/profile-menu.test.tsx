@@ -43,7 +43,9 @@ function openPage(path = "/", cached = false, realDashboard = false) {
   const home = createRoute({
     getParentRoute: () => root,
     path: "/",
-    component: realDashboard ? DashboardRoute.options.component! : () => <AppShell>Dashboard content</AppShell>,
+    component: realDashboard
+      ? DashboardRoute.options.component!
+      : () => <AppShell>Dashboard content</AppShell>,
   });
   const profile = createRoute({
     getParentRoute: () => root,
@@ -114,12 +116,17 @@ it("saves name, role, and level and updates the shared user cache and avatar", a
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "  Dana Sadyk  " } });
   fireEvent.change(screen.getByLabelText("Target role"), { target: { value: "C++ Developer" } });
   fireEvent.change(screen.getByLabelText("Level"), { target: { value: "Senior" } });
+  fireEvent.change(screen.getByLabelText("Preferred language"), {
+    target: { value: "  Kazakh  " },
+  });
+  expect(screen.getByText(/Interviews and feedback are currently in English/)).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() =>
     expect(update).toHaveBeenCalledExactlyOnceWith({
       name: "Dana Sadyk",
       targetRole: "C++ Developer",
       level: "Senior",
+      preferredLanguage: "Kazakh",
     }),
   );
   expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
@@ -128,6 +135,7 @@ it("saves name, role, and level and updates the shared user cache and avatar", a
     name: "Dana Sadyk",
     targetRole: "C++ Developer",
     level: "Senior",
+    preferredLanguage: "Kazakh",
   };
   vi.mocked(Api.getProfile).mockResolvedValue(updated);
   finish(updated);
@@ -135,6 +143,7 @@ it("saves name, role, and level and updates the shared user cache and avatar", a
   expect(client.getQueryData(["profile"])).toEqual(updated);
   expect(screen.getByRole("button", { name: "Account menu" })).toHaveTextContent("DS");
   expect(screen.getByLabelText("Name")).toHaveValue(updated.name);
+  expect(screen.getByLabelText("Preferred language")).toHaveValue("Kazakh");
   client.clear();
 });
 
@@ -186,18 +195,25 @@ it("shows logout failures and retains the session for retry", async () => {
 it("shows saved profile edits when returning to the real dashboard", async () => {
   const { client } = openPage("/profile", false, true);
   await screen.findByLabelText("Name");
-  const updated: User = { ...user, name: "Dana Sadyk", targetRole: "Java Developer", level: "Senior" };
+  const updated: User = {
+    ...user,
+    name: "Dana Sadyk",
+    targetRole: "Java Developer",
+    level: "Senior",
+  };
   vi.spyOn(Api, "updateProfile").mockResolvedValue(updated);
-  vi.spyOn(Api, "getHistory").mockResolvedValue([{
-    id: "recent-python-session",
-    setup: { ...defaultSetup, role: "Python Developer", level: "Junior" },
-    status: "incomplete",
-    startedAt: "2026-10-19T10:00:00Z",
-    endedAt: "2026-10-19T10:05:00Z",
-    answeredCount: 1,
-    messages: [],
-    lastFeedback: null,
-  }]);
+  vi.spyOn(Api, "getHistory").mockResolvedValue([
+    {
+      id: "recent-python-session",
+      setup: { ...defaultSetup, role: "Python Developer", level: "Junior" },
+      status: "incomplete",
+      startedAt: "2026-10-19T10:00:00Z",
+      endedAt: "2026-10-19T10:05:00Z",
+      answeredCount: 1,
+      messages: [],
+      lastFeedback: null,
+    },
+  ]);
   vi.mocked(Api.getProfile).mockResolvedValue(updated);
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: updated.name } });
   fireEvent.change(screen.getByLabelText("Target role"), { target: { value: updated.targetRole } });

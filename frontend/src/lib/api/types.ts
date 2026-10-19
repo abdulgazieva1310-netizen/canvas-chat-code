@@ -16,10 +16,11 @@ export interface User {
   email: string;
   targetRole: Role;
   level: Level;
-  preferredLanguage: "English";
+  preferredLanguage: string;
 }
 
-export type ProfileUpdate = Pick<User, "name" | "targetRole" | "level">;
+export type ProfileUpdate = Pick<User, "name" | "targetRole" | "level"> &
+  Partial<Pick<User, "preferredLanguage">>;
 
 export const targetRoles: Role[] = [
   "Frontend Developer",

@@ -38,13 +38,21 @@ function ProfileForm({ user }: { user: User }) {
   const [name, setName] = useState(user.name);
   const [targetRole, setTargetRole] = useState<Role>(user.targetRole);
   const [level, setLevel] = useState<Level>(user.level);
+  const [preferredLanguage, setPreferredLanguage] = useState(user.preferredLanguage);
   const save = useMutation({
-    mutationFn: () => Api.updateProfile({ name: name.trim(), targetRole, level }),
+    mutationFn: () =>
+      Api.updateProfile({
+        name: name.trim(),
+        targetRole,
+        level,
+        preferredLanguage: preferredLanguage.trim(),
+      }),
     onSuccess: (updated) => {
       client.setQueryData(["profile"], updated);
       setName(updated.name);
       setTargetRole(updated.targetRole);
       setLevel(updated.level);
+      setPreferredLanguage(updated.preferredLanguage);
     },
   });
   return (
@@ -52,7 +60,7 @@ function ProfileForm({ user }: { user: User }) {
       className="card-surface mt-8 max-w-xl space-y-5 p-7"
       onSubmit={(event) => {
         event.preventDefault();
-        if (name.trim() && !save.isPending) save.mutate();
+        if (name.trim() && preferredLanguage.trim() && !save.isPending) save.mutate();
       }}
     >
       <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -102,9 +110,32 @@ function ProfileForm({ user }: { user: User }) {
           ))}
         </select>
       </label>
+      <label className="block">
+        Preferred language
+        <input
+          required
+          maxLength={80}
+          value={preferredLanguage}
+          disabled={save.isPending}
+          aria-describedby="language-note"
+          onChange={(event) => {
+            save.reset();
+            setPreferredLanguage(event.target.value);
+          }}
+          className="mt-2 w-full rounded-lg border bg-background p-3"
+        />
+      </label>
+      <p id="language-note" className="text-sm text-muted-foreground">
+        Your preference is saved for future language support. Interviews and feedback are currently
+        in English.
+      </p>
       {save.error && <p role="alert">Could not save profile: {save.error.message}</p>}
       {save.isSuccess && <p role="status">Profile saved.</p>}
-      <button type="submit" disabled={save.isPending || !name.trim()} className="btn btn-primary">
+      <button
+        type="submit"
+        disabled={save.isPending || !name.trim() || !preferredLanguage.trim()}
+        className="btn btn-primary"
+      >
         {save.isPending ? "Saving…" : "Save changes"}
       </button>
     </form>

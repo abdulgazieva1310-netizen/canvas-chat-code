@@ -539,7 +539,8 @@ def test_offline_coding_questions_do_not_mix_interview_types(role):
 
 def test_profile_requires_authentication_and_persists(tmp_path):
     url = f'sqlite:///{tmp_path / "profile.db"}'
-    values = {'name': '  Aigerim Murat  ', 'targetRole': 'Python Developer', 'level': 'Senior'}
+    values = {'name': '  Aigerim Murat  ', 'targetRole': 'Python Developer', 'level': 'Senior',
+              'preferredLanguage': 'Kazakh'}
     with TestClient(create_app(database_url=url)) as client:
         assert client.get('/api/auth/me').status_code == 401
         assert client.patch('/api/auth/me', json=values).status_code == 401
@@ -554,6 +555,8 @@ def test_profile_requires_authentication_and_persists(tmp_path):
         assert response.headers['cache-control'] == 'no-store'
         client.cookies.clear()
         assert client.get('/api/auth/me', headers={'Authorization': token}).json() == expected
+        assert client.patch('/api/auth/me', headers={'Authorization': token}, json={key: value for key, value in values.items()
+                                                 if key != 'preferredLanguage'}).json() == expected
     with TestClient(create_app(database_url=url)) as restarted:
         assert restarted.get('/api/auth/me', headers={'Authorization': token}).json() == expected
         assert login(restarted).json() == expected
@@ -565,6 +568,9 @@ def test_profile_requires_authentication_and_persists(tmp_path):
     {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Invalid'},
     {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'id': 'another-user'},
     {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'email': 'different@example.com'},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'preferredLanguage': '   '},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'preferredLanguage': 'a' * 81},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'preferredLanguage': None},
 ])
 def test_profile_rejects_invalid_or_uneditable_fields(client, data):
     original = login(client).json()
@@ -581,6 +587,22 @@ def test_profile_updates_only_authenticated_user(client):
     response = client.patch('/api/auth/me', json=update)
     assert response.json() == other | update
     assert client.get('/api/auth/me', headers={'Authorization': token}).json() == owner.json()
+
+
+@pytest.mark.parametrize('role', [
+    'Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Java Developer',
+    'Python Developer', 'C++ Developer', 'QA Engineer', 'Data Analyst', 'DevOps Engineer',
+])
+@pytest.mark.parametrize('level', ['Junior', 'Middle', 'Senior'])
+def test_profile_supports_all_roles_and_levels(client, role, level):
+    login(client)
+    response = client.patch('/api/auth/me', json={
+        'name': 'Candidate', 'targetRole': role, 'level': level, 'preferredLanguage': '  Russian  '})
+    assert response.status_code == 200
+    assert response.json()['preferredLanguage'] == 'Russian'
+    assert response.json()['targetRole'] == role
+    assert response.json()['level'] == level
+    assert client.post('/api/interviews', json=SETUP | {'language': 'Russian'}).status_code == 400
 
 
 def test_logout_revokes_bearer_and_cookie_tokens_and_clears_cookie(client):

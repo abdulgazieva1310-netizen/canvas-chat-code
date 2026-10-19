@@ -149,9 +149,13 @@ may choose their language. The offline question fallback follows the same rule.
 Behavioral and Role-specific interviews keep their respective question prompts.
 
 The account menu loads the current user through `GET /api/auth/me`.
-`PATCH /api/auth/me` saves `name`, `targetRole`, and `level` for the authenticated
-user; all three fields are required, unknown fields are rejected, and name is
-trimmed. IDs, email, and password cannot be changed through this endpoint.
+`PATCH /api/auth/me` saves `name`, `targetRole`, `level`, and `preferredLanguage`
+for the authenticated user. The first three fields are required; omission of
+`preferredLanguage` preserves its saved value. Names and language preferences
+are trimmed, and language preferences must contain 1–80 characters with at least
+one non-whitespace character. Unknown fields are rejected. The language preference
+is retained for future support; MVP interview configuration remains English.
+IDs, email, and password cannot be changed through this endpoint.
 Profile data is stored in the existing users table and survives restarts.
 `POST /api/auth/logout` revokes any supplied bearer and cookie tokens and expires
 the HttpOnly cookie. It also works for expired or absent credentials, so users

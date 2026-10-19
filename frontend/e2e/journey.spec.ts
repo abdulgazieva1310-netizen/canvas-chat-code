@@ -47,15 +47,14 @@ test('register, complete five questions, reload saved results/history, delete', 
   await expect(page.getByText(/5 of 5 questions · complete/)).toBeVisible();
   await expect(page.getByText('FIXTURE_FEEDBACK: concrete example').first()).toBeVisible();
   await page.goto('/history');
-  // The shell's History route currently delegates saved sessions to Dashboard.
-  await page.getByRole('link', { name: 'View saved interviews' }).click();
   await page.reload();
-  const saved = page.getByRole('link').filter({ hasText: 'QA Engineer · Behavioral' });
+  const saved = page.getByRole('link', { name: 'View report' });
   await expect(saved).toBeVisible();
   await saved.click();
   await expect(page).toHaveURL(new RegExp(`report\\?interviewId=${id}`));
   await page.goto('/');
   await page.getByRole('button', { name: /Delete QA Engineer session/ }).click();
+  await page.getByRole('button', { name: 'Delete interview', exact: true }).click();
   await expect(page.getByText('No saved sessions yet.')).toBeVisible();
   await page.reload();
   await expect(page.getByText('No saved sessions yet.')).toBeVisible();

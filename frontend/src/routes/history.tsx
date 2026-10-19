@@ -50,7 +50,11 @@ function History() {
   const query = { ...filters, page, pageSize };
   const history = useQuery({
     queryKey: ["history-page", query],
-    queryFn: () => Api.getHistoryPage(query),
+    queryFn: async () => {
+      const data = await Api.getHistoryPage(query);
+      // Support the existing array response while the paginated backend rolls out.
+      return Array.isArray(data) ? { items: data as Interview[], total: data.length, page: 1, pageSize } : data;
+    },
     retry: false,
   });
   const update = (key: keyof HistoryQuery, value: string) => {

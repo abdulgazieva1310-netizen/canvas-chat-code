@@ -228,3 +228,13 @@ it("does not let a stale filter response replace the current result set", async 
   expect(screen.queryByRole("link", { name: /Backend Developer/ })).toBeNull();
   client.clear();
 });
+
+it("renders saved history during the legacy array-to-page rollout", async () => {
+  const item = session("legacy", "complete");
+  vi.spyOn(Api, "getHistoryPage").mockResolvedValue([item] as unknown as HistoryPage);
+  vi.spyOn(Api, "getReport").mockResolvedValue(reportFor(item, 8));
+  const { client } = openHistory();
+  await screen.findByRole("link", { name: "View report" });
+  expect(screen.getByText("QA Engineer · Behavioral")).toBeInTheDocument();
+  client.clear();
+});

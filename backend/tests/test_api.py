@@ -1,12 +1,15 @@
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 
+import httpx
 import pytest
 import yaml
+from fastapi import Request, Response
 from fastapi.testclient import TestClient
 from jsonschema import Draft4Validator, RefResolver
 
-from app.auth import hasher, token_key
+from app.auth import establish_session, hasher, token_key
 from app.main import create_app
 from app.database import TokenRecord, UserRecord
 from app.store import now
@@ -209,16 +212,29 @@ def test_responses_match_contract(client):
 
 
 def test_secure_cookie_and_cors():
-    with TestClient(create_app(secure_cookies=True, database_url='sqlite:///:memory:')) as client:
-        assert 'Secure' in login(client).headers['set-cookie']
-        for origin in ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:8080']:
-            response = client.options('/api/interviews', headers={'Origin': origin,
-                'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'X-Custom-Header'})
-            assert response.status_code == 200
-            assert response.headers['access-control-allow-origin'] == origin
-            assert response.headers['access-control-allow-credentials'] == 'true'
-            assert 'PUT' in response.headers['access-control-allow-methods']
-            assert response.headers['access-control-allow-headers'] == 'X-Custom-Header'
+    app = create_app(seed=False, secure_cookies=True, database_url='sqlite:///:memory:')
+
+    class TokenStore:
+        def add_token(self, digest, user_id, expires_at):
+            pass
+
+    response = Response()
+    establish_session(Request({'type': 'http', 'app': app}), response, 'test-user', TokenStore())
+    assert 'Secure' in response.headers['set-cookie']
+
+    async def assert_cors_preflights():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url='http://test') as client:
+            for origin in ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:8080']:
+                response = await client.options('/api/interviews', headers={'Origin': origin,
+                    'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'X-Custom-Header'})
+                assert response.status_code == 200
+                assert response.headers['access-control-allow-origin'] == origin
+                assert response.headers['access-control-allow-credentials'] == 'true'
+                assert 'PUT' in response.headers['access-control-allow-methods']
+                assert response.headers['access-control-allow-headers'] == 'X-Custom-Header'
+
+    asyncio.run(assert_cors_preflights())
 
 
 def test_create_returns_created_interview(client):

@@ -39,7 +39,7 @@ export function UserMenu() {
       .map((part) => part[0])
       .slice(0, 2)
       .join("")
-      .toUpperCase() || "?";
+      .toUpperCase() || "U";
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>

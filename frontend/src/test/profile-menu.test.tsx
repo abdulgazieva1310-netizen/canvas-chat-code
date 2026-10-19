@@ -192,6 +192,7 @@ it("opens the avatar dropdown with the actual user and links to profile settings
   const { client, router } = openPage();
   await screen.findByText("Dashboard content");
   expect(Api.getProfile).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Account menu" })).toHaveTextContent("U");
   const avatar = await openMenu();
   await screen.findByText(user.email);
   expect(screen.getByText(user.name)).toBeInTheDocument();

@@ -354,8 +354,7 @@ it("plays each voice question once and provides replay, mute, and stop controls"
   fireEvent.click(screen.getByRole("button", { name: "Replay question" }));
   expect(cancel).toHaveBeenCalled();
   expect(speak).toHaveBeenCalledTimes(2);
-  fireEvent.click(screen.getByRole("button", { name: "Mute questions" }));
-  const mutedUpdate = {
+  const next = {
     ...active,
     answeredCount: 2,
     messages: [
@@ -369,9 +368,27 @@ it("plays each voice question once and provides replay, mute, and stop controls"
       },
     ],
   };
-  act(() => client.setQueryData(["interview", active.id], mutedUpdate));
+  act(() => client.setQueryData(["interview", active.id], next));
   await screen.findByText("Next?");
-  expect(speak).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(speak).toHaveBeenCalledTimes(3));
+  fireEvent.click(screen.getByRole("button", { name: "Mute questions" }));
+  const mutedUpdate = {
+    ...next,
+    answeredCount: 3,
+    messages: [
+      ...next.messages,
+      {
+        id: "question-next",
+        interviewId: active.id,
+        from: "ai" as const,
+        text: "Another next?",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  act(() => client.setQueryData(["interview", active.id], mutedUpdate));
+  await screen.findByText("Another next?");
+  expect(speak).toHaveBeenCalledTimes(3);
   expect(screen.getByRole("button", { name: "Unmute questions" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
   expect(cancel).toHaveBeenCalled();

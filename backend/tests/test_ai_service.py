@@ -326,6 +326,9 @@ def test_code_evaluation_receives_exact_source_and_language(monkeypatch, languag
         assert f'coding submission in {language}' in prompt
         assert f'improved code example in {language}' in prompt
         assert 'language syntax and semantics, edge cases' in prompt
+        assert 'time/space complexity' in prompt
+        assert 'naming and readability' in prompt
+        assert 'code organization' in prompt
         assert 'do not claim to execute or compile code' in prompt
         assert json.loads(payload['messages'][1]['content'])['user_answer'] == code
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',

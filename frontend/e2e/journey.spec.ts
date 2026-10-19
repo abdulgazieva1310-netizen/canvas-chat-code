@@ -48,7 +48,7 @@ test('register, complete five questions, reload saved results/history, delete', 
   await expect(page.getByText('FIXTURE_FEEDBACK: concrete example').first()).toBeVisible();
   await page.goto('/history');
   await page.reload();
-  const saved = page.getByRole('link', { name: 'View report' });
+  const saved = page.getByRole('link', { name: 'Open report' });
   await expect(saved).toBeVisible();
   await saved.click();
   await expect(page).toHaveURL(new RegExp(`report\\?interviewId=${id}`));

@@ -234,7 +234,7 @@ it("renders saved history during the legacy array-to-page rollout", async () => 
   vi.spyOn(Api, "getHistoryPage").mockResolvedValue([item] as unknown as HistoryPage);
   vi.spyOn(Api, "getReport").mockResolvedValue(reportFor(item, 8));
   const { client } = openHistory();
-  await screen.findByRole("link", { name: "View report" });
+  await screen.findByRole("link", { name: "Open report" });
   expect(screen.getByText("QA Engineer · Behavioral")).toBeInTheDocument();
   client.clear();
 });

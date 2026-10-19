@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { MarkdownContent } from "@/components/MarkdownContent";
 
 export const Route = createFileRoute("/report")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -97,13 +98,19 @@ function Report() {
           <h2 className="text-xl">Strengths</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {feedback.strengths.map((text) => (
-              <li key={text}>✓ {text}</li>
+              <li key={text} className="flex gap-2">
+                <span aria-hidden="true">✓</span>
+                <MarkdownContent>{text}</MarkdownContent>
+              </li>
             ))}
           </ul>
           <h2 className="mt-6 text-xl">Recurring gaps</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {feedback.gaps.map((text) => (
-              <li key={text}>△ {text}</li>
+              <li key={text} className="flex gap-2">
+                <span aria-hidden="true">△</span>
+                <MarkdownContent>{text}</MarkdownContent>
+              </li>
             ))}
           </ul>
         </div>
@@ -116,24 +123,23 @@ function Report() {
                   className="flex w-full items-center justify-between text-left"
                   onClick={() => setOpen(open === i ? -1 : i)}
                 >
-                  <span className="font-medium">
-                    {i + 1}. {x.q}
-                  </span>
+                  <span className="font-medium">Question {i + 1}</span>
                   <span className="font-display text-xl">{x.score ?? "Not scored"}</span>
                 </button>
                 {open === i && (
                   <div className="mt-3 space-y-3 text-sm">
-                    <p>
-                      <span className="font-semibold text-success">Went well · </span>
-                      {x.good}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-destructive">Missing · </span>
-                      {x.miss}
-                    </p>
-                    <div className="whitespace-pre-wrap rounded-lg bg-secondary p-3">
+                    <MarkdownContent>{x.q}</MarkdownContent>
+                    <div>
+                      <p className="mb-1 font-semibold text-success">Went well</p>
+                      <MarkdownContent>{x.good}</MarkdownContent>
+                    </div>
+                    <div>
+                      <p className="mb-1 font-semibold text-destructive">Missing</p>
+                      <MarkdownContent>{x.miss}</MarkdownContent>
+                    </div>
+                    <div className="rounded-lg bg-secondary p-3">
                       <p className="eyebrow mb-1">Stronger answer</p>
-                      {x.better}
+                      <MarkdownContent>{x.better}</MarkdownContent>
                     </div>
                   </div>
                 )}
@@ -147,9 +153,14 @@ function Report() {
           {transcriptOpen && (
             <div className="mt-4 space-y-3">
               {interview.messages.map((message) => (
-                <p key={message.id} className="whitespace-pre-wrap font-mono text-sm">
-                  <b>{message.from}:</b> {message.text}
-                </p>
+                <div key={message.id}>
+                  <p className="mb-1 font-semibold">{message.from}:</p>
+                  {message.from === "you" ? (
+                    <pre className="whitespace-pre-wrap font-mono text-sm">{message.text}</pre>
+                  ) : (
+                    <MarkdownContent>{message.text}</MarkdownContent>
+                  )}
+                </div>
               ))}
             </div>
           )}

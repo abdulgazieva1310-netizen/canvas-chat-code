@@ -88,3 +88,10 @@ it for the next question. A plain code textarea remains usable while loading or
 if the editor assets fail to load. Coding mode takes precedence over Voice for
 these Technical interviews; other role/type combinations keep text/voice input.
 Code is reviewed by AI without executing or compiling it.
+
+Generated questions, hints, and written feedback use a shared `react-markdown`
+renderer in the interview room and report. It supports headings, emphasis,
+inline/fenced code, lists, blockquotes, and GitHub-style tables. Code blocks keep
+indentation and scroll horizontally; user submissions remain literal source text.
+Raw HTML and embedded images are omitted, and links use the renderer's default
+safe URL handling. Styles are scoped to generated Markdown content.

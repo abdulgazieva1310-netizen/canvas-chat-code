@@ -369,3 +369,29 @@ it("retains the code draft when AI review fails", async () => {
   expect(screen.getByRole("textbox", { name: "Code answer" })).toBeEnabled();
   client.clear();
 });
+
+it("renders AI problem statements, hints, and feedback as Markdown while keeping submitted code literal", async () => {
+  const code = 'def solve():\n    return "**literal**"\n';
+  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer" },
+    messages: [
+      { id: "md-question", interviewId: "session-123", from: "ai", text: "# Two Sum\n\n**Problem:** Return matching indices.\n\n## Input\n\n```python\nnums = [2, 7]\ntarget = 9\n```\n\n- Use distinct indices", createdAt: new Date().toISOString() },
+      { id: "md-hint", interviewId: "session-123", from: "hint", text: "Use a **hash map** to look up `target - value`.", createdAt: new Date().toISOString() },
+      { id: "literal-code", interviewId: "session-123", from: "you", text: code, createdAt: new Date().toISOString() },
+    ],
+    lastAnswerFeedback: { accuracy: 6, completeness: 7, clarity: 8, structure: 9,
+      went_well: "**Clear naming** makes this readable.", missing: "- Handle duplicate values",
+      stronger_answer: "```python\ndef improved():\n    return []\n```" },
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const client = openInterview();
+  await screen.findByRole("heading", { name: "Two Sum" });
+  expect(screen.getByRole("heading", { name: "Input" })).toBeInTheDocument();
+  expect(screen.getByText("Problem:").tagName).toBe("STRONG");
+  expect(screen.getByText("hash map").tagName).toBe("STRONG");
+  expect(screen.getByText("target - value").tagName).toBe("CODE");
+  expect(screen.getByText("Clear naming").tagName).toBe("STRONG");
+  expect([...document.querySelectorAll("pre code")].some((item) => item.textContent === "def improved():\n    return []\n")).toBe(true);
+  expect([...document.querySelectorAll("pre")].some((item) => item.textContent === code)).toBe(true);
+  client.clear();
+});

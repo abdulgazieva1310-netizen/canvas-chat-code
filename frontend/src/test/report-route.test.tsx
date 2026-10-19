@@ -1,4 +1,4 @@
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createMemoryHistory,
@@ -11,6 +11,8 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 import { Route } from "@/routes/report";
 import { Api } from "@/lib/api/client";
+import { defaultSetup } from "@/lib/api/default-setup";
+import type { InterviewReport } from "@/lib/api/types";
 
 afterEach(() => {
   cleanup();
@@ -62,5 +64,24 @@ it("fetches the report for the URL's interview ID", async () => {
   const report = vi.spyOn(Api, "getReport").mockRejectedValue(new Error("Report unavailable"));
   const { client } = openReport("/report?interviewId=session-123");
   await waitFor(() => expect(report).toHaveBeenCalledWith("session-123"));
+  client.clear();
+});
+
+it("renders Markdown questions and coaching in the final report", async () => {
+  const data: InterviewReport = {
+    interview: { id: "session-123", setup: defaultSetup, status: "complete", startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(), answeredCount: 1, lastFeedback: null, messages: [] },
+    feedback: { interviewId: "session-123", overall: 7, scores: null, strengths: ["**Readable code**"], gaps: ["Handle `null`"],
+      questions: [{ q: "## Two Sum\n\nReturn **indices**.", answer: "code", score: 7,
+        good: "Uses a **hash map**.", miss: "- Consider duplicates", better: "```python\ndef solve():\n    return []\n```" }] },
+  };
+  vi.spyOn(Api, "getReport").mockResolvedValue(data);
+  const { client } = openReport("/report?interviewId=session-123");
+  await screen.findByRole("heading", { name: "Two Sum" });
+  expect(screen.getByText("Readable code").tagName).toBe("STRONG");
+  expect(screen.getByText("hash map").tagName).toBe("STRONG");
+  expect(document.querySelector("pre code.language-python")?.textContent).toBe("def solve():\n    return []\n");
+  fireEvent.click(screen.getByRole("button", { name: /Question 1/ }));
+  expect(screen.queryByRole("heading", { name: "Two Sum" })).toBeNull();
   client.clear();
 });

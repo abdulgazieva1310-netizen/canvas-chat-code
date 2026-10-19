@@ -5,6 +5,7 @@ import type { Interview as InterviewData } from "@/lib/api/types";
 import { useEffect, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 export const Route = createFileRoute("/interview")({
@@ -154,7 +155,7 @@ function Interview() {
       </div>
 
       <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-6 py-8 md:grid-cols-[1fr_320px]">
-        <section className="flex flex-col">
+        <section className="flex min-w-0 flex-col">
           {(answer.error || end.error || hint.error) && (
             <p role="alert">{(answer.error || end.error || hint.error)?.message}</p>
           )}
@@ -167,15 +168,17 @@ function Interview() {
                   aria-label="Interview hint"
                   className="rounded-lg border border-dashed border-accent bg-accent/10 p-3 text-sm"
                 >
-                  <span className="eyebrow mr-2">Hint</span>
-                  <span className="whitespace-pre-wrap">{m.text}</span>
+                  <p className="eyebrow mb-2">Hint</p>
+                  <MarkdownContent>{m.text}</MarkdownContent>
                 </div>
               ) : (
                 <div key={i} className={`flex ${m.from === "you" ? "justify-end" : ""}`}>
                   <div
-                    className={`max-w-[80%] rounded-2xl px-5 py-3 ${m.from === "ai" ? "card-surface font-display text-lg" : "bg-primary text-primary-foreground"}`}
+                    className={`min-w-0 rounded-2xl px-5 py-4 ${m.from === "ai" ? "card-surface w-full" : "max-w-[85%] bg-primary text-primary-foreground"}`}
                   >
-                    {m.from === "you" && codingLanguage ? (
+                    {m.from === "ai" ? (
+                      <MarkdownContent>{m.text}</MarkdownContent>
+                    ) : codingLanguage ? (
                       <pre className="whitespace-pre-wrap font-mono text-sm">{m.text}</pre>
                     ) : (
                       <span className="whitespace-pre-wrap">{m.text}</span>
@@ -291,15 +294,18 @@ function Interview() {
           )}
           {practice && interview.lastAnswerFeedback && (
             <div className="card-surface space-y-3 p-5 text-sm">
-              <p>
-                <b>What went well:</b> {interview.lastAnswerFeedback.went_well}
-              </p>
-              <p>
-                <b>What was missing:</b> {interview.lastAnswerFeedback.missing}
-              </p>
-              <p className="whitespace-pre-wrap">
-                <b>Stronger answer:</b> {interview.lastAnswerFeedback.stronger_answer}
-              </p>
+              <div>
+                <p className="mb-1 font-semibold">What went well:</p>
+                <MarkdownContent>{interview.lastAnswerFeedback.went_well}</MarkdownContent>
+              </div>
+              <div>
+                <p className="mb-1 font-semibold">What was missing:</p>
+                <MarkdownContent>{interview.lastAnswerFeedback.missing}</MarkdownContent>
+              </div>
+              <div>
+                <p className="mb-1 font-semibold">Stronger answer:</p>
+                <MarkdownContent>{interview.lastAnswerFeedback.stronger_answer}</MarkdownContent>
+              </div>
             </div>
           )}
           {practice && (

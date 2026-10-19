@@ -126,6 +126,27 @@ def test_empty_report_and_early_end(client):
         overall=None, scores=None, strengths=[], gaps=[], questions=[])
 
 
+def test_early_end_preserves_saved_evaluation_and_rejects_more_answers(client, monkeypatch):
+    from app.models import AnswerEvaluation
+    from app.services import ai_service
+    evaluation = AnswerEvaluation(accuracy=8, completeness=7, clarity=9, structure=6,
+        went_well='Clear example', missing='Add measurable impact',
+        stronger_answer='I improved latency by 30 percent.')
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: evaluation)
+    login(client)
+    path = '/api/interviews/' + start(client)['id']
+    before_end = client.post(path + '/messages', json={'text': 'A saved answer'}).json()
+    ended = client.post(path + '/end').json()
+    assert ended['status'] == 'incomplete' and ended['endedAt']
+    assert ended['messages'] == before_end['messages']
+    assert client.post(path + '/messages', json={'text': 'Too late'}).status_code == 409
+    feedback = client.get(path + '/report').json()['feedback']
+    assert feedback['questions'][0]['answer'] == 'A saved answer'
+    assert feedback['questions'][0]['scores'] == evaluation.category_scores().model_dump()
+    assert feedback['strengths'] == ['Clear example']
+    assert feedback['gaps'] == ['Add measurable impact']
+
+
 @pytest.mark.parametrize('body', [{}, SETUP | {'questionCount': 3}, SETUP | {'questionCount': True},
                                  SETUP | {'mode': 'invalid'}, SETUP | {'jobDescription': None}])
 def test_invalid_setup(client, body):

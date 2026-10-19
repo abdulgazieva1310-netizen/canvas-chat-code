@@ -122,6 +122,8 @@ class Interview(BaseModel):
 
 
 class QuestionFeedback(BaseModel):
+    questionId: str
+    answerId: str
     q: str
     answer: str
     score: float | None

@@ -457,6 +457,8 @@ components:
           gaps: []
           questions:
             - q: How would you investigate a reported defect?
+              questionId: question-1
+              answerId: answer-1
               answer: I would reproduce the defect and inspect the logs.
               score: null
               scores: null
@@ -784,8 +786,10 @@ components:
             $ref: '#/components/schemas/QuestionFeedback'
     QuestionFeedback:
       type: object
-      required: [q, answer, score, good, miss, better]
+      required: [questionId, answerId, q, answer, score, good, miss, better]
       properties:
+        questionId: {type: string, description: Saved transcript question message ID.}
+        answerId: {type: string, description: Saved transcript answer message ID.}
         q: {type: string}
         answer: {type: string}
         score: {type: number, minimum: 1, maximum: 10, nullable: true}

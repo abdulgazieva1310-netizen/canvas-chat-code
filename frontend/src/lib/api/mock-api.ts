@@ -63,6 +63,8 @@ function feedback(interview: Interview): Feedback {
     strengths: answers.length ? ["You provided an answer to the question."] : [],
     gaps: answers.length ? ["Practice adding concrete examples and measurable results."] : [],
     questions: answers.map((answer, i) => ({
+      questionId: questions[i]?.id ?? "missing-question",
+      answerId: answer.id,
       q: questions[i]?.text ?? "Interview question",
       answer: answer.text,
       score: 6.9,

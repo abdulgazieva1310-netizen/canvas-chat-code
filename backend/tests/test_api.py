@@ -105,6 +105,10 @@ def test_complete_lifecycle(client, mode, monkeypatch):
     report = client.get(path + '/report').json()
     assert len(report['feedback']['questions']) == 5
     assert report['feedback']['questions'][0]['answer'] == '  A concrete example  '
+    first_question = next(message for message in interview['messages'] if message['from'] == 'ai')
+    first_answer = next(message for message in interview['messages'] if message['from'] == 'you')
+    assert report['feedback']['questions'][0]['questionId'] == first_question['id']
+    assert report['feedback']['questions'][0]['answerId'] == first_answer['id']
     assert report['feedback']['scores'] is not None
     assert interview in client.get('/api/interviews').json()
 

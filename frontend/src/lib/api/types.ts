@@ -74,6 +74,8 @@ export interface Feedback {
   strengths: string[];
   gaps: string[];
   questions: {
+    questionId: string;
+    answerId: string;
     q: string;
     answer: string;
     score: number | null;

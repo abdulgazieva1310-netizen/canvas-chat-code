@@ -69,11 +69,51 @@ it("fetches the report for the URL's interview ID", async () => {
 
 it("renders Markdown questions and coaching in the final report", async () => {
   const data: InterviewReport = {
-    interview: { id: "session-123", setup: defaultSetup, status: "complete", startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(), answeredCount: 1, lastFeedback: null, messages: [] },
-    feedback: { interviewId: "session-123", overall: 7, scores: null, strengths: ["**Readable code**"], gaps: ["Handle `null`"],
-      questions: [{ q: "## Two Sum\n\nReturn **indices**.", answer: "code", score: 7,
-        good: "Uses a **hash map**.", miss: "- Consider duplicates", better: "```python\ndef solve():\n    return []\n```" }] },
+    interview: {
+      id: "session-123",
+      setup: defaultSetup,
+      status: "complete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 1,
+      lastFeedback: null,
+      messages: [
+        {
+          id: "question-1",
+          interviewId: "session-123",
+          from: "ai",
+          text: "## Two Sum\n\nReturn **indices**. <script>alert(1)</script><img src=x onerror=alert(2)>",
+          createdAt: "2026-10-01T00:00:00Z",
+        },
+        {
+          id: "answer-1",
+          interviewId: "session-123",
+          from: "you",
+          text: "code\n  indented",
+          createdAt: "2026-10-01T00:01:00Z",
+        },
+      ],
+    },
+    feedback: {
+      interviewId: "session-123",
+      overall: 7,
+      scores: null,
+      strengths: ["**Readable code**"],
+      gaps: ["Handle `null`"],
+      questions: [
+        {
+          questionId: "question-1",
+          answerId: "answer-1",
+          q: "## Two Sum\n\nReturn **indices**.",
+          answer: "code\n  indented",
+          score: 7,
+          scores: { accuracy: 7, completeness: 6, clarity: 8, structure: 7 },
+          good: "Uses a **hash map**.",
+          miss: "- Consider duplicates",
+          better: "```python\ndef solve():\n    return []\n```",
+        },
+      ],
+    },
   };
   vi.spyOn(Api, "getReport").mockResolvedValue(data);
   const { client } = openReport("/report?interviewId=session-123");
@@ -81,20 +121,74 @@ it("renders Markdown questions and coaching in the final report", async () => {
   expect(screen.getByRole("link", { name: /Practice: - Consider duplicates/ })).toBeVisible();
   expect(screen.getByText("Readable code").tagName).toBe("STRONG");
   expect(screen.getByText("hash map").tagName).toBe("STRONG");
-  expect(document.querySelector("pre code.language-python")?.textContent).toBe("def solve():\n    return []\n");
-  fireEvent.click(screen.getByRole("button", { name: /Question 1/ }));
-  expect(screen.queryByRole("heading", { name: "Two Sum" })).toBeNull();
+  expect(document.querySelector("pre code.language-python")?.textContent).toBe(
+    "def solve():\n    return []\n",
+  );
+  expect(
+    screen.getByText(
+      "Rationale: the notes below explain what the answer covered and what it missed.",
+    ),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("link", { name: "View this answer in transcript" }));
+  expect(document.querySelector("#transcript-answer-1 pre")?.textContent).toBe("code\n  indented");
+  expect(document.getElementById("transcript-answer-1")).toHaveAttribute(
+    "data-highlighted",
+    "true",
+  );
+  expect(document.getElementById("transcript-question-1")).toBeInTheDocument();
+  expect(document.querySelector("script, img")).toBeNull();
+  expect(
+    screen.getByText("Approximate coaching feedback, not a measure of hiring readiness."),
+  ).toBeVisible();
   client.clear();
 });
 
 it("offers no targeted recommendation without scored evidence and leaves retry/setup available", async () => {
   const data: InterviewReport = {
-    interview: { id: "unscored", setup: defaultSetup, status: "incomplete", startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(), answeredCount: 1, lastFeedback: null, messages: [] },
-    feedback: { interviewId: "unscored", overall: null, scores: null, strengths: [], gaps: [],
-      questions: [{ q: "Question?", answer: "An answer", score: null,
-        good: "AI evaluation unavailable for this answer.", miss: "This answer has not been scored.",
-        better: "Try again when evaluation is available." }] },
+    interview: {
+      id: "unscored",
+      setup: defaultSetup,
+      status: "incomplete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 1,
+      lastFeedback: null,
+      messages: [
+        {
+          id: "question-unscored",
+          interviewId: "unscored",
+          from: "ai",
+          text: "Question?",
+          createdAt: "2026-10-01T00:00:00Z",
+        },
+        {
+          id: "answer-unscored",
+          interviewId: "unscored",
+          from: "you",
+          text: "An answer",
+          createdAt: "2026-10-01T00:01:00Z",
+        },
+      ],
+    },
+    feedback: {
+      interviewId: "unscored",
+      overall: null,
+      scores: null,
+      strengths: [],
+      gaps: [],
+      questions: [
+        {
+          questionId: "question-unscored",
+          answerId: "answer-unscored",
+          q: "Question?",
+          answer: "An answer",
+          score: null,
+          good: "AI evaluation unavailable for this answer.",
+          miss: "This answer has not been scored.",
+          better: "Try again when evaluation is available.",
+        },
+      ],
+    },
   };
   vi.spyOn(Api, "getReport").mockResolvedValue(data);
   const { client } = openReport("/report?interviewId=unscored");
@@ -102,5 +196,74 @@ it("offers no targeted recommendation without scored evidence and leaves retry/s
   expect(screen.queryByRole("link", { name: /Practice:/ })).toBeNull();
   expect(screen.getByRole("link", { name: "Retry" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Choose practice settings" })).toBeVisible();
+  client.clear();
+});
+
+it("makes zero-answer, incomplete, and error states explicit without placeholder scores", async () => {
+  const data: InterviewReport = {
+    interview: {
+      id: "empty",
+      setup: defaultSetup,
+      status: "incomplete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 0,
+      lastFeedback: null,
+      messages: [],
+    },
+    feedback: {
+      interviewId: "empty",
+      overall: null,
+      scores: null,
+      strengths: [],
+      gaps: [],
+      questions: [],
+    },
+  };
+  vi.spyOn(Api, "getReport").mockResolvedValue(data);
+  const { client } = openReport("/report?interviewId=empty");
+  expect(
+    await screen.findByText("No answers were submitted, so there is no coaching feedback yet."),
+  ).toBeVisible();
+  expect(
+    screen.getByText(
+      "Incomplete interview. Feedback covers only the answers submitted before it ended.",
+    ),
+  ).toBeVisible();
+  expect(screen.getByText("Not scored")).toBeVisible();
+  expect(screen.queryByText("0 / 10")).toBeNull();
+  client.clear();
+});
+
+it("shows a retry action when the saved report request fails", async () => {
+  const data: InterviewReport = {
+    interview: {
+      id: "retry-report",
+      setup: defaultSetup,
+      status: "complete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 0,
+      lastFeedback: null,
+      messages: [],
+    },
+    feedback: {
+      interviewId: "retry-report",
+      overall: null,
+      scores: null,
+      strengths: [],
+      gaps: [],
+      questions: [],
+    },
+  };
+  const report = vi
+    .spyOn(Api, "getReport")
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValue(data);
+  const { client } = openReport("/report?interviewId=retry-report");
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "Retry report" }));
+  await screen.findByText("No answers were submitted, so there is no coaching feedback yet.");
+  expect(report).toHaveBeenCalledTimes(2);
   client.clear();
 });

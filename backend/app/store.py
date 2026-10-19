@@ -82,7 +82,7 @@ def report(interview, evaluations=None):
     feedback = []
     for q, a in zip(questions, answers):
         evaluation = evaluations.get(a.id)
-        feedback.append(QuestionFeedback(q=q.text, answer=a.text,
+        feedback.append(QuestionFeedback(questionId=q.id, answerId=a.id, q=q.text, answer=a.text,
             score=round(sum(getattr(evaluation, name) for name in Scores.model_fields) / 4, 1)
                 if evaluation else None,
             scores=evaluation.category_scores() if evaluation else None,

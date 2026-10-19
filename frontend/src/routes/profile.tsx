@@ -4,6 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Api } from "@/lib/api/client";
 import { targetRoles, type Level, type Role, type User } from "@/lib/api/types";
+import {
+  getInterviewerAvatar,
+  interviewerAvatars,
+  setInterviewerAvatar,
+  type InterviewerAvatarId,
+} from "@/lib/interviewer-avatar";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile Settings — Interview Mirror" }] }),
@@ -39,6 +45,7 @@ function ProfileForm({ user }: { user: User }) {
   const [targetRole, setTargetRole] = useState<Role>(user.targetRole);
   const [level, setLevel] = useState<Level>(user.level);
   const [preferredLanguage, setPreferredLanguage] = useState(user.preferredLanguage);
+  const [avatar, setAvatar] = useState(getInterviewerAvatar);
   const save = useMutation({
     mutationFn: () =>
       Api.updateProfile({
@@ -129,6 +136,44 @@ function ProfileForm({ user }: { user: User }) {
         Your preference is saved for future language support. Interviews and feedback are currently
         in English.
       </p>
+      <fieldset className="space-y-3 border-t pt-5">
+        <legend className="font-semibold">Interviewer appearance</legend>
+        <p className="text-sm text-muted-foreground">
+          Choose the 3D interviewer used in compatible interviews. This preference is saved on this
+          device.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {interviewerAvatars.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`rounded-lg border p-3 text-center ${avatar === option.id ? "border-primary ring-2 ring-primary" : "border-border"}`}
+              aria-pressed={avatar === option.id}
+              onClick={() => {
+                const next = option.id as InterviewerAvatarId;
+                setInterviewerAvatar(next);
+                setAvatar(next);
+              }}
+            >
+              <span
+                className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full"
+                style={{ backgroundColor: option.swatch }}
+              >
+                <span className="relative h-9 w-7 rounded-[45%] bg-[#d9a982]">
+                  <span className="absolute -top-1 left-0 h-3 w-7 rounded-t-full bg-[#302846]" />
+                  <span className="absolute left-1 top-4 h-1 w-1 rounded-full bg-[#302846]" />
+                  <span className="absolute right-1 top-4 h-1 w-1 rounded-full bg-[#302846]" />
+                </span>
+              </span>
+              {option.name}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          Saved appearance:{" "}
+          {interviewerAvatars.find((item) => item.id === avatar)?.name ?? "Classic"}
+        </p>
+      </fieldset>
       {save.error && <p role="alert">Could not save profile: {save.error.message}</p>}
       {save.isSuccess && <p role="status">Profile saved.</p>}
       <button

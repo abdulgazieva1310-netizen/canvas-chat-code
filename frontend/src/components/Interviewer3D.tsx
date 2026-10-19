@@ -1,10 +1,22 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import type { InterviewerAvatarId } from "@/lib/interviewer-avatar";
 
-type Props = { speaking: boolean; reducedMotion: boolean; onFailure: () => void };
+type Props = {
+  speaking: boolean;
+  reducedMotion: boolean;
+  avatarId: InterviewerAvatarId;
+  onFailure: () => void;
+};
+
+const clothingColors: Record<InterviewerAvatarId, number> = {
+  classic: 0x655a83,
+  sage: 0x426b64,
+  rose: 0x9a526b,
+};
 
 /** A small procedural interviewer. It has no camera, network, or session-state access. */
-export function Interviewer3D({ speaking, reducedMotion, onFailure }: Props) {
+export function Interviewer3D({ speaking, reducedMotion, avatarId, onFailure }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const speakingRef = useRef(speaking);
   speakingRef.current = speaking;
@@ -62,7 +74,13 @@ export function Interviewer3D({ speaking, reducedMotion, onFailure }: Props) {
     mouth.scale.set(1.35, 0.16, 0.35);
     const neck = add(new THREE.CylinderGeometry(0.34, 0.44, 0.75, 32), 0xc88d68, 0, -1.12, 0);
     neck.position.y = -1.03;
-    add(new THREE.SphereGeometry(1.25, 40, 24), 0x655a83, 0, -2.02, 0);
+    add(
+      new THREE.SphereGeometry(1.25, 40, 24),
+      clothingColors[avatarId] ?? clothingColors.classic,
+      0,
+      -2.02,
+      0,
+    );
 
     parent.appendChild(renderer.domElement);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
@@ -108,7 +126,7 @@ export function Interviewer3D({ speaking, reducedMotion, onFailure }: Props) {
       });
       renderer.domElement.remove();
     };
-  }, [onFailure, reducedMotion]);
+  }, [avatarId, onFailure, reducedMotion]);
 
   return <div ref={host} className="h-56 w-full overflow-hidden rounded-lg" aria-hidden="true" />;
 }

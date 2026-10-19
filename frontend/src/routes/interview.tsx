@@ -19,6 +19,7 @@ import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpokenQuestion } from "@/hooks/use-spoken-question";
 import { useCameraPreview } from "@/hooks/use-camera-preview";
+import { getInterviewerAvatar, type InterviewerAvatarId } from "@/lib/interviewer-avatar";
 
 const Interviewer3D = lazy(() =>
   import("@/components/Interviewer3D").then((module) => ({ default: module.Interviewer3D })),
@@ -125,11 +126,13 @@ function Interview() {
   const [show3D, setShow3D] = useState(false);
   const [renderFailed, setRenderFailed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [avatarId, setAvatarId] = useState<InterviewerAvatarId>("classic");
   const fail3D = useCallback(() => {
     setRenderFailed(true);
     setShow3D(false);
   }, []);
   useEffect(() => {
+    setAvatarId(getInterviewerAvatar());
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(preference.matches);
     update();
@@ -554,6 +557,7 @@ function Interview() {
                     <Interviewer3D
                       speaking={spoken.speaking}
                       reducedMotion={reducedMotion}
+                      avatarId={avatarId}
                       onFailure={fail3D}
                     />
                   </Suspense>

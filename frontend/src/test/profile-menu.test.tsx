@@ -16,6 +16,7 @@ import { Api } from "@/lib/api/client";
 import { getAuthorization, saveAuthorization } from "@/lib/api/session";
 import type { User } from "@/lib/api/types";
 import { defaultSetup, quickStartDefaults } from "@/lib/api/default-setup";
+import { getInterviewerAvatar } from "@/lib/interviewer-avatar";
 
 const user: User = {
   id: "user-1",
@@ -31,6 +32,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 function openPage(path = "/", cached = false, realDashboard = false, currentUser: User = user) {
@@ -116,6 +118,21 @@ it("quick starts with saved preferences and opens the newly created room", async
   client.clear();
 });
 
+it("saves an interviewer appearance preference for later sessions", async () => {
+  openPage("/profile");
+  await screen.findByRole("heading", { name: "Profile Settings" });
+  const rose = await screen.findByRole("button", { name: "Rose" });
+  fireEvent.click(rose);
+  expect(rose).toHaveAttribute("aria-pressed", "true");
+  expect(getInterviewerAvatar()).toBe("rose");
+  expect(screen.getByText("Saved appearance: Rose")).toBeVisible();
+});
+
+it("uses the stable default for an unsupported saved appearance", () => {
+  localStorage.setItem("interview-mirror-avatar", "removed-avatar");
+  expect(getInterviewerAvatar()).toBe("classic");
+});
+
 it("uses explicit Quick Start defaults when saved role and level are missing", async () => {
   vi.spyOn(Api, "getHistory").mockResolvedValue([]);
   vi.spyOn(Api, "getDashboardSummary").mockResolvedValue({
@@ -173,7 +190,9 @@ it("keeps Quick Start on the dashboard after failure and retries without an inva
     messages: [],
     lastFeedback: null,
   };
-  const start = vi.spyOn(Api, "startInterview").mockRejectedValueOnce(new Error("offline"))
+  const start = vi
+    .spyOn(Api, "startInterview")
+    .mockRejectedValueOnce(new Error("offline"))
     .mockResolvedValueOnce(created);
   const { client, router } = openPage("/", true, true);
   fireEvent.click(await screen.findByRole("button", { name: "Quick Start →" }));

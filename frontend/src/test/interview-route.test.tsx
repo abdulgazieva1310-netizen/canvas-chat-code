@@ -34,10 +34,12 @@ vi.mock("@/components/Interviewer3D", () => ({
   Interviewer3D: ({
     speaking,
     reducedMotion,
+    avatarId,
     onFailure,
   }: {
     speaking: boolean;
     reducedMotion: boolean;
+    avatarId: string;
     onFailure: () => void;
   }) => {
     useEffect(() => {
@@ -48,6 +50,7 @@ vi.mock("@/components/Interviewer3D", () => ({
         data-testid="interviewer-3d"
         data-speaking={speaking}
         data-reduced-motion={reducedMotion}
+        data-avatar={avatarId}
       />
     );
   },
@@ -57,6 +60,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 function openInterview(url = "/interview?interviewId=session-123") {
@@ -545,6 +549,7 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   const speak = vi.fn();
   vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
   vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });
+  window.localStorage.setItem("interview-mirror-avatar", "sage");
   const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   const client = openInterview();
@@ -554,6 +559,7 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
   const avatar = await screen.findByTestId("interviewer-3d");
   expect(avatar).toHaveAttribute("data-speaking", "false");
+  expect(avatar).toHaveAttribute("data-avatar", "sage");
   act(() => speak.mock.calls[0][0].onstart());
   expect(avatar).toHaveAttribute("data-speaking", "true");
   fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));

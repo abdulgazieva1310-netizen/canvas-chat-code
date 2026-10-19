@@ -121,6 +121,52 @@ it("plays and deletes only the owner's saved recording without replacing the rep
   client.clear();
 });
 
+it("keeps the report readable when private recording playback fails", async () => {
+  const data = {
+    interview: {
+      id: "session-media-error",
+      setup: { ...defaultSetup },
+      status: "complete" as const,
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 0,
+      lastFeedback: null,
+      messages: [],
+    },
+    feedback: {
+      interviewId: "session-media-error",
+      answeredQuestions: 0,
+      selectedQuestions: 5 as const,
+      overall: null,
+      scores: null,
+      strengths: [],
+      gaps: [],
+      questions: [],
+    },
+  } as InterviewReport;
+  vi.spyOn(Api, "getReport").mockResolvedValue(data);
+  vi.spyOn(Api, "listInterviewMedia").mockResolvedValue({
+    retentionDays: 30,
+    media: [
+      {
+        id: "missing-recording",
+        mediaType: "video/webm",
+        sizeBytes: 5,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+    ],
+  });
+  vi.spyOn(Api, "downloadInterviewMedia").mockRejectedValue(new Error("Missing recording"));
+  const { client } = openReport("/report?interviewId=session-media-error");
+  fireEvent.click(await screen.findByRole("button", { name: "Play recording" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    /transcript and report are still available/,
+  );
+  expect(screen.getByRole("heading", { name: /Frontend Developer/ })).toBeInTheDocument();
+  client.clear();
+});
+
 it.each([
   "/report",
   "/report?interviewId=",

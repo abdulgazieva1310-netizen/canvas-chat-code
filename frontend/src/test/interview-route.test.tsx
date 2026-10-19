@@ -119,6 +119,43 @@ it("shows the persisted effective difficulty and transition reason", async () =>
   client.clear();
 });
 
+it("labels a persisted follow-up without consuming another main-question slot", async () => {
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    answeredCount: 1,
+    messages: [
+      { ...incompleteSession().messages[0], id: "main-question", kind: "main" },
+      {
+        id: "main-answer",
+        interviewId: "session-123",
+        from: "you",
+        kind: "main",
+        text: "My answer",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "follow-up-question",
+        interviewId: "session-123",
+        from: "ai",
+        kind: "follow-up",
+        mainQuestionId: "main-question",
+        text: "Can you clarify one detail?",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const client = openInterview();
+  await screen.findByRole("button", { name: "Send" });
+  expect(screen.getByText("Follow-up")).toBeVisible();
+  expect(screen.getByText("1", { selector: "b" }).parentElement).toHaveTextContent(
+    "Question 1 / 10",
+  );
+  client.clear();
+});
+
 it("shows a recovery link when the backend returns no interview", async () => {
   vi.spyOn(Api, "getInterview").mockResolvedValue(null as unknown as Interview);
   const client = openInterview();

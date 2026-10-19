@@ -52,6 +52,7 @@ export interface Message {
   from: "ai" | "you" | "hint";
   text: string;
   createdAt: string;
+  kind?: "main" | "follow-up";
   mainQuestionId?: string | null;
 }
 

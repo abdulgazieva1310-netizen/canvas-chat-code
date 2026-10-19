@@ -256,6 +256,9 @@ function Report() {
                   data-highlighted={message.id === highlightedAnswerId || undefined}
                   className="rounded p-2 data-[highlighted=true]:bg-primary/10"
                 >
+                  {message.from === "ai" && message.kind === "follow-up" && (
+                    <p className="eyebrow mb-2">Follow-up</p>
+                  )}
                   <p className="mb-1 font-semibold">{message.from}:</p>
                   {message.from === "you" ? (
                     <pre className="whitespace-pre-wrap font-mono text-sm">{message.text}</pre>

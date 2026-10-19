@@ -724,6 +724,7 @@ components:
         from: {type: string, enum: [ai, you, hint]}
         text: {type: string}
         createdAt: {type: string, format: date-time}
+        kind: {type: string, enum: [main, follow-up], default: main}
         mainQuestionId: {type: string, nullable: true, description: Main-question ID for a follow-up message; null for main questions.}
     DifficultyDecision:
       type: object

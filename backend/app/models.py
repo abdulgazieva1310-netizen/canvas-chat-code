@@ -91,6 +91,7 @@ class Message(BaseModel):
     sender: Literal['ai', 'you', 'hint'] = Field(alias='from')
     text: str
     createdAt: datetime
+    kind: Literal['main', 'follow-up'] = 'main'
     mainQuestionId: str | None = None
 
 

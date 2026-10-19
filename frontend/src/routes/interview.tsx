@@ -170,6 +170,10 @@ function Interview() {
   const setup = interview.setup;
   if (!setup) return <p role="status">Loading interview setup…</p>;
   const msgs = interview.messages;
+  const questionNumber =
+    latestQuestion?.kind === "follow-up"
+      ? Math.max(1, interview.answeredCount)
+      : Math.min(interview.answeredCount + 1, setup.questionCount);
   const practice = setup.mode === "Practice";
   const mm = String(Math.floor(sec / 60)).padStart(2, "0");
   const ss = String(sec % 60).padStart(2, "0");
@@ -186,8 +190,7 @@ function Interview() {
         </div>
         <div className="flex items-center gap-6 text-sm">
           <span>
-            Question <b>{Math.min(interview.answeredCount + 1, setup.questionCount)}</b> /{" "}
-            {setup.questionCount}
+            Question <b>{questionNumber}</b> / {setup.questionCount}
           </span>
           <span>
             Difficulty <b>{interview.effectiveLevel ?? setup.level}</b>
@@ -246,7 +249,10 @@ function Interview() {
                     className={`min-w-0 rounded-2xl px-5 py-4 ${m.from === "ai" ? "card-surface w-full" : "max-w-[85%] bg-primary text-primary-foreground"}`}
                   >
                     {m.from === "ai" ? (
-                      <MarkdownContent>{m.text}</MarkdownContent>
+                      <>
+                        {m.kind === "follow-up" && <p className="eyebrow mb-2">Follow-up</p>}
+                        <MarkdownContent>{m.text}</MarkdownContent>
+                      </>
                     ) : codingLanguage ? (
                       <pre className="whitespace-pre-wrap font-mono text-sm">{m.text}</pre>
                     ) : (

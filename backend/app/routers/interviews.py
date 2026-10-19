@@ -56,6 +56,8 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
+        current_question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
+        main_question_id = current_question_message.mainQuestionId or current_question_message.id
         submitted = answer_text(interview.setup, data.text)
         language = None
         if interview.setup.type == 'Technical' and interview.setup.role in CODING_ROLES:
@@ -63,22 +65,25 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
                 'Backend Developer': 'Python', 'Full Stack Developer': 'JavaScript'}[interview.setup.role]
         evaluation = (ai_service.evaluate_answer(current_question, submitted, language=language)
                       if language else ai_service.evaluate_answer(current_question, submitted))
+        setup = interview.setup
+        current_level = interview.effectiveLevel or setup.level
+        is_main_answer = current_question_message.kind == 'main'
+        already_adjusted = any(
+            decision.questionId == main_question_id for decision in interview.difficultyDecisions)
+        next_level = current_level if already_adjusted or not is_main_answer else difficulty_transition(
+            current_level, evaluation)[0]
+        follow_up = (ai_service.generate_followup(setup.role, next_level, setup.type,
+            current_question, submitted) if is_main_answer else None)
         next_question = None
-        if interview.answeredCount + 1 < interview.setup.questionCount:
-            setup = interview.setup
-            current_level = interview.effectiveLevel or setup.level
-            current_main_question = next(
-                item for item in reversed(interview.messages) if item.sender == 'ai')
-            main_question_id = current_main_question.mainQuestionId or current_main_question.id
-            already_adjusted = any(
-                decision.questionId == main_question_id for decision in interview.difficultyDecisions)
-            next_level = current_level if already_adjusted else difficulty_transition(
-                current_level, evaluation)[0]
-            conversation = [*interview.messages, message(interviewId, 'you', submitted)]
-            next_question = ai_service.generate_question(setup.role, next_level, conversation,
-                interview_type=setup.type, job_description=setup.jobDescription,
-                practice_topic=setup.practiceTopic)
-        return store.answer(interview, data.text, next_question=next_question, evaluation=evaluation).model_copy(deep=True)
+        if not follow_up:
+            answered_after = interview.answeredCount + int(is_main_answer)
+            if answered_after < setup.questionCount:
+                conversation = [*interview.messages, message(interviewId, 'you', submitted)]
+                next_question = ai_service.generate_question(setup.role, next_level, conversation,
+                    interview_type=setup.type, job_description=setup.jobDescription,
+                    practice_topic=setup.practiceTopic)
+        return store.answer(interview, data.text, next_question=follow_up or next_question,
+            evaluation=evaluation, follow_up_parent_id=main_question_id if follow_up else None).model_copy(deep=True)
 
 
 @router.post('/{interviewId}/hint', response_model=Interview)

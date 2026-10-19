@@ -291,6 +291,69 @@ def test_transaction_rollback_and_concurrent_updates(tmp_path):
     store.engine.dispose()
 
 
+@pytest.mark.parametrize('question_count', [5, 10, 15])
+def test_one_followup_per_main_preserves_question_limit_and_reloads(client, monkeypatch, question_count):
+    from app.services import ai_service
+    generated = []
+    followups = []
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: None)
+    monkeypatch.setattr(ai_service, 'generate_question', lambda role, level, previous, **context:
+        generated.append((level, context['interview_type'])) or f'Main {len(generated)} ({level})?')
+    monkeypatch.setattr(ai_service, 'generate_followup', lambda role, level, interview_type, question, answer:
+        followups.append((level, interview_type, question, answer)) or f'Clarify answer {len(followups)}?')
+    token = login(client).headers['authorization']
+    interview = start(client, questionCount=question_count, type='Behavioral')
+    path = '/api/interviews/' + interview['id']
+    assert interview['messages'][0]['kind'] == 'main'
+    for index in range(question_count):
+        current = client.get(path).json()
+        main_question = next(m for m in reversed(current['messages']) if m['from'] == 'ai')
+        assert main_question['kind'] == 'main'
+        response = client.post(path + '/messages', json={'text': f'Main answer {index + 1}'}).json()
+        assert response['answeredCount'] == index + 1
+        followup = response['messages'][-1]
+        assert followup['kind'] == 'follow-up'
+        assert followup['mainQuestionId'] == main_question['id']
+        assert response['status'] == 'active'
+        assert client.get(path).json() == response
+        if index == 0:
+            url = str(client.app.state.store.engine.url)
+            with TestClient(create_app(database_url=url)) as restarted:
+                assert restarted.get(path, headers={'Authorization': token}).json() == response
+        after_followup = client.post(path + '/messages', json={'text': f'Clarification {index + 1}'}).json()
+        assert after_followup['answeredCount'] == index + 1
+        assert len(after_followup['difficultyDecisions']) == index + 1
+        assert after_followup['messages'][-2]['kind'] == 'follow-up'
+        assert after_followup['messages'][-1]['kind'] == ('main' if index + 1 < question_count else 'follow-up')
+        if index + 1 == question_count:
+            assert after_followup['status'] == 'complete'
+            assert after_followup['endedAt']
+        else:
+            assert after_followup['status'] == 'active'
+    assert len(followups) == question_count
+    assert all(item[1] == 'Behavioral' for item in followups)
+    assert len(generated) == question_count
+    report = client.get(path + '/report').json()['feedback']
+    assert report['answeredQuestions'] == question_count
+    assert len(report['questions']) == question_count * 2
+
+
+def test_failed_followup_provider_skips_to_next_main_question_and_early_end_keeps_exchange(client, monkeypatch):
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, 'generate_question', lambda *args, **kwargs: None)
+    monkeypatch.setattr(ai_service, 'generate_followup', lambda *args, **kwargs: None)
+    login(client)
+    path = '/api/interviews/' + start(client)['id']
+    first = client.post(path + '/messages', json={'text': 'Answer without follow-up'}).json()
+    assert first['answeredCount'] == 1
+    assert first['messages'][-1]['kind'] == 'main'
+    ended = client.post(path + '/end').json()
+    assert ended['status'] == 'incomplete'
+    report = client.get(path + '/report').json()['feedback']
+    assert report['answeredQuestions'] == 1
+    assert report['questions'][0]['answer'] == 'Answer without follow-up'
+
+
 def test_dynamic_questions_and_final_answer(client, monkeypatch):
     from app.services import ai_service
     calls = []
@@ -449,8 +512,8 @@ def test_followup_for_an_already_adjusted_main_question_keeps_level(tmp_path):
         main_id = interview.messages[0].id
         repository.answer(interview, 'Main answer', next_question='Next main question?', evaluation=evaluation)
         assert interview.effectiveLevel == 'Senior'
-        followup = message(interview.id, 'ai', 'Follow-up question?').model_copy(
-            update={'mainQuestionId': main_id})
+        followup = message(interview.id, 'ai', 'Follow-up question?', kind='follow-up',
+            main_question_id=main_id)
         interview.messages.append(followup)
         repository.save(interview)
         repository.answer(interview, 'Follow-up answer', evaluation=evaluation)

@@ -26,8 +26,9 @@ def now():
     return datetime.now(timezone.utc)
 
 
-def message(interview_id, sender, text):
-    return Message(id=str(uuid4()), interviewId=interview_id, **{'from': sender}, text=text, createdAt=now())
+def message(interview_id, sender, text, *, kind='main', main_question_id=None):
+    return Message(id=str(uuid4()), interviewId=interview_id, **{'from': sender}, text=text,
+                   createdAt=now(), kind=kind, mainQuestionId=main_question_id)
 
 
 def answer_text(setup, text):
@@ -100,7 +101,8 @@ def report(interview, evaluations=None):
             good=evaluation.went_well if evaluation else 'AI evaluation unavailable for this answer.',
             miss=evaluation.missing if evaluation else 'This answer has not been scored.',
             better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.'))
-    return Feedback(interviewId=interview.id, answeredQuestions=len(answers),
+    answered_main = sum(answer.kind == 'main' for answer in answers)
+    return Feedback(interviewId=interview.id, answeredQuestions=answered_main,
         selectedQuestions=interview.setup.questionCount, overall=overall, scores=scores,
         strengths=list(dict.fromkeys(e.went_well for e in evaluated)),
         gaps=list(dict.fromkeys(e.missing for e in evaluated)), questions=feedback)
@@ -288,19 +290,22 @@ class Repository:
         # The transcript (including all messages) lives in the interview payload.
         self.session.delete(self.loaded[ident])
 
-    def answer(self, interview, text, next_question=None, evaluation=None):
+    def answer(self, interview, text, next_question=None, evaluation=None, follow_up_parent_id=None):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
-        answer_message = message(interview.id, 'you', answer_text(interview.setup, text))
+        main_question_id = question_message.mainQuestionId or question_message.id
+        is_main_answer = question_message.kind == 'main'
+        answer_message = message(interview.id, 'you', answer_text(interview.setup, text),
+            kind=question_message.kind, main_question_id=main_question_id if not is_main_answer else None)
         interview.messages.append(answer_message)
         self.session.add(AnswerEvaluationRecord(answer_id=answer_message.id,
             interview_id=interview.id, question_id=question_message.id,
             result=evaluation.model_dump(mode='json') if evaluation else None))
-        interview.answeredCount += 1
+        if is_main_answer:
+            interview.answeredCount += 1
         current_level = interview.effectiveLevel or interview.setup.level
-        main_question_id = question_message.mainQuestionId or question_message.id
-        if not any(item.questionId == main_question_id for item in interview.difficultyDecisions):
+        if is_main_answer and not any(item.questionId == main_question_id for item in interview.difficultyDecisions):
             effective_level, average, reason = difficulty_transition(current_level, evaluation)
             interview.effectiveLevel = effective_level
             interview.difficultyDecisions.append(DifficultyDecision(
@@ -309,7 +314,10 @@ class Repository:
                 average=average, reason=reason))
         interview.lastFeedback = evaluation.category_scores() if evaluation and interview.setup.mode == 'Practice' else None
         interview.lastAnswerFeedback = evaluation if interview.setup.mode == 'Practice' else None
-        if interview.answeredCount == interview.setup.questionCount:
+        if follow_up_parent_id:
+            interview.messages.append(message(interview.id, 'ai', next_question, kind='follow-up',
+                main_question_id=follow_up_parent_id))
+        elif interview.answeredCount >= interview.setup.questionCount:
             interview.status = 'complete'
             interview.endedAt = now()
         else:

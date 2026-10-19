@@ -122,7 +122,8 @@ def test_empty_report_and_early_end(client):
     assert ended['status'] == 'incomplete'
     assert client.post(path + '/end').json() == ended
     feedback = client.get(path + '/report').json()['feedback']
-    assert feedback == dict(interviewId=interview['id'], overall=None, scores=None, strengths=[], gaps=[], questions=[])
+    assert feedback == dict(interviewId=interview['id'], answeredQuestions=0, selectedQuestions=5,
+        overall=None, scores=None, strengths=[], gaps=[], questions=[])
 
 
 @pytest.mark.parametrize('body', [{}, SETUP | {'questionCount': 3}, SETUP | {'questionCount': True},
@@ -399,6 +400,7 @@ def test_resume_incomplete_interview_preserves_progress(client, mode):
     client.post(path + '/messages', json={'text': 'First saved answer'})
     ended = client.post(path + '/end').json()
     partial = client.get(path + '/report').json()['feedback']
+    assert (partial['answeredQuestions'], partial['selectedQuestions']) == (1, 5)
     assert ended['status'] == 'incomplete'
     assert client.get(path).json() == ended  # Reading does not reopen the interview.
     response = client.post(path + '/resume')

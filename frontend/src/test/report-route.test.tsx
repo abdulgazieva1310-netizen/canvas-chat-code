@@ -96,6 +96,8 @@ it("renders Markdown questions and coaching in the final report", async () => {
     },
     feedback: {
       interviewId: "session-123",
+      answeredQuestions: 1,
+      selectedQuestions: 5,
       overall: 7,
       scores: null,
       strengths: ["**Readable code**"],
@@ -172,6 +174,8 @@ it("offers no targeted recommendation without scored evidence and leaves retry/s
     },
     feedback: {
       interviewId: "unscored",
+      answeredQuestions: 1,
+      selectedQuestions: 5,
       overall: null,
       scores: null,
       strengths: [],
@@ -213,6 +217,8 @@ it("makes zero-answer, incomplete, and error states explicit without placeholder
     },
     feedback: {
       interviewId: "empty",
+      answeredQuestions: 0,
+      selectedQuestions: 5,
       overall: null,
       scores: null,
       strengths: [],
@@ -227,7 +233,7 @@ it("makes zero-answer, incomplete, and error states explicit without placeholder
   ).toBeVisible();
   expect(
     screen.getByText(
-      "Incomplete interview. Feedback covers only the answers submitted before it ended.",
+      "Incomplete interview: 0 of 5 main questions answered. Feedback covers only submitted answers.",
     ),
   ).toBeVisible();
   expect(screen.getByText("Not scored")).toBeVisible();
@@ -249,6 +255,8 @@ it("shows a retry action when the saved report request fails", async () => {
     },
     feedback: {
       interviewId: "retry-report",
+      answeredQuestions: 0,
+      selectedQuestions: 5,
       overall: null,
       scores: null,
       strengths: [],

@@ -95,7 +95,8 @@ function Report() {
 
       {interview.status === "incomplete" && (
         <p role="status" className="card-surface mt-4 p-4">
-          Incomplete interview. Feedback covers only the answers submitted before it ended.
+          Incomplete interview: {feedback.answeredQuestions} of {feedback.selectedQuestions} main
+          questions answered. Feedback covers only submitted answers.
         </p>
       )}
       {interview.answeredCount === 0 ? (

@@ -69,6 +69,8 @@ export interface AnswerEvaluation extends Scores {
 
 export interface Feedback {
   interviewId: string;
+  answeredQuestions: number;
+  selectedQuestions: 5 | 10 | 15;
   overall: number | null;
   scores: Scores | null;
   strengths: string[];

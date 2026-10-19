@@ -135,6 +135,8 @@ class QuestionFeedback(BaseModel):
 
 class Feedback(BaseModel):
     interviewId: str
+    answeredQuestions: int
+    selectedQuestions: int
     overall: float | None
     scores: Scores | None
     strengths: list[str]

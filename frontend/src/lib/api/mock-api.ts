@@ -58,6 +58,8 @@ function feedback(interview: Interview): Feedback {
   const questions = interview.messages.filter((m) => m.from === "ai");
   return {
     interviewId: interview.id,
+    answeredQuestions: answers.length,
+    selectedQuestions: interview.setup.questionCount,
     overall: answers.length ? 6.9 : null,
     scores: answers.length ? copy(scores) : null,
     strengths: answers.length ? ["You provided an answer to the question."] : [],

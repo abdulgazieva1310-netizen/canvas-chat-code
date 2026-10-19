@@ -89,7 +89,8 @@ def report(interview, evaluations=None):
             good=evaluation.went_well if evaluation else 'AI evaluation unavailable for this answer.',
             miss=evaluation.missing if evaluation else 'This answer has not been scored.',
             better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.'))
-    return Feedback(interviewId=interview.id, overall=overall, scores=scores,
+    return Feedback(interviewId=interview.id, answeredQuestions=len(answers),
+        selectedQuestions=interview.setup.questionCount, overall=overall, scores=scores,
         strengths=list(dict.fromkeys(e.went_well for e in evaluated)),
         gaps=list(dict.fromkeys(e.missing for e in evaluated)), questions=feedback)
 

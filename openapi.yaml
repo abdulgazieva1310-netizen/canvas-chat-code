@@ -451,6 +451,8 @@ components:
           lastAnswerFeedback: null
         feedback:
           interviewId: partial-1
+          answeredQuestions: 1
+          selectedQuestions: 5
           overall: null
           scores: null
           strengths: []
@@ -768,9 +770,11 @@ components:
           $ref: '#/components/schemas/NullableAnswerEvaluation'
     Feedback:
       type: object
-      required: [interviewId, overall, scores, strengths, gaps, questions]
+      required: [interviewId, answeredQuestions, selectedQuestions, overall, scores, strengths, gaps, questions]
       properties:
         interviewId: {type: string}
+        answeredQuestions: {type: integer, minimum: 0, description: Main questions answered in this session.}
+        selectedQuestions: {type: integer, enum: [5, 10, 15], description: Main question count selected at setup.}
         overall: {type: number, minimum: 1, maximum: 10, nullable: true}
         scores:
           $ref: '#/components/schemas/NullableScores'

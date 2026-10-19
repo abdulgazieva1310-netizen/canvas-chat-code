@@ -384,8 +384,8 @@ paths:
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
-      x-implementation-status: planned
-      summary: Get the current user's dashboard summary (planned for issue 32)
+      x-implementation-status: implemented
+      summary: Get the current user's dashboard summary
       description: Owner-scoped. Counts include all completed interviews; averages and trends include only completed scored sessions grouped by role, type, mode, and starting level. Recent activity includes labeled incomplete sessions. Null averages and empty trends represent insufficient data. Recurring claims require multiple source answers; suggestions carry those references. New completions and deletions appear on the next read. Order activity by startedAt descending then ID; trend points by date then interviewId.
       responses:
         '200':
@@ -564,7 +564,7 @@ components:
         page: {type: integer, minimum: 1}
         pageSize: {type: integer, minimum: 1, maximum: 100}
     PlannedScores:
-      x-implementation-status: planned
+      x-implementation-status: implemented
       description: Each unavailable or inapplicable category is null and excluded from averages. All-null categories produce no overall estimate.
       type: object
       required: [accuracy, completeness, clarity, structure]
@@ -627,7 +627,7 @@ components:
               date: {type: string, format: date-time}
               overall: {type: number, minimum: 1, maximum: 10}
     DashboardSummary:
-      x-implementation-status: planned
+      x-implementation-status: implemented
       type: object
       required: [completedCount, recentActivity, groups, strengths, weaknesses, suggestions]
       properties:

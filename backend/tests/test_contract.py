@@ -52,7 +52,7 @@ def test_nullable_and_inapplicable_scores_are_valid_but_out_of_range_scores_fail
 
 
 def test_planned_contracts_are_distinguished_and_pagination_is_bounded():
-    assert SPEC['paths']['/dashboard/summary']['get']['x-implementation-status'] == 'planned'
+    assert SPEC['paths']['/dashboard/summary']['get']['x-implementation-status'] == 'implemented'
     planned = SPEC['paths']['/interviews']['get']['x-planned-contract']
     assert planned['issue'] == 40
     validator('HistoryPage').validate(dict(items=[], total=0, page=1, pageSize=20))

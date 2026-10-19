@@ -130,3 +130,45 @@ class Feedback(BaseModel):
 class InterviewReport(BaseModel):
     interview: Interview
     feedback: Feedback
+
+
+class EvidenceReference(BaseModel):
+    interviewId: str
+    answerId: str
+
+
+class EvidenceClaim(BaseModel):
+    text: str
+    sources: list[EvidenceReference]
+
+
+class PracticeSuggestion(BaseModel):
+    topic: str
+    setup: InterviewSetup
+    sources: list[EvidenceReference]
+
+
+class DashboardTrend(BaseModel):
+    interviewId: str
+    date: datetime
+    overall: float
+
+
+class DashboardGroup(BaseModel):
+    role: Role
+    type: Literal['Technical', 'Behavioral', 'Role-specific']
+    mode: Literal['Practice', 'Real Interview']
+    level: Level
+    scoredCount: int
+    overall: float | None
+    scores: dict[str, float | None]
+    trends: list[DashboardTrend]
+
+
+class DashboardSummary(BaseModel):
+    completedCount: int
+    recentActivity: list[Interview]
+    groups: list[DashboardGroup]
+    strengths: list[EvidenceClaim]
+    weaknesses: list[EvidenceClaim]
+    suggestions: list[PracticeSuggestion]

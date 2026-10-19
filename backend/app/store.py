@@ -14,7 +14,9 @@ from .migrate import upgrade_database
 from fastapi import HTTPException
 
 from .auth import hasher
-from .models import CODING_ROLES, AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
+from .models import (CODING_ROLES, AnswerEvaluation, DashboardGroup, DashboardSummary, DashboardTrend,
+                     EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
+                     PracticeSuggestion, QuestionFeedback, Scores, User)
 
 
 def now():
@@ -148,6 +150,76 @@ class Repository:
             InterviewRecord.owner_id == user_id, InterviewRecord.status != 'active'
         ).order_by(InterviewRecord.started_at.desc(), InterviewRecord.id))
         return [Interview.model_validate(record.payload) for record in records]
+
+    def dashboard_summary(self, user_id):
+        records = list(self.session.scalars(select(InterviewRecord).where(
+            InterviewRecord.owner_id == user_id, InterviewRecord.status != 'active'
+        ).order_by(InterviewRecord.started_at.desc(), InterviewRecord.id)))
+        interviews = [Interview.model_validate(record.payload) for record in records]
+        completed = {i.id: i for i in interviews if i.status == 'complete'}
+        interviews_by_id = {i.id: i for i in interviews}
+        evaluation_rows = list(self.session.scalars(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id.in_([i.id for i in interviews])
+        ))) if interviews else []
+        evaluations = {}
+        for row in evaluation_rows:
+            if row.result is not None:
+                evaluations[row.answer_id] = (row.interview_id, AnswerEvaluation.model_validate(row.result))
+
+        grouped = {}
+        claim_sources = {'strengths': {}, 'weaknesses': {}}
+        for interview in completed.values():
+            setup = interview.setup
+            key = (setup.role, setup.type, setup.mode, setup.level)
+            group = grouped.setdefault(key, {'sessions': [], 'categories': {name: [] for name in Scores.model_fields}})
+            answer_ids = [m.id for m in interview.messages if m.sender == 'you']
+            scored = [(answer_id, evaluations[answer_id][1]) for answer_id in answer_ids
+                      if answer_id in evaluations]
+            if scored:
+                category_scores = {name: round(sum(getattr(e, name) for _, e in scored) / len(scored), 1)
+                                   for name in Scores.model_fields}
+                overall = round(sum(sum(getattr(e, name) for name in Scores.model_fields) /
+                                    len(Scores.model_fields) for _, e in scored) / len(scored), 1)
+                group['sessions'].append((interview, overall))
+                for name, value in category_scores.items():
+                    group['categories'][name].append(value)
+
+        # Partial ended sessions can contribute grounded observations, but never score trends.
+        for interview in interviews:
+            for answer in (m for m in interview.messages if m.sender == 'you'):
+                entry = evaluations.get(answer.id)
+                if entry is None:
+                    continue
+                _, evaluation = entry
+                for field, label in (('went_well', 'strengths'), ('missing', 'weaknesses')):
+                    text = getattr(evaluation, field).strip()
+                    claim_sources[label].setdefault(text, []).append(
+                        EvidenceReference(interviewId=interview.id, answerId=answer.id))
+
+        groups = []
+        for (role, interview_type, mode, level), values in sorted(grouped.items()):
+            sessions = sorted(values['sessions'], key=lambda item: (item[0].startedAt, item[0].id))
+            trends = [DashboardTrend(interviewId=i.id, date=i.startedAt, overall=score)
+                      for i, score in sessions]
+            scored_count = len(sessions)
+            groups.append(DashboardGroup(
+                role=role, type=interview_type, mode=mode, level=level, scoredCount=scored_count,
+                overall=round(sum(score for _, score in sessions) / scored_count, 1) if scored_count else None,
+                scores={name: round(sum(vals) / len(vals), 1) if vals else None
+                        for name, vals in values['categories'].items()}, trends=trends))
+
+        def repeated_claims(kind):
+            return [EvidenceClaim(text=text, sources=sources)
+                    for text, sources in sorted(claim_sources[kind].items()) if len(sources) >= 2]
+
+        weaknesses = repeated_claims('weaknesses')
+        suggestions = []
+        for claim in weaknesses:
+            source_interview = interviews_by_id[claim.sources[0].interviewId]
+            setup = source_interview.setup.model_copy(update={'mode': 'Practice'})
+            suggestions.append(PracticeSuggestion(topic=claim.text, setup=setup, sources=claim.sources))
+        return DashboardSummary(completedCount=len(completed), recentActivity=interviews[:10], groups=groups,
+            strengths=repeated_claims('strengths'), weaknesses=weaknesses, suggestions=suggestions)
 
     def start(self, user_id, setup, first_question=None):
         ident = str(uuid4())

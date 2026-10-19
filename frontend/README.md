@@ -99,3 +99,17 @@ inline/fenced code, lists, blockquotes, and GitHub-style tables. Code blocks kee
 indentation and scroll horizontally; user submissions remain literal source text.
 Raw HTML and embedded images are omitted, and links use the renderer's default
 safe URL handling. Styles are scoped to generated Markdown content.
+# Password recovery
+
+Sign in links to `/forgot-password`. Recovery emails open
+`/reset-password?token=...`; both pages are accessible without a login. The reset
+form confirms the replacement password, handles expired or used links, and returns
+the user to sign in after success. Failed requests preserve inputs for retry.
+The request confirmation advises checking spam, retrying, or contacting support
+when delivery does not arrive; the backend deliberately does not reveal delivery
+status or whether an email is registered.
+
+Configure the backend `PASSWORD_RESET_URL` to this frontend's `/reset-password`
+URL. See `backend/README.md` for the local mailbox and SMTP configuration.
+`npm test` covers recovery page behavior; `cd ../backend && uv run pytest
+tests/test_password_reset.py` verifies mailbox delivery through replacement login.

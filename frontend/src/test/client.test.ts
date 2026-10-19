@@ -7,6 +7,22 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+it("preserves credentials when requesting recovery and clears them after replacement", async () => {
+  sessionStorage.setItem("interview-mirror.authorization", "Bearer existing");
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce(new Response('{"message":"Accepted"}', { status: 202 }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }));
+  vi.stubGlobal("fetch", fetch);
+  await Api.requestPasswordReset("person@example.com");
+  expect(sessionStorage.getItem("interview-mirror.authorization")).toBe("Bearer existing");
+  await Api.resetPassword("reset-token", "replacement");
+  expect(sessionStorage.getItem("interview-mirror.authorization")).toBeNull();
+  for (const [, options] of fetch.mock.calls) {
+    expect(options.headers).not.toHaveProperty("Authorization");
+  }
+});
+
 it("uses backend endpoints with cookies and JSON bodies", async () => {
   const fetch = vi
     .fn()
@@ -114,40 +130,67 @@ it("deletes the encoded interview ID and accepts an empty 204 response", async (
   const fetch = vi.fn().mockResolvedValue(response);
   vi.stubGlobal("fetch", fetch);
   await expect(Api.deleteInterview("a/b")).resolves.toBeUndefined();
-  expect(fetch).toHaveBeenCalledWith("http://localhost:8000/api/interviews/a%2Fb", expect.objectContaining({
-    method: "DELETE", credentials: "include",
-  }));
+  expect(fetch).toHaveBeenCalledWith(
+    "http://localhost:8000/api/interviews/a%2Fb",
+    expect.objectContaining({
+      method: "DELETE",
+      credentials: "include",
+    }),
+  );
   expect(fetch.mock.calls[0]?.[1]).not.toHaveProperty("body");
   expect(json).not.toHaveBeenCalled();
 });
 
 it("preserves deletion errors for the dashboard", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ message: "Interview not found." }), { status: 404 },
-  )));
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ message: "Interview not found." }), { status: 404 }),
+      ),
+  );
   await expect(Api.deleteInterview("missing")).rejects.toMatchObject({
-    status: 404, message: "Interview not found.",
+    status: 404,
+    message: "Interview not found.",
   });
 });
 
 it("loads and updates the authenticated profile and logs out with credentials", async () => {
-  const profile = { id: 'user', name: 'Aigerim', email: 'a@example.com', targetRole: 'Python Developer', level: 'Senior', preferredLanguage: 'English' };
-  const values = { name: 'Aigerim', targetRole: 'Python Developer' as const, level: 'Senior' as const };
-  const fetch = vi.fn().mockImplementation(async (_url: string, options: RequestInit) =>
-    options.method === 'POST' ? new Response(null, { status: 204 }) : new Response(JSON.stringify(profile)));
-  sessionStorage.setItem('interview-mirror.authorization', 'Bearer token');
-  vi.stubGlobal('fetch', fetch);
+  const profile = {
+    id: "user",
+    name: "Aigerim",
+    email: "a@example.com",
+    targetRole: "Python Developer",
+    level: "Senior",
+    preferredLanguage: "English",
+  };
+  const values = {
+    name: "Aigerim",
+    targetRole: "Python Developer" as const,
+    level: "Senior" as const,
+  };
+  const fetch = vi
+    .fn()
+    .mockImplementation(async (_url: string, options: RequestInit) =>
+      options.method === "POST"
+        ? new Response(null, { status: 204 })
+        : new Response(JSON.stringify(profile)),
+    );
+  sessionStorage.setItem("interview-mirror.authorization", "Bearer token");
+  vi.stubGlobal("fetch", fetch);
   expect(await Api.getProfile()).toEqual(profile);
   expect(await Api.updateProfile(values)).toEqual(profile);
   await Api.logout();
   expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
-    ['http://localhost:8000/api/auth/me', 'GET'], ['http://localhost:8000/api/auth/me', 'PATCH'],
-    ['http://localhost:8000/api/auth/logout', 'POST'],
+    ["http://localhost:8000/api/auth/me", "GET"],
+    ["http://localhost:8000/api/auth/me", "PATCH"],
+    ["http://localhost:8000/api/auth/logout", "POST"],
   ]);
   expect(fetch.mock.calls[1]?.[1].body).toBe(JSON.stringify(values));
   for (const [, options] of fetch.mock.calls) {
-    expect(options.credentials).toBe('include');
-    expect(options.headers.Authorization).toBe('Bearer token');
+    expect(options.credentials).toBe("include");
+    expect(options.headers.Authorization).toBe("Bearer token");
   }
 });
 

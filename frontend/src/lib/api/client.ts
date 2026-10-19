@@ -29,7 +29,8 @@ async function request<T>(
   method = body === undefined ? "GET" : "POST",
   { notifyUnauthorized = true }: { notifyUnauthorized?: boolean } = {},
 ): Promise<T> {
-  const isAuthRequest = path === "/auth/login" || path === "/auth/register";
+  const isAuthRequest =
+    path === "/auth/login" || path === "/auth/register" || path.startsWith("/auth/password-reset/");
   const authorization = isAuthRequest ? null : getAuthorization();
   const response = await fetch(`${baseUrl}${path}`, {
     method,
@@ -59,7 +60,7 @@ async function request<T>(
   }
   if (response.status === 204) return undefined as T;
   const data = (await response.json()) as T;
-  if (isAuthRequest) {
+  if (path === "/auth/login" || path === "/auth/register") {
     const authorization = response.headers.get("Authorization");
     saveAuthorization(authorization?.startsWith("Bearer ") ? authorization : null);
   }
@@ -74,6 +75,12 @@ export const Api = {
   logout: () => request<void>("/auth/logout", undefined, "POST"),
   login: (email: string, password: string) => request<User>("/auth/login", { email, password }),
   register: (data: RegisterData) => request<User>("/auth/register", data),
+  requestPasswordReset: (email: string) =>
+    request<{ message: string }>("/auth/password-reset/request", { email }),
+  async resetPassword(token: string, password: string) {
+    await request<void>("/auth/password-reset/confirm", { token, password });
+    saveAuthorization(null);
+  },
   async startInterview(setup: InterviewSetup): Promise<Interview> {
     const interview = await request<Interview>("/interviews", setup, "POST", {
       notifyUnauthorized: false,

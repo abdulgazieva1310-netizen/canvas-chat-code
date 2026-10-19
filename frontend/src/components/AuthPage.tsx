@@ -73,6 +73,11 @@ export function AuthPage({ register = false, redirect }: { register?: boolean; r
         <button type="submit" className="btn btn-primary w-full" disabled={auth.isPending}>
           {auth.isPending ? "Please wait…" : register ? "Create account" : "Sign in"}
         </button>
+        {!register && (
+          <Link to="/forgot-password" className="btn btn-ghost w-full">
+            Forgot password?
+          </Link>
+        )}
         <Link
           to={register ? "/login" : "/register"}
           search={{ redirect }}

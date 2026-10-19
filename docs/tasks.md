@@ -39,6 +39,8 @@ Goal: Support secure account recovery on the backend.
 Description: Add reset requests and password replacement using expiring, single-use tokens stored securely, with a configurable email delivery adapter and local test mailbox. Verify token expiry, reuse rejection, invalidation of existing login sessions after reset, and indistinguishable reset-request responses for known and unknown emails.
 
 ## 9. Build password recovery pages
+Status: Complete. Public recovery and reset forms connect to the recovery API, with expired-link, request-failure, confirmation, and success states. Verified frontend behavior in `frontend/src/test/recovery.test.tsx` and the mailbox-to-replacement-login flow in `backend/tests/test_password_reset.py`.
+
 Goal: Let users request and complete a password reset.
 Description: Add recovery and reset forms connected to the password-reset API, including clear handling for expired links and delivery failures. Verify the complete recovery flow with a test mailbox and confirm that the replacement password works for login.
 

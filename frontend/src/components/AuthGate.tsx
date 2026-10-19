@@ -5,7 +5,8 @@ import { Api, ApiError } from "@/lib/api/client";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  if (pathname === "/login" || pathname === "/register") return children;
+  if (["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname))
+    return children;
   return <ProtectedSession>{children}</ProtectedSession>;
 }
 

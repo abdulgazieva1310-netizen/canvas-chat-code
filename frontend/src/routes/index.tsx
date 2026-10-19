@@ -32,6 +32,7 @@ const categories = [
 ];
 function Dashboard() {
   const client = useQueryClient();
+  // Account identity and target come from saved profile settings, independently of sessions.
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: Api.getProfile,

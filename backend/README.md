@@ -131,9 +131,8 @@ Profile data is stored in the existing users table and survives restarts.
 the HttpOnly cookie. It also works for expired or absent credentials, so users
 can always clear stale sessions. Other device sessions are left active.
 
-Starting an interview also saves its role and level as the authenticated user's
-profile target in the same database transaction. Existing name/email and other
-users' preferences are preserved; failed starts do not change preferences.
+Starting an interview preserves the user's saved profile target and level.
+Change these preferences through Profile Settings using `PATCH /api/auth/me`.
 
 `POST /api/interviews/{id}/hint` asks Groq for a concise, actionable clue about the
 current question using the interview role, level, and type. Previous hints for

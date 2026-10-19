@@ -609,28 +609,27 @@ def test_logout_with_only_cookie_removes_session(client):
     assert client.get('/api/auth/me', headers={'Authorization': token}).status_code == 401
 
 
-def test_starting_interview_saves_target_preferences_and_preserves_identity(client):
+def test_starting_interview_preserves_saved_profile(client):
     original = login(client).json()
     path = '/api/auth/me'
     invalid = client.post('/api/interviews', json=SETUP | {'level': 'Invalid'})
     assert invalid.status_code == 400
     assert client.get(path).json() == original
     interview = start(client, role='Java Developer', level='Senior')
-    expected = original | {'targetRole': 'Java Developer', 'level': 'Senior'}
-    assert client.get(path).json() == expected
-    assert interview['setup']['role'] == expected['targetRole']
-    assert interview['setup']['level'] == expected['level']
+    assert client.get(path).json() == original
+    assert interview['setup']['role'] == 'Java Developer'
+    assert interview['setup']['level'] == 'Senior'
     with TestClient(create_app(database_url=str(client.app.state.store.engine.url))) as restarted:
-        assert login(restarted).json() == expected
+        assert login(restarted).json() == original
 
 
-def test_starting_interview_updates_only_owners_target(client):
+def test_starting_interview_preserves_all_users_profiles(client):
     owner = login(client)
     token = owner.headers['authorization']
     other = client.post('/api/auth/register', json={
         'name': 'Other', 'email': 'other@example.com', 'password': 'secret'}).json()
     start(client, role='C++ Developer', level='Junior')
-    assert client.get('/api/auth/me').json() == other | {'targetRole': 'C++ Developer', 'level': 'Junior'}
+    assert client.get('/api/auth/me').json() == other
     assert client.get('/api/auth/me', headers={'Authorization': token}).json() == owner.json()
 
 

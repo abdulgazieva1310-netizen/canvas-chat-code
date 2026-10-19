@@ -15,6 +15,7 @@ import { Route as ProfileRoute } from "@/routes/profile";
 import { Api } from "@/lib/api/client";
 import { getAuthorization, saveAuthorization } from "@/lib/api/session";
 import type { User } from "@/lib/api/types";
+import { defaultSetup } from "@/lib/api/default-setup";
 
 const user: User = {
   id: "user-1",
@@ -187,7 +188,16 @@ it("shows saved profile edits when returning to the real dashboard", async () =>
   await screen.findByLabelText("Name");
   const updated: User = { ...user, name: "Dana Sadyk", targetRole: "Java Developer", level: "Senior" };
   vi.spyOn(Api, "updateProfile").mockResolvedValue(updated);
-  vi.spyOn(Api, "getHistory").mockResolvedValue([]);
+  vi.spyOn(Api, "getHistory").mockResolvedValue([{
+    id: "recent-python-session",
+    setup: { ...defaultSetup, role: "Python Developer", level: "Junior" },
+    status: "incomplete",
+    startedAt: "2026-10-19T10:00:00Z",
+    endedAt: "2026-10-19T10:05:00Z",
+    answeredCount: 1,
+    messages: [],
+    lastFeedback: null,
+  }]);
   vi.mocked(Api.getProfile).mockResolvedValue(updated);
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: updated.name } });
   fireEvent.change(screen.getByLabelText("Target role"), { target: { value: updated.targetRole } });

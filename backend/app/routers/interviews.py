@@ -15,7 +15,6 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
     store = request.app.state.store
     with store.transaction() as store:
         interview = store.start(user.id, data, first_question=first_question)
-        store.update_target(user.id, data.role, data.level)
         return interview.model_copy(deep=True)
 
 

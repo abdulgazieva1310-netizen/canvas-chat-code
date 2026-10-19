@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, expect, it, vi } from "vitest";
 import { Route as DashboardRoute } from "@/routes/index";
+import { Route as ReadyRoute } from "@/routes/ready";
 import { AppShell } from "@/components/AppShell";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
@@ -77,9 +78,15 @@ function openDashboard(history: Interview[], initialEntry = "/") {
     path: "/setup",
     component: () => <AppShell><p>Setup destination</p></AppShell>,
   });
+  const ready = createRoute({
+    getParentRoute: () => root,
+    path: "/ready",
+    validateSearch: ReadyRoute.options.validateSearch!,
+    component: () => <AppShell><p>Lobby destination</p></AppShell>,
+  });
   const router = createRouter({
     context: { queryClient: client },
-    routeTree: root.addChildren([dashboard, report, interview, setup]),
+    routeTree: root.addChildren([dashboard, report, interview, setup, ready]),
     history: createMemoryHistory({ initialEntries: [initialEntry] }),
   });
   render(
@@ -279,5 +286,36 @@ it("shows empty history and sends Interview to setup after deleting the final se
   await screen.findByText("No saved sessions yet.");
   expect(within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" })).toHaveAttribute("href", "/setup");
   expect(screen.queryByRole("button", { name: /Delete/ })).toBeNull();
+  client.clear();
+});
+
+it.each(["/ready", "/ready?interviewId=session-123", "/ready?retryId=session-123"])(
+  "highlights Lobby by its route at %s",
+  async (url) => {
+    const { client } = openDashboard([], url);
+    await screen.findByText("Lobby destination");
+    const nav = within(screen.getByRole("navigation"));
+    const lobby = nav.getByRole("link", { name: "Lobby" });
+    expect(lobby).toHaveAttribute("aria-current", "page");
+    expect(lobby).toHaveClass("bg-muted", "text-foreground");
+    expect(nav.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute("aria-current");
+    expect(nav.getByRole("link", { name: "Setup" })).not.toHaveAttribute("aria-current");
+    client.clear();
+  },
+);
+
+it("opens the /ready Lobby link and removes its highlight after leaving", async () => {
+  const { client, router } = openDashboard([], "/setup");
+  await screen.findByText("Setup destination");
+  const lobby = within(screen.getByRole("navigation")).getByRole("link", { name: "Lobby" });
+  expect(lobby).toHaveAttribute("href", "/ready");
+  fireEvent.click(lobby);
+  await screen.findByText("Lobby destination");
+  expect(router.state.location.pathname).toBe("/ready");
+  expect(screen.getByRole("link", { name: "Lobby" })).toHaveClass("bg-muted");
+  fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: "Setup" }));
+  await screen.findByText("Setup destination");
+  expect(screen.getByRole("link", { name: "Lobby" })).not.toHaveClass("bg-muted");
+  expect(screen.getByRole("link", { name: "Setup" })).toHaveClass("bg-muted");
   client.clear();
 });

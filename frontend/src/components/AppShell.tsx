@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   search={session ? { interviewId: session.id } : {}}
                   className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                   activeProps={{ className: "bg-muted text-foreground" }}
-                  activeOptions={{ exact: true }}
+                  activeOptions={{ exact: true, includeSearch: false }}
                 >
                   {s.label}
                 </Link>

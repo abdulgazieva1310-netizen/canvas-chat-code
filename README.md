@@ -1,4 +1,5 @@
 Interview Mirror
+
 See the project specifications.
 
 This project was built with Lovable.

@@ -8,6 +8,30 @@ import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
+const codeTemplates: Record<CodingLanguage, string> = {
+  java: `class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        // Write your code here
+        return new int[]{};
+    }
+}
+`,
+  python: `def two_sum(nums, target):
+    # Write your code here
+    pass
+`,
+  cpp: `#include <vector>
+
+class Solution {
+public:
+    std::vector<int> twoSum(std::vector<int>& nums, int target) {
+        // Write your code here
+        return {};
+    }
+};
+`,
+};
+
 export const Route = createFileRoute("/interview")({
   validateSearch: (search: Record<string, unknown>) => ({
     interviewId: typeof search["interviewId"] === "string" ? search["interviewId"].trim() : "",
@@ -76,6 +100,9 @@ function Interview() {
   };
   const codingLanguage =
     interview?.setup?.type === "Technical" ? codingLanguages[interview.setup.role] : undefined;
+  useEffect(() => {
+    setText(codingLanguage ? codeTemplates[codingLanguage] : "");
+  }, [interviewId, interview?.answeredCount, codingLanguage]);
   const voiceMode = interview?.setup?.input === "Voice" && !codingLanguage;
   const speech = useSpeechRecognition(
     voiceMode && interview?.status === "active" && !busy && !error,

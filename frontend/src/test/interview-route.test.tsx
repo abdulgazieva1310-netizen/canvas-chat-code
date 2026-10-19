@@ -330,6 +330,12 @@ it.each([
   const editor = screen.getByRole("textbox", { name: "Code answer" });
   expect(screen.queryByRole("textbox", { name: "Your answer" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
+  const template = (editor as HTMLTextAreaElement).value;
+  expect(template).toContain("Write your code here");
+  expect(template).toContain(language === "python" ? "def two_sum(nums, target):" : "class Solution");
+  expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  fireEvent.change(editor, { target: { value: "" } });
+  expect(editor).toHaveValue("");
   expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   fireEvent.change(editor, { target: { value: code } });
   fireEvent.keyDown(editor, { key: "Enter" });
@@ -339,7 +345,7 @@ it.each([
   expect(editor).toBeDisabled();
   finish({ ...active, answeredCount: 2, messages: [...active.messages,
     { id: "submitted-code", interviewId: active.id, from: "you", text: code, createdAt: new Date().toISOString() }] });
-  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(""));
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(template));
   const displayed = document.querySelector("pre");
   expect(displayed?.textContent).toBe(code);
   client.clear();

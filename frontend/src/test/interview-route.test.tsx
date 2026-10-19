@@ -279,3 +279,29 @@ it.each(["Voice", "Text"] as const)("keeps %s input usable without speech recogn
   expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   client.clear();
 });
+
+it("loads and displays the dynamic AI hint without advancing or clearing a draft", async () => {
+  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  let finish!: (value: Interview) => void;
+  const getHint = vi.spyOn(Api, "getHint").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const client = openInterview();
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  fireEvent.change(input, { target: { value: "My draft approach" } });
+  fireEvent.click(screen.getByRole("button", { name: "Ask for a hint" }));
+  await waitFor(() => expect(getHint).toHaveBeenCalledExactlyOnceWith(active.id));
+  expect(screen.getByRole("button", { name: "Loading hint…" })).toBeDisabled();
+  const hintText = "Use a hash map to store visited values.\nLook up target minus the current number.";
+  const updated: Interview = { ...active, messages: [...active.messages, {
+    id: "dynamic-hint", interviewId: active.id, from: "hint", text: hintText, createdAt: new Date().toISOString(),
+  }] };
+  finish(updated);
+  const hint = await screen.findByRole("note", { name: "Interview hint" });
+  expect(hint).toHaveTextContent("Use a hash map to store visited values.");
+  expect(hint).toHaveTextContent("Look up target minus the current number.");
+  expect(hint).not.toHaveTextContent("Use a concrete example");
+  expect(input).toHaveValue("My draft approach");
+  expect(screen.getByRole("button", { name: "Ask for a hint" })).toBeEnabled();
+  expect(client.getQueryData(["interview", active.id])).toEqual(updated);
+  client.clear();
+});

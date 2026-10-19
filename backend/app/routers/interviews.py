@@ -72,7 +72,13 @@ def hint(interviewId: str, request: Request, user: CurrentUser):
         interview = store.find(user.id, interviewId)
         if interview.status != 'active' or interview.setup.mode != 'Practice':
             raise HTTPException(409, 'Hints are only available during active Practice interviews.')
-        interview.messages.append(message(interviewId, 'hint', 'Use a concrete example, explain your reasoning, and summarize the outcome.'))
+        question_index = next(i for i in range(len(interview.messages) - 1, -1, -1)
+                              if interview.messages[i].sender == 'ai')
+        previous_hints = [m.text for m in interview.messages[question_index + 1:] if m.sender == 'hint']
+        generated = ai_service.generate_hint(interview.messages[question_index].text, previous_hints,
+            role=interview.setup.role, level=interview.setup.level, interview_type=interview.setup.type)
+        interview.messages.append(message(interviewId, 'hint', generated or
+            'AI hints are temporarily unavailable. Please try again shortly.'))
         store.save(interview)
         return interview.model_copy(deep=True)
 

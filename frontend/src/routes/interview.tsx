@@ -155,10 +155,12 @@ function Interview() {
               m.from === "hint" ? (
                 <div
                   key={i}
+                  role="note"
+                  aria-label="Interview hint"
                   className="rounded-lg border border-dashed border-accent bg-accent/10 p-3 text-sm"
                 >
-                  <span className="eyebrow mr-2">Coach</span>
-                  {m.text}
+                  <span className="eyebrow mr-2">Hint</span>
+                  <span className="whitespace-pre-wrap">{m.text}</span>
                 </div>
               ) : (
                 <div key={i} className={`flex ${m.from === "you" ? "justify-end" : ""}`}>

@@ -247,3 +247,52 @@ def test_other_technical_roles_keep_their_technical_prompt(monkeypatch, role):
             'message': {'content': 'A technical question?'}}]})
     mock_provider(monkeypatch, handler)
     assert ai_service.generate_question(role, 'Middle', []) == 'A technical question?'
+
+
+def test_hint_uses_current_problem_and_previous_clues(monkeypatch):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    monkeypatch.setenv('AI_MODEL', 'test-model')
+    question = 'Find two array indices whose values sum to a target.'
+    def handler(request):
+        payload = json.loads(request.content)
+        assert payload['model'] == 'test-model'
+        assert json.loads(payload['messages'][1]['content']) == {
+            'question': question, 'previous_hints': ['Consider fast lookups.'],
+            'role': 'Python Developer', 'level': 'Junior', 'interview_type': 'Technical',
+        }
+        prompt = payload['messages'][0]['content']
+        assert 'hash map' in prompt
+        assert 'Never reveal the complete solution' in prompt
+        assert 'instead of repeating' in prompt
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': '  Store each visited value in a hash map and look up target minus the current value.  '}}]})
+    mock_provider(monkeypatch, handler)
+    assert ai_service.generate_hint(question, ['Consider fast lookups.'], role='Python Developer',
+        level='Junior', interview_type='Technical') == 'Store each visited value in a hash map and look up target minus the current value.'
+
+
+@pytest.mark.parametrize('failure', ['timeout', 'unauthorized', 'invalid_json', 'empty', 'truncated'])
+def test_hint_failures_are_handled_without_exposing_the_key(monkeypatch, failure, caplog):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def handler(request):
+        if failure == 'timeout':
+            raise httpx.ReadTimeout('test-secret', request=request)
+        if failure == 'unauthorized':
+            return httpx.Response(401, text='test-secret')
+        if failure == 'invalid_json':
+            return httpx.Response(200, text='not json')
+        return httpx.Response(200, json={'choices': [{
+            'finish_reason': 'length' if failure == 'truncated' else 'stop',
+            'message': {'content': '   ' if failure == 'empty' else 'Incomplete clue'},
+        }]})
+    mock_provider(monkeypatch, handler)
+    assert ai_service.generate_hint('Two sum?', [], role='Backend Developer', level='Middle', interview_type='Technical') is None
+    assert 'AI hint generation unavailable' in caplog.text
+    assert 'test-secret' not in caplog.text
+
+
+def test_missing_key_skips_hint_network(monkeypatch):
+    def unexpected(**kwargs):
+        pytest.fail('No API request expected')
+    monkeypatch.setattr(ai_service.httpx, 'Client', unexpected)
+    assert ai_service.generate_hint('Question?', [], role='Backend Developer', level='Middle', interview_type='Technical') is None

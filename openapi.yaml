@@ -238,7 +238,7 @@ paths:
     post:
       operationId: getHint
       summary: Append a coaching hint
-      description: Only allowed for active Practice interviews. Appends a hint message and returns the updated interview. No request body.
+      description: Only allowed for active Practice interviews. Generates a question-specific Groq hint using the current problem, prior hints for that problem, role, level, and type. Saves the hint message and returns the updated interview without advancing the question. Missing keys or generation failures append a temporary-unavailability notice. No request body.
       responses:
         '200':
           $ref: '#/components/responses/InterviewResult'

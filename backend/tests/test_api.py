@@ -632,3 +632,58 @@ def test_starting_interview_updates_only_owners_target(client):
     start(client, role='C++ Developer', level='Junior')
     assert client.get('/api/auth/me').json() == other | {'targetRole': 'C++ Developer', 'level': 'Junior'}
     assert client.get('/api/auth/me', headers={'Authorization': token}).json() == owner.json()
+
+
+def test_dynamic_hints_use_current_question_and_persist(client, monkeypatch):
+    from app.services import ai_service
+    calls = []
+    def generate(question, previous_hints, **context):
+        calls.append((question, previous_hints, context))
+        return f'Hint {len(calls)}: use a hash map to look up the complement.'
+    monkeypatch.setattr(ai_service, 'generate_hint', generate)
+    token = login(client).headers['authorization']
+    interview = start(client, role='Python Developer', level='Junior')
+    path = '/api/interviews/' + interview['id']
+    response = client.post(path + '/hint')
+    assert response.status_code == 200
+    first = response.json()['messages'][-1]
+    assert first['from'] == 'hint' and first['text'].startswith('Hint 1: use a hash map')
+    assert response.json()['answeredCount'] == 0
+    assert response.json()['status'] == 'active'
+    assert calls[0] == (interview['messages'][-1]['text'], [],
+        {'role': 'Python Developer', 'level': 'Junior', 'interview_type': 'Technical'})
+    second = client.post(path + '/hint').json()
+    assert calls[1][1] == [first['text']]
+    assert second['messages'][-1]['text'].startswith('Hint 2:')
+    answered = client.post(path + '/messages', json={'text': 'Use a hash map.'}).json()
+    final = client.post(path + '/hint').json()
+    assert calls[2][0] == answered['messages'][-1]['text']
+    assert calls[2][1] == []  # Earlier questions' hints are not reused for this problem.
+    assert final['answeredCount'] == 1
+    with TestClient(create_app(database_url=str(client.app.state.store.engine.url))) as restarted:
+        assert restarted.get(path, headers={'Authorization': token}).json() == final
+
+
+def test_hint_is_not_generated_for_disallowed_interviews(client, monkeypatch):
+    from app.services import ai_service
+    calls = []
+    monkeypatch.setattr(ai_service, 'generate_hint', lambda *args, **kwargs: calls.append(args))
+    assert client.post('/api/interviews/missing/hint').status_code == 401
+    login(client)
+    real = '/api/interviews/' + start(client, mode='Real Interview')['id']
+    assert client.post(real + '/hint').status_code == 409
+    practice = '/api/interviews/' + start(client)['id']
+    client.post(practice + '/end')
+    assert client.post(practice + '/hint').status_code == 409
+    assert calls == []
+
+
+def test_unavailable_hint_shows_notice_without_static_advice(client, monkeypatch):
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, 'generate_hint', lambda *args, **kwargs: None)
+    login(client)
+    path = '/api/interviews/' + start(client)['id']
+    response = client.post(path + '/hint')
+    assert response.status_code == 200
+    assert 'temporarily unavailable' in response.json()['messages'][-1]['text']
+    assert 'Use a concrete example' not in response.text

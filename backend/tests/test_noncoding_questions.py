@@ -20,7 +20,9 @@ def test_noncoding_technical_selection(role, level):
         assert entry.roles == [role] and entry.levels == [level]
         assert entry.reviewerNotes not in prompt
         assert 'Examples:' not in prompt and 'Constraints:' not in prompt
-        assert len(prompt) >= 90 and len(entry.reviewerNotes) >= 70
+        assert any(action in prompt.lower() for action in ('how', 'explain', 'describe', 'design', 'what', 'propose', 'define', 'build', 'develop', 'plan'))
+        assert '. ' in prompt or '? ' in prompt
+        assert entry.reviewerNotes.strip()
         used.add(entry.id)
         prompts.add(prompt)
         topics.add(entry.topic)

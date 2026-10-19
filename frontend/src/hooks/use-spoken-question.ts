@@ -8,6 +8,7 @@ function synthesis() {
 
 export function useSpokenQuestion(enabled: boolean, questionId: string, text: string) {
   const [muted, setMuted] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastQuestion = useRef("");
   const utterance = useRef<SpeechSynthesisUtterance | null>(null);
@@ -16,6 +17,7 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
   const stop = useCallback(() => {
     synthesis()?.cancel();
     utterance.current = null;
+    setSpeaking(false);
   }, []);
 
   const replay = useCallback(() => {
@@ -31,8 +33,12 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
     try {
       const next = new SpeechSynthesisUtterance(text);
       next.lang = "en-US";
-      next.onerror = () =>
+      next.onstart = () => setSpeaking(true);
+      next.onend = () => setSpeaking(false);
+      next.onerror = () => {
+        setSpeaking(false);
         setError("Question playback failed. Read the transcript and continue by text.");
+      };
       utterance.current = next;
       speaker.speak(next);
     } catch {
@@ -61,5 +67,5 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
       return !value;
     });
   };
-  return { supported, muted, error, replay, stop, toggleMute };
+  return { supported, muted, speaking, error, replay, stop, toggleMute };
 }

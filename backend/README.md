@@ -59,7 +59,7 @@ scores and `lastAnswerFeedback` text immediately; Real Interview mode keeps both
 null and reveals evaluations only in the final report.
 
 The `answer_evaluations` table stores each result with its interview, question,
-and answer IDs. It is created automatically for existing databases at startup;
+and answer IDs. It is created by the baseline migration for existing databases;
 no existing columns need to change. Stored results survive restarts and report
 requests do not call Groq again. Older sessions without evaluations are shown as
 unscored. Reports average each category across successfully evaluated answers;
@@ -82,8 +82,16 @@ directory. Existing process environment variables take precedence over `.env` va
 Copy `.env.example` to `.env` and edit the settings; `.env` is ignored by Git.
 Restart the server after changing settings.
 
-Tables are created automatically if missing. This does not migrate existing schemas;
-future schema changes will need migrations. Demo data is inserted only when the demo
+Versioned Alembic migrations run at startup. To upgrade explicitly before starting
+the server, run `uv run python -m app.migrate` from `backend`; it loads the same
+`.env` and `DATABASE_URL` as the server. Back up the database before deployment and
+run this command once before starting multiple workers. Revision `0001` creates
+the baseline tables on an empty database and adopts the existing application
+schema without replacing records. Messages remain in the versioned interview
+JSON payload. New schema changes must add a revision under `migrations/versions`
+with `down_revision` pointing to the preceding revision; changing ORM models alone
+does not upgrade an existing database. Downgrades are not supported; restore a
+backup for rollback. Demo data is inserted only when the demo
 account is absent, so restarting does not duplicate interviews or reset their state.
 For an empty database use `create_app(seed=False, database_url=...)`; tests use a
 fresh SQLite file per test, and `sqlite:///:memory:` is also supported.

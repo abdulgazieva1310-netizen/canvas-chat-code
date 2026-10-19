@@ -11,6 +11,8 @@ Goal: Give frontend and backend developers a shared integration reference.
 Description: Document request, response, and error shapes for authentication, profile, interview setup, conversation, reports, history, and dashboard data. Include session statuses, nullable scores, ownership rules, and examples for text answers, code submissions, and early-ended sessions; validate the contract syntax.
 
 ## 3. Add persistent storage and migrations
+Status: Complete. Versioned Alembic baseline and upgrade command added; verified empty-database upgrades, adoption of existing data, repeated upgrades, and persistence after reopening in `backend/tests/test_migrations.py` and the backend API suite.
+
 Goal: Preserve users and interview data across application restarts.
 Description: Configure a database through environment settings and introduce versioned migrations for users, authentication sessions, interviews, messages, and answer evaluations. Document local database setup and verify that migrations run on an empty database and stored records survive reopening it.
 

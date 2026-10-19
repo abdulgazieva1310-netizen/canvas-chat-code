@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import StaleDataError
 
-from .database import AnswerEvaluationRecord, Base, InterviewRecord, TokenRecord, UserRecord, database_engine
+from .database import AnswerEvaluationRecord, InterviewRecord, TokenRecord, UserRecord, database_engine
+from .migrate import upgrade_database
 
 from fastapi import HTTPException
 
@@ -79,7 +80,7 @@ class Store:
     def __init__(self, seed=True, database_url=None):
         self.engine = database_engine(database_url)
         self.sessions = sessionmaker(self.engine, expire_on_commit=False)
-        Base.metadata.create_all(self.engine)
+        upgrade_database(self.engine)
         if seed:
             try:
                 with self.transaction() as repository:

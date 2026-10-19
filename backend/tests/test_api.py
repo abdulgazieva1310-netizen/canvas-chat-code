@@ -836,6 +836,20 @@ def test_profile_supports_all_roles_and_levels(client, role, level):
     assert client.post('/api/interviews', json=SETUP | {'language': 'Russian'}).status_code == 400
 
 
+def test_profile_update_does_not_change_past_interviews(client):
+    login(client)
+    history_before = client.get('/api/interviews').json()
+    assert history_before
+
+    response = client.patch('/api/auth/me', json={
+        'name': 'Updated Candidate', 'targetRole': 'Data Analyst', 'level': 'Junior',
+        'preferredLanguage': 'Kazakh',
+    })
+
+    assert response.status_code == 200
+    assert client.get('/api/interviews').json() == history_before
+
+
 def test_logout_revokes_bearer_and_cookie_tokens_and_clears_cookie(client):
     first = login(client).headers['authorization']
     second = login(client).headers['authorization']  # Browser cookie now holds the second token.

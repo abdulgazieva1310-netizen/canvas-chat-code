@@ -79,9 +79,11 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             answered_after = interview.answeredCount + int(is_main_answer)
             if answered_after < setup.questionCount:
                 conversation = [*interview.messages, message(interviewId, 'you', submitted)]
+                used_questions = [item.text for item in interview.messages
+                                  if item.sender == 'ai' and item.kind == 'main']
                 next_question = ai_service.generate_question(setup.role, next_level, conversation,
                     interview_type=setup.type, job_description=setup.jobDescription,
-                    practice_topic=setup.practiceTopic)
+                    practice_topic=setup.practiceTopic, used_questions=used_questions)
         return store.answer(interview, data.text, next_question=follow_up or next_question,
             evaluation=evaluation, follow_up_parent_id=main_question_id if follow_up else None).model_copy(deep=True)
 

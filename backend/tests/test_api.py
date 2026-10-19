@@ -375,6 +375,8 @@ def test_dynamic_questions_and_final_answer(client, monkeypatch):
             assert result.json()['messages'][-1]['text'] == f'Dynamic question {index + 2}?'
             assert calls[-1][2][-1].text == f'Answer {index}'
             assert calls[-1][2][-1].sender == 'you'
+            assert calls[-1][3]['used_questions'] == [
+                f'Dynamic question {number}?' for number in range(1, index + 2)]
     assert len(calls) == 5
     assert result.json()['status'] == 'complete'
     assert client.post(path + '/messages', json={'text': 'extra'}).status_code == 409

@@ -71,7 +71,7 @@ it("renders Markdown questions and coaching in the final report", async () => {
   const data: InterviewReport = {
     interview: {
       id: "session-123",
-      setup: defaultSetup,
+      setup: { ...defaultSetup, role: "Python Developer" },
       status: "complete",
       startedAt: new Date().toISOString(),
       endedAt: new Date().toISOString(),
@@ -141,6 +141,11 @@ it("renders Markdown questions and coaching in the final report", async () => {
   expect(document.querySelector("script, img")).toBeNull();
   expect(
     screen.getByText("Approximate coaching feedback, not a measure of hiring readiness."),
+  ).toBeVisible();
+  expect(
+    screen.getByText(
+      "Static AI code review: submissions are reviewed without compiling or executing them.",
+    ),
   ).toBeVisible();
   client.clear();
 });

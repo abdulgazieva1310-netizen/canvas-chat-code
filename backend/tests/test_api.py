@@ -747,6 +747,23 @@ def test_coding_submissions_are_reviewed_and_saved_without_losing_whitespace(cli
         assert restarted.get(path + '/report', headers={'Authorization': token}).json()['feedback']['questions'][0]['answer'] == code
 
 
+def test_unavailable_code_review_keeps_formatted_code_unscored(client, monkeypatch):
+    from app.services import ai_service
+    code = '\ndef solve(values):\n    return values[0]\n'
+    calls = []
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda question, answer, **context:
+        calls.append((answer, context)) or None)
+    login(client)
+    path = '/api/interviews/' + start(client, role='Python Developer')['id']
+    client.post(path + '/messages', json={'text': code})
+    client.post(path + '/end')
+    feedback = client.get(path + '/report').json()['feedback']
+    assert calls == [(code, {'language': 'Python'})]
+    assert feedback['questions'][0]['answer'] == code
+    assert feedback['questions'][0]['score'] is None
+    assert feedback['scores'] is None and feedback['overall'] is None
+
+
 @pytest.mark.parametrize('role, interview_type, selected, expected', [
     ('Backend Developer', 'Technical', None, 'Python'),
     ('Full Stack Developer', 'Technical', None, 'JavaScript'),

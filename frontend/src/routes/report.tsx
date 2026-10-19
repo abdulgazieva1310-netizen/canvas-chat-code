@@ -61,6 +61,15 @@ function Report() {
       </AppShell>
     );
   const { interview, feedback } = data;
+  const staticCodeReview =
+    interview.setup.type === "Technical" &&
+    [
+      "Python Developer",
+      "Java Developer",
+      "C++ Developer",
+      "Backend Developer",
+      "Full Stack Developer",
+    ].includes(interview.setup.role);
   const qs = feedback.questions;
   const practiceSuggestions = [
     ...new Map(
@@ -97,6 +106,11 @@ function Report() {
         <p role="status" className="card-surface mt-4 p-4">
           Incomplete interview: {feedback.answeredQuestions} of {feedback.selectedQuestions} main
           questions answered. Feedback covers only submitted answers.
+        </p>
+      )}
+      {staticCodeReview && (
+        <p role="note" className="card-surface mt-4 p-4">
+          Static AI code review: submissions are reviewed without compiling or executing them.
         </p>
       )}
       {interview.answeredCount === 0 ? (

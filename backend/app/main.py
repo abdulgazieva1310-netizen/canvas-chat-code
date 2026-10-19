@@ -29,6 +29,10 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
         store.engine.dispose()
 
     app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
+    @app.get('/api/health', tags=['health'])
+    def health():
+        return JSONResponse({'status': 'ok'}, headers={'Cache-Control': 'no-store'})
+
     app.state.store = store
     app.state.mailer = mailer if mailer is not None else email_delivery()
     app.state.reset_url = password_reset_url()

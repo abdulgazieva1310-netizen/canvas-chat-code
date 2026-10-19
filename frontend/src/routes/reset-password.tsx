@@ -3,7 +3,7 @@ import { RecoveryPage } from "@/components/RecoveryPage";
 
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (search: Record<string, unknown>) => ({
-    token: typeof search["token"] === "string" ? search["token"] : "",
+    ...(typeof search["token"] === "string" ? { token: search["token"] } : {}),
   }),
   head: () => ({
     meta: [
@@ -16,5 +16,11 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPassword() {
   const { token } = Route.useSearch();
-  return <RecoveryPage token={token} />;
+  const navigate = Route.useNavigate();
+  return (
+    <RecoveryPage
+      token={token ?? ""}
+      onResetComplete={() => void navigate({ to: "/reset-password", search: {}, replace: true })}
+    />
+  );
 }

@@ -3,7 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Api, ApiError } from "@/lib/api/client";
 
-export function RecoveryPage({ token }: { token?: string | undefined }) {
+export function RecoveryPage({
+  token,
+  onResetComplete,
+}: {
+  token?: string | undefined;
+  onResetComplete?: () => void;
+}) {
   const resetting = token !== undefined;
   const client = useQueryClient();
   const [email, setEmail] = useState("");
@@ -21,6 +27,7 @@ export function RecoveryPage({ token }: { token?: string | undefined }) {
         client.clear();
         setPassword("");
         setConfirmation("");
+        onResetComplete?.();
       }
     },
   });

@@ -20,6 +20,7 @@ afterEach(() => {
 
 function openRecovery(token?: string) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  let router: ReturnType<typeof createRouter>;
   const root = createRootRoute({
     component: () => (
       <AuthGate>
@@ -30,9 +31,14 @@ function openRecovery(token?: string) {
   const recovery = createRoute({
     getParentRoute: () => root,
     path: token === undefined ? "/forgot-password" : "/reset-password",
-    component: () => <RecoveryPage token={token} />,
+    component: () => (
+      <RecoveryPage
+        token={token}
+        onResetComplete={() => void router.navigate({ to: "/reset-password" })}
+      />
+    ),
   });
-  const router = createRouter({
+  router = createRouter({
     routeTree: root.addChildren([recovery]),
     history: createMemoryHistory({
       initialEntries: [token === undefined ? "/forgot-password" : "/reset-password"],
@@ -43,13 +49,13 @@ function openRecovery(token?: string) {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return client;
+  return { client, router };
 }
 
 it("requests a reset publicly and shows neutral delivery guidance", async () => {
   const fetch = vi.fn().mockResolvedValue(new Response('{"message":"Accepted"}', { status: 202 }));
   vi.stubGlobal("fetch", fetch);
-  const client = openRecovery();
+  const { client } = openRecovery();
   fireEvent.change(await screen.findByLabelText("Email"), {
     target: { value: "person@example.com" },
   });
@@ -65,7 +71,7 @@ it("requests a reset publicly and shows neutral delivery guidance", async () => 
 
 it("keeps input on delivery request failure and permits retry", async () => {
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-  const client = openRecovery();
+  const { client } = openRecovery();
   fireEvent.change(await screen.findByLabelText("Email"), {
     target: { value: "person@example.com" },
   });
@@ -80,7 +86,7 @@ it("validates confirmation then resets and clears saved credentials and private 
   const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal("fetch", fetch);
   sessionStorage.setItem("interview-mirror.authorization", "Bearer old-session");
-  const client = openRecovery("reset-token");
+  const { client, router } = openRecovery("reset-token");
   client.setQueryData(["private"], "previous user's data");
   fireEvent.change(await screen.findByLabelText("New password"), {
     target: { value: "replacement" },
@@ -96,6 +102,7 @@ it("validates confirmation then resets and clears saved credentials and private 
   });
   fireEvent.click(screen.getByRole("button", { name: "Save new password" }));
   expect(await screen.findByRole("status")).toHaveTextContent("Your password has been changed");
+  await waitFor(() => expect(router.state.location.search).toEqual({}));
   expect(fetch).toHaveBeenCalledWith(
     expect.stringContaining("/auth/password-reset/confirm"),
     expect.objectContaining({
@@ -114,7 +121,7 @@ it.each(["", "expired-token"])("handles a missing or expired link (%s)", async (
       new Response('{"message":"Invalid or expired password reset link."}', { status: 400 }),
     );
   vi.stubGlobal("fetch", fetch);
-  const client = openRecovery(token);
+  const { client } = openRecovery(token);
   if (token) {
     fireEvent.change(await screen.findByLabelText("New password"), {
       target: { value: "replacement" },

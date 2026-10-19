@@ -5,6 +5,17 @@ import { Api } from "@/lib/api/client";
 import type { Interview } from "@/lib/api/types";
 import { AppShell } from "@/components/AppShell";
 import { DashboardSummary } from "@/components/DashboardSummary";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,6 +36,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const [deleteTarget, setDeleteTarget] = useState<Interview | null>(null);
   const client = useQueryClient();
   // Account identity and target come from saved profile settings, independently of sessions.
   const { data: profile } = useQuery({
@@ -44,6 +56,7 @@ function Dashboard() {
   const deletion = useMutation({
     mutationFn: (id: string) => Api.deleteInterview(id),
     onSuccess: async (_, id) => {
+      setDeleteTarget(null);
       await client.cancelQueries({ queryKey: ["history"] });
       client.setQueryData<Interview[]>(["history"], (sessions) =>
         sessions?.filter((session) => session.id !== id),
@@ -85,7 +98,6 @@ function Dashboard() {
           />
         </div>
         <div className="mt-4 divide-y divide-border">
-          {deletion.error && <p role="alert">Could not delete session: {deletion.error.message}</p>}
           {historyPending && <p role="status">Loading sessions…</p>}
           {historyError && <p role="alert">{historyError.message}</p>}
           {!historyPending && !historyError && history.length === 0 && (
@@ -122,7 +134,7 @@ function Dashboard() {
                 aria-label={`Delete ${h.setup.role} session from ${new Date(h.startedAt).toLocaleDateString()}`}
                 title="Delete session"
                 disabled={deletion.isPending}
-                onClick={() => deletion.mutate(h.id)}
+                onClick={() => setDeleteTarget(h)}
                 className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
               >
                 <Trash2 aria-hidden="true" className="h-4 w-4" />
@@ -130,6 +142,36 @@ function Dashboard() {
             </div>
           ))}
         </div>
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletion.isPending) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this interview?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the transcript and feedback for {deleteTarget?.setup.role}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deletion.error && (
+            <p role="alert">Could not delete session: {deletion.error.message}. You can retry.</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletion.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletion.isPending || !deleteTarget}
+              onClick={(event) => {
+                event.preventDefault();
+                if (deleteTarget && !deletion.isPending) deletion.mutate(deleteTarget.id);
+              }}
+            >
+              {deletion.isPending ? "Deleting…" : "Delete interview"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </AppShell>
   );

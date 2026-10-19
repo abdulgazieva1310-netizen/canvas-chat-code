@@ -324,9 +324,13 @@ it.each([sessions[0]!, sessions[1]!])(
     const button = screen.getByRole("button", { name: new RegExp(`Delete ${target.setup.role}`) });
     expect(button.closest("a")).toBeNull();
     fireEvent.click(button);
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    expect(deletion).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Delete interview" }));
     await waitFor(() => expect(deletion).toHaveBeenCalledExactlyOnceWith(target.id));
-    expect(button).toBeDisabled();
-    fireEvent.click(button);
+    const pending = screen.getByRole("button", { name: "Deleting…" });
+    expect(pending).toBeDisabled();
+    fireEvent.click(pending);
     expect(deletion).toHaveBeenCalledOnce();
     expect(router.state.location.href).toBe("/");
     finish();
@@ -351,15 +355,33 @@ it("keeps a session visible and allows retrying after a deletion failure", async
   const link = await screen.findByRole("link", { name: /Backend Developer/ });
   const button = screen.getByRole("button", { name: /Delete Backend Developer/ });
   fireEvent.click(button);
+  await screen.findByRole("alertdialog");
+  fireEvent.click(screen.getByRole("button", { name: "Delete interview" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Could not delete session: Database unavailable",
   );
   expect(link).toBeInTheDocument();
-  expect(button).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Delete interview" })).toBeEnabled();
   expect(client.getQueryData(["history"])).toEqual(sessions);
   expect(Api.getHistory).toHaveBeenCalledOnce();
   expect(router.state.location.href).toBe("/");
   expect(deletion).toHaveBeenCalledExactlyOnceWith("unfinished-new");
+  fireEvent.click(screen.getByRole("button", { name: "Delete interview" }));
+  await waitFor(() => expect(deletion).toHaveBeenCalledTimes(2));
+  client.clear();
+});
+
+it("leaves the saved session untouched when deletion is cancelled", async () => {
+  const deletion = vi.spyOn(Api, "deleteInterview");
+  const { client } = openDashboard(sessions);
+  const link = await screen.findByRole("link", { name: /Backend Developer/ });
+  fireEvent.click(screen.getByRole("button", { name: /Delete Backend Developer/ }));
+  await screen.findByRole("alertdialog");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+  expect(link).toBeInTheDocument();
+  expect(client.getQueryData(["history"])).toEqual(sessions);
+  expect(deletion).not.toHaveBeenCalled();
   client.clear();
 });
 
@@ -369,6 +391,8 @@ it("shows empty history and sends Interview to setup after deleting the final se
   await screen.findByRole("link", { name: /Backend Developer/ });
   vi.mocked(Api.getHistory).mockResolvedValue([]);
   fireEvent.click(screen.getByRole("button", { name: /Delete Backend Developer/ }));
+  await screen.findByRole("alertdialog");
+  fireEvent.click(screen.getByRole("button", { name: "Delete interview" }));
   await screen.findByText("No saved sessions yet.");
   expect(
     within(screen.getByRole("navigation")).getByRole("link", { name: "Interview" }),

@@ -19,8 +19,13 @@ import type { BrowserSpeechRecognition } from "@/hooks/use-speech-recognition";
 // real controlled editor wrapper and interview flow with a lightweight view.
 vi.mock("@/components/MonacoEditor.client", () => ({
   default: (props: import("@/components/CodeEditor").CodeEditorProps) => (
-    <textarea aria-label="Code answer" data-language={props.language} disabled={props.readOnly}
-      value={props.value} onChange={(event) => props.onChange(event.target.value)} />
+    <textarea
+      aria-label="Code answer"
+      data-language={props.language}
+      disabled={props.readOnly}
+      value={props.value}
+      onChange={(event) => props.onChange(event.target.value)}
+    />
   ),
 }));
 
@@ -115,15 +120,23 @@ it.each(["Practice", "Real Interview"] as const)(
   "shows written evaluation during %s only when permitted",
   async (mode) => {
     const feedback = {
-      accuracy: 8, completeness: 7, clarity: 9, structure: 6,
+      accuracy: 8,
+      completeness: 7,
+      clarity: 9,
+      structure: 6,
       went_well: "You explained the mechanism clearly.",
       missing: "Discuss memory usage.",
       stronger_answer: "Compare time and memory trade-offs with an example.",
     };
     vi.spyOn(Api, "getInterview").mockResolvedValue({
-      id: "session-123", setup: { ...defaultSetup, mode }, status: "active",
-      startedAt: new Date().toISOString(), endedAt: null, answeredCount: 1,
-      messages: [], lastFeedback: { accuracy: 8, completeness: 7, clarity: 9, structure: 6 },
+      id: "session-123",
+      setup: { ...defaultSetup, mode },
+      status: "active",
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      answeredCount: 1,
+      messages: [],
+      lastFeedback: { accuracy: 8, completeness: 7, clarity: 9, structure: 6 },
       lastAnswerFeedback: feedback,
     });
     const client = openInterview();
@@ -143,49 +156,90 @@ it.each(["Practice", "Real Interview"] as const)(
 
 function incompleteSession(): Interview {
   return {
-    id: "session-123", setup: defaultSetup, status: "incomplete",
-    startedAt: "2026-10-18T12:00:00Z", endedAt: "2026-10-18T12:05:00Z",
-    answeredCount: 1, lastFeedback: null,
-    messages: [{ id: "question-2", interviewId: "session-123", from: "ai",
-      text: "What technical trade-offs would you consider?", createdAt: "2026-10-18T12:04:00Z" }],
+    id: "session-123",
+    setup: defaultSetup,
+    status: "incomplete",
+    startedAt: "2026-10-18T12:00:00Z",
+    endedAt: "2026-10-18T12:05:00Z",
+    answeredCount: 1,
+    lastFeedback: null,
+    messages: [
+      {
+        id: "question-2",
+        interviewId: "session-123",
+        from: "ai",
+        text: "What technical trade-offs would you consider?",
+        createdAt: "2026-10-18T12:04:00Z",
+      },
+    ],
   };
 }
 
-it.each(["click", "Enter"])("resumes an incomplete interview and sends an answer with %s", async (trigger) => {
-  const saved = incompleteSession();
-  const active: Interview = { ...saved, status: "active", endedAt: null };
-  vi.spyOn(Api, "getInterview").mockResolvedValue(saved);
-  let finishResume!: (value: Interview) => void;
-  const resume = vi.spyOn(Api, "resumeInterview").mockReturnValue(new Promise((resolve) => { finishResume = resolve; }));
-  const updated: Interview = { ...active, answeredCount: 2, messages: [...active.messages,
-    { id: "answer-2", interviewId: active.id, from: "you", text: "My resumed answer", createdAt: new Date().toISOString() },
-    { id: "question-3", interviewId: active.id, from: "ai", text: "Next question after resuming?", createdAt: new Date().toISOString() },
-  ] };
-  let finishSend!: (value: Interview) => void;
-  const send = vi.spyOn(Api, "sendMessage").mockReturnValue(new Promise((resolve) => { finishSend = resolve; }));
-  const client = openInterview();
-  await waitFor(() => expect(resume).toHaveBeenCalledExactlyOnceWith(saved.id));
-  expect(screen.queryByPlaceholderText("Type your answer")).toBeNull();
-  finishResume(active);
-  const input = await screen.findByPlaceholderText("Type your answer");
-  expect(input).toBeEnabled();
-  expect(screen.getByText(saved.messages[0]!.text)).toBeInTheDocument();
-  const button = screen.getByRole("button", { name: "Send" });
-  expect(button).toBeDisabled();
-  fireEvent.change(input, { target: { value: "My resumed answer" } });
-  expect(input).toHaveValue("My resumed answer");
-  expect(button).toBeEnabled();
-  if (trigger === "click") fireEvent.click(button);
-  else fireEvent.keyDown(input, { key: "Enter" });
-  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(saved.id, "My resumed answer"));
-  expect(input).toBeDisabled();
-  finishSend(updated);
-  await screen.findByText("Next question after resuming?");
-  expect(input).toHaveValue("");
-  expect(input).toBeEnabled();
-  expect(client.getQueryData(["interview", saved.id])).toEqual(updated);
-  client.clear();
-});
+it.each(["click", "Enter"])(
+  "resumes an incomplete interview and sends an answer with %s",
+  async (trigger) => {
+    const saved = incompleteSession();
+    const active: Interview = { ...saved, status: "active", endedAt: null };
+    vi.spyOn(Api, "getInterview").mockResolvedValue(saved);
+    let finishResume!: (value: Interview) => void;
+    const resume = vi.spyOn(Api, "resumeInterview").mockReturnValue(
+      new Promise((resolve) => {
+        finishResume = resolve;
+      }),
+    );
+    const updated: Interview = {
+      ...active,
+      answeredCount: 2,
+      messages: [
+        ...active.messages,
+        {
+          id: "answer-2",
+          interviewId: active.id,
+          from: "you",
+          text: "My resumed answer",
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "question-3",
+          interviewId: active.id,
+          from: "ai",
+          text: "Next question after resuming?",
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    };
+    let finishSend!: (value: Interview) => void;
+    const send = vi.spyOn(Api, "sendMessage").mockReturnValue(
+      new Promise((resolve) => {
+        finishSend = resolve;
+      }),
+    );
+    const client = openInterview();
+    await waitFor(() => expect(resume).toHaveBeenCalledExactlyOnceWith(saved.id));
+    expect(screen.queryByPlaceholderText("Type your answer")).toBeNull();
+    finishResume(active);
+    const input = await screen.findByPlaceholderText("Type your answer");
+    expect(input).toBeEnabled();
+    expect(screen.getByText(saved.messages[0]!.text)).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Send" });
+    expect(button).toBeDisabled();
+    fireEvent.change(input, { target: { value: "My resumed answer" } });
+    expect(input).toHaveValue("My resumed answer");
+    expect(button).toBeEnabled();
+    if (trigger === "click") fireEvent.click(button);
+    else fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() =>
+      expect(send).toHaveBeenCalledExactlyOnceWith(saved.id, "My resumed answer"),
+    );
+    expect(input).toBeDisabled();
+    finishSend(updated);
+    await screen.findByText("Next question after resuming?");
+    expect(input).toHaveValue("");
+    expect(input).toBeEnabled();
+    expect(client.getQueryData(["interview", saved.id])).toEqual(updated);
+    client.clear();
+  },
+);
 
 it("shows an actionable error when an incomplete interview cannot be resumed", async () => {
   vi.spyOn(Api, "getInterview").mockResolvedValue(incompleteSession());
@@ -225,13 +279,19 @@ class RoomRecognition implements BrowserSpeechRecognition {
   start = vi.fn();
   stop = vi.fn();
   abort = vi.fn();
-  constructor() { RoomRecognition.last = this; }
+  constructor() {
+    RoomRecognition.last = this;
+  }
 }
 
 it("transcribes a Voice answer into the input and sends it through the existing API", async () => {
   vi.stubGlobal("SpeechRecognition", RoomRecognition);
-  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
-    setup: { ...defaultSetup, input: "Voice" } };
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, input: "Voice" },
+  };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   const send = vi.spyOn(Api, "sendMessage").mockResolvedValue({ ...active, answeredCount: 2 });
   const client = openInterview();
@@ -241,23 +301,130 @@ it("transcribes a Voice answer into the input and sends it through the existing 
   fireEvent.change(input, { target: { value: "My approach:" } });
   fireEvent.click(mic);
   expect(RoomRecognition.last.start).toHaveBeenCalledOnce();
-  expect(screen.getByRole("button", { name: "Stop microphone" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Stop microphone" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   act(() => RoomRecognition.last.onresult?.({ results: [[{ transcript: "use a hash map" }]] }));
   expect(input).toHaveValue("My approach: use a hash map");
   fireEvent.click(screen.getByRole("button", { name: "Stop microphone" }));
   expect(RoomRecognition.last.stop).toHaveBeenCalledOnce();
-  act(() => RoomRecognition.last.onresult?.({ results: [[{ transcript: "use a hash map for lookups." }]] }));
+  act(() =>
+    RoomRecognition.last.onresult?.({ results: [[{ transcript: "use a hash map for lookups." }]] }),
+  );
   act(() => RoomRecognition.last.onend?.());
   expect(input).toHaveValue("My approach: use a hash map for lookups.");
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
-  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, "My approach: use a hash map for lookups."));
+  await waitFor(() =>
+    expect(send).toHaveBeenCalledExactlyOnceWith(
+      active.id,
+      "My approach: use a hash map for lookups.",
+    ),
+  );
   await waitFor(() => expect(input).toHaveValue(""));
   client.clear();
 });
 
+it("plays each voice question once and provides replay, mute, and stop controls", async () => {
+  class Utterance {
+    lang = "";
+    onerror: (() => void) | null = null;
+    constructor(readonly text: string) {}
+  }
+  const speak = vi.fn();
+  const cancel = vi.fn();
+  vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+  vi.stubGlobal("speechSynthesis", {
+    speak,
+    cancel,
+    speaking: false,
+    pending: false,
+    paused: false,
+  });
+  const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const client = openInterview();
+  await screen.findByRole("button", { name: "Replay question" });
+  await waitFor(() => expect(speak).toHaveBeenCalledOnce());
+  expect(speak.mock.calls[0][0].text).toBe("What technical trade-offs would you consider?");
+  fireEvent.change(screen.getByRole("textbox", { name: "Your answer" }), {
+    target: { value: "draft" },
+  });
+  expect(speak).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Replay question" }));
+  expect(cancel).toHaveBeenCalled();
+  expect(speak).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("button", { name: "Mute questions" }));
+  const mutedUpdate = {
+    ...active,
+    answeredCount: 2,
+    messages: [
+      ...active.messages,
+      {
+        id: "question-next",
+        interviewId: active.id,
+        from: "ai" as const,
+        text: "Next?",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  act(() => client.setQueryData(["interview", active.id], mutedUpdate));
+  await screen.findByText("Next?");
+  expect(speak).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole("button", { name: "Unmute questions" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+  expect(cancel).toHaveBeenCalled();
+  const cancellationsBeforeUnmount = cancel.mock.calls.length;
+  cleanup();
+  expect(cancel.mock.calls.length).toBeGreaterThan(cancellationsBeforeUnmount);
+  client.clear();
+});
+
+it("cancels question playback before microphone recognition and reports unavailable playback", async () => {
+  class Utterance {
+    onerror: (() => void) | null = null;
+    constructor(readonly text: string) {}
+  }
+  const speak = vi.fn();
+  const cancel = vi.fn();
+  vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+  vi.stubGlobal("speechSynthesis", {
+    speak,
+    cancel,
+    speaking: false,
+    pending: false,
+    paused: false,
+  });
+  vi.stubGlobal("SpeechRecognition", RoomRecognition);
+  const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const client = openInterview();
+  await screen.findByRole("button", { name: "Replay question" });
+  await waitFor(() => expect(speak).toHaveBeenCalledOnce());
+  fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));
+  expect(cancel).toHaveBeenCalled();
+  expect(RoomRecognition.last.start).toHaveBeenCalledOnce();
+  client.clear();
+
+  cleanup();
+  vi.stubGlobal("SpeechSynthesisUtterance", undefined);
+  vi.stubGlobal("speechSynthesis", undefined);
+  const fallbackClient = openInterview();
+  await screen.findByRole("button", { name: "Replay question" });
+  fireEvent.click(screen.getByRole("button", { name: "Replay question" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Spoken questions are unavailable");
+  expect(screen.getByText("What technical trade-offs would you consider?")).toBeVisible();
+  fallbackClient.clear();
+});
+
 it("stops listening when the candidate edits the transcript", async () => {
   vi.stubGlobal("SpeechRecognition", RoomRecognition);
-  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null });
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+  });
   const client = openInterview();
   const input = await screen.findByRole("textbox", { name: "Your answer" });
   fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));
@@ -270,40 +437,62 @@ it("stops listening when the candidate edits the transcript", async () => {
   client.clear();
 });
 
-it.each(["Voice", "Text"] as const)("keeps %s input usable without speech recognition support", async (inputMode) => {
-  vi.stubGlobal("SpeechRecognition", undefined);
-  vi.stubGlobal("webkitSpeechRecognition", undefined);
-  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
-    setup: { ...defaultSetup, input: inputMode } });
-  const client = openInterview();
-  const input = await screen.findByRole("textbox", { name: "Your answer" });
-  if (inputMode === "Voice") {
-    expect(screen.getByRole("button", { name: "Start microphone" })).toBeDisabled();
-    expect(screen.getByText(/Voice transcription is unavailable/)).toBeInTheDocument();
-  } else {
-    expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
-  }
-  fireEvent.change(input, { target: { value: "Typed answer" } });
-  expect(input).toHaveValue("Typed answer");
-  expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
-  client.clear();
-});
+it.each(["Voice", "Text"] as const)(
+  "keeps %s input usable without speech recognition support",
+  async (inputMode) => {
+    vi.stubGlobal("SpeechRecognition", undefined);
+    vi.stubGlobal("webkitSpeechRecognition", undefined);
+    vi.spyOn(Api, "getInterview").mockResolvedValue({
+      ...incompleteSession(),
+      status: "active",
+      endedAt: null,
+      setup: { ...defaultSetup, input: inputMode },
+    });
+    const client = openInterview();
+    const input = await screen.findByRole("textbox", { name: "Your answer" });
+    if (inputMode === "Voice") {
+      expect(screen.getByRole("button", { name: "Start microphone" })).toBeDisabled();
+      expect(screen.getByText(/Voice transcription is unavailable/)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
+    }
+    fireEvent.change(input, { target: { value: "Typed answer" } });
+    expect(input).toHaveValue("Typed answer");
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    client.clear();
+  },
+);
 
 it("loads and displays the dynamic AI hint without advancing or clearing a draft", async () => {
   const active: Interview = { ...incompleteSession(), status: "active", endedAt: null };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   let finish!: (value: Interview) => void;
-  const getHint = vi.spyOn(Api, "getHint").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const getHint = vi.spyOn(Api, "getHint").mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
   const client = openInterview();
   const input = await screen.findByRole("textbox", { name: "Your answer" });
   fireEvent.change(input, { target: { value: "My draft approach" } });
   fireEvent.click(screen.getByRole("button", { name: "Ask for a hint" }));
   await waitFor(() => expect(getHint).toHaveBeenCalledExactlyOnceWith(active.id));
   expect(screen.getByRole("button", { name: "Loading hint…" })).toBeDisabled();
-  const hintText = "Use a hash map to store visited values.\nLook up target minus the current number.";
-  const updated: Interview = { ...active, messages: [...active.messages, {
-    id: "dynamic-hint", interviewId: active.id, from: "hint", text: hintText, createdAt: new Date().toISOString(),
-  }] };
+  const hintText =
+    "Use a hash map to store visited values.\nLook up target minus the current number.";
+  const updated: Interview = {
+    ...active,
+    messages: [
+      ...active.messages,
+      {
+        id: "dynamic-hint",
+        interviewId: active.id,
+        from: "hint",
+        text: hintText,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
   finish(updated);
   const hint = await screen.findByRole("note", { name: "Interview hint" });
   expect(hint).toHaveTextContent("Use a hash map to store visited values.");
@@ -317,24 +506,51 @@ it("loads and displays the dynamic AI hint without advancing or clearing a draft
 
 it.each([
   ["Python Developer", "python", "\ndef two_sum(nums, target):\n    return [0, 1]\n"],
-  ["Java Developer", "java", "class Solution {\n    int[] twoSum(int[] nums, int target) { return new int[]{0, 1}; }\n}\n"],
+  [
+    "Java Developer",
+    "java",
+    "class Solution {\n    int[] twoSum(int[] nums, int target) { return new int[]{0, 1}; }\n}\n",
+  ],
   ["Backend Developer", "python", "def solution():\n    return []\n"],
   ["Full Stack Developer", "javascript", "function solution() { return []; }"],
-  ["C++ Developer", "cpp", "vector<int> twoSum(vector<int>& nums, int target) {\n    return {0, 1};\n}\n"],
+  [
+    "C++ Developer",
+    "cpp",
+    "vector<int> twoSum(vector<int>& nums, int target) {\n    return {0, 1};\n}\n",
+  ],
 ] as const)("uses the %s editor and submits source code intact", async (role, language, code) => {
-  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
-    setup: { ...defaultSetup, role, type: "Technical", input: "Voice" } };
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role, type: "Technical", input: "Voice" },
+  };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   let finish!: (value: Interview) => void;
-  const send = vi.spyOn(Api, "sendMessage").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const send = vi.spyOn(Api, "sendMessage").mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
   const client = openInterview();
-  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute("data-language", language));
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute(
+      "data-language",
+      language,
+    ),
+  );
   const editor = screen.getByRole("textbox", { name: "Code answer" });
   expect(screen.queryByRole("textbox", { name: "Your answer" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
   const template = (editor as HTMLTextAreaElement).value;
   expect(template).toContain("Write your code here");
-  expect(template).toContain(language === "python" ? "def solution():" : language === "javascript" ? "function solution()" : "class Solution");
+  expect(template).toContain(
+    language === "python"
+      ? "def solution():"
+      : language === "javascript"
+        ? "function solution()"
+        : "class Solution",
+  );
   expect(template).not.toMatch(/two_?sum/i);
   expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   fireEvent.change(editor, { target: { value: "" } });
@@ -344,24 +560,63 @@ it.each([
   fireEvent.keyDown(editor, { key: "Enter" });
   expect(send).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
-  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code, { python: "Python", java: "Java", cpp: "C++", javascript: "JavaScript" }[language]));
+  await waitFor(() =>
+    expect(send).toHaveBeenCalledExactlyOnceWith(
+      active.id,
+      code,
+      { python: "Python", java: "Java", cpp: "C++", javascript: "JavaScript" }[language],
+    ),
+  );
   expect(editor).toBeDisabled();
-  finish({ ...active, answeredCount: 2, messages: [...active.messages,
-    { id: "submitted-code", interviewId: active.id, from: "you", text: code, createdAt: new Date().toISOString() },
-    { id: "question-3", interviewId: active.id, from: "ai", text: "Implement mergeIntervals to merge overlapping intervals.", createdAt: new Date().toISOString() }] });
+  finish({
+    ...active,
+    answeredCount: 2,
+    messages: [
+      ...active.messages,
+      {
+        id: "submitted-code",
+        interviewId: active.id,
+        from: "you",
+        text: code,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "question-3",
+        interviewId: active.id,
+        from: "ai",
+        text: "Implement mergeIntervals to merge overlapping intervals.",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  });
   await screen.findByText(/Implement mergeIntervals/);
-  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(template));
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(template),
+  );
   const displayed = document.querySelector("pre");
   expect(displayed?.textContent).toBe(code);
   client.clear();
 });
 
 it.each(
-  (["Java Developer", "Python Developer", "C++ Developer", "Backend Developer", "Full Stack Developer"] as const)
-    .flatMap((role) => (["Behavioral", "Role-specific"] as const).map((type) => [role, type] as const)),
+  (
+    [
+      "Java Developer",
+      "Python Developer",
+      "C++ Developer",
+      "Backend Developer",
+      "Full Stack Developer",
+    ] as const
+  ).flatMap((role) =>
+    (["Behavioral", "Role-specific"] as const).map((type) => [role, type] as const),
+  ),
 )("keeps text and voice input for %s %s interviews", async (role, type) => {
-  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
-    setup: { ...defaultSetup, role, type } });
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role, type },
+  });
   const client = openInterview();
   await screen.findByRole("textbox", { name: "Your answer" });
   expect(screen.queryByRole("textbox", { name: "Code answer" })).toBeNull();
@@ -371,13 +626,24 @@ it.each(
 });
 
 it("retains the code draft when AI review fails", async () => {
-  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
-    setup: { ...defaultSetup, role: "Python Developer" } });
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer" },
+  });
   vi.spyOn(Api, "sendMessage").mockRejectedValue(new Error("Review unavailable"));
   const client = openInterview();
-  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute("data-language", "python"));
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute(
+      "data-language",
+      "python",
+    ),
+  );
   const code = "def solve():\n    return 42\n";
-  fireEvent.change(screen.getByRole("textbox", { name: "Code answer" }), { target: { value: code } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Code answer" }), {
+    target: { value: code },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
   await screen.findByRole("alert");
   expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(code);
@@ -387,16 +653,43 @@ it("retains the code draft when AI review fails", async () => {
 
 it("renders AI problem statements, hints, and feedback as Markdown while keeping submitted code literal", async () => {
   const code = 'def solve():\n    return "**literal**"\n';
-  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
     setup: { ...defaultSetup, role: "Python Developer" },
     messages: [
-      { id: "md-question", interviewId: "session-123", from: "ai", text: "# Two Sum\n\n**Problem:** Return matching indices.\n\n## Input\n\n```python\nnums = [2, 7]\ntarget = 9\n```\n\n- Use distinct indices", createdAt: new Date().toISOString() },
-      { id: "md-hint", interviewId: "session-123", from: "hint", text: "Use a **hash map** to look up `target - value`.", createdAt: new Date().toISOString() },
-      { id: "literal-code", interviewId: "session-123", from: "you", text: code, createdAt: new Date().toISOString() },
+      {
+        id: "md-question",
+        interviewId: "session-123",
+        from: "ai",
+        text: "# Two Sum\n\n**Problem:** Return matching indices.\n\n## Input\n\n```python\nnums = [2, 7]\ntarget = 9\n```\n\n- Use distinct indices",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "md-hint",
+        interviewId: "session-123",
+        from: "hint",
+        text: "Use a **hash map** to look up `target - value`.",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "literal-code",
+        interviewId: "session-123",
+        from: "you",
+        text: code,
+        createdAt: new Date().toISOString(),
+      },
     ],
-    lastAnswerFeedback: { accuracy: 6, completeness: 7, clarity: 8, structure: 9,
-      went_well: "**Clear naming** makes this readable.", missing: "- Handle duplicate values",
-      stronger_answer: "```python\ndef improved():\n    return []\n```" },
+    lastAnswerFeedback: {
+      accuracy: 6,
+      completeness: 7,
+      clarity: 8,
+      structure: 9,
+      went_well: "**Clear naming** makes this readable.",
+      missing: "- Handle duplicate values",
+      stronger_answer: "```python\ndef improved():\n    return []\n```",
+    },
   };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   const client = openInterview();
@@ -406,8 +699,14 @@ it("renders AI problem statements, hints, and feedback as Markdown while keeping
   expect(screen.getByText("hash map").tagName).toBe("STRONG");
   expect(screen.getByText("target - value").tagName).toBe("CODE");
   expect(screen.getByText("Clear naming").tagName).toBe("STRONG");
-  expect([...document.querySelectorAll("pre code")].some((item) => item.textContent === "def improved():\n    return []\n")).toBe(true);
-  expect([...document.querySelectorAll("pre")].some((item) => item.textContent === code)).toBe(true);
+  expect(
+    [...document.querySelectorAll("pre code")].some(
+      (item) => item.textContent === "def improved():\n    return []\n",
+    ),
+  ).toBe(true);
+  expect([...document.querySelectorAll("pre")].some((item) => item.textContent === code)).toBe(
+    true,
+  );
   client.clear();
 });
 

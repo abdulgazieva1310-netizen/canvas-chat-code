@@ -7,6 +7,7 @@ import { Mic, MicOff } from "lucide-react";
 import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useSpokenQuestion } from "@/hooks/use-spoken-question";
 
 const languageLabels: Record<CodingLanguage, string> = {
   python: "Python",
@@ -129,6 +130,14 @@ function Interview() {
     interviewId,
     setText,
   );
+  const latestQuestion = [...(interview?.messages ?? [])]
+    .reverse()
+    .find((item) => item.from === "ai");
+  const spoken = useSpokenQuestion(
+    interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
+    latestQuestion?.id ?? "",
+    latestQuestion?.text ?? "",
+  );
   useEffect(() => {
     const startedAt = interview?.startedAt;
     const endedAt = interview?.endedAt;
@@ -147,6 +156,7 @@ function Interview() {
   const send = () => {
     if (text.trim() && !busy && interview?.status === "active") {
       speech.cancel();
+      spoken.stop();
       answer.mutate(codingLanguage ? text : text.trim());
     }
   };
@@ -186,6 +196,7 @@ function Interview() {
             disabled={busy || interview.status !== "active"}
             onClick={() => {
               speech.cancel();
+              spoken.stop();
               end.mutate();
             }}
             className="btn btn-ghost py-1.5"
@@ -235,6 +246,32 @@ function Interview() {
               ),
             )}
           </div>
+          {voiceMode && latestQuestion && (
+            <div
+              className="mt-4 flex flex-wrap items-center gap-2"
+              aria-label="Question playback controls"
+            >
+              <button type="button" className="btn btn-ghost" onClick={spoken.replay}>
+                Replay question
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={spoken.stop}
+                disabled={!spoken.supported}
+              >
+                Stop playback
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={spoken.toggleMute}>
+                {spoken.muted ? "Unmute questions" : "Mute questions"}
+              </button>
+            </div>
+          )}
+          {spoken.error && (
+            <p role="alert" className="mt-2 text-sm">
+              {spoken.error}
+            </p>
+          )}
           <div
             className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
           >
@@ -247,7 +284,10 @@ function Interview() {
               <button
                 type="button"
                 disabled={!speech.supported || busy || interview.status !== "active"}
-                onClick={() => (speech.listening ? speech.stop() : speech.start(text))}
+                onClick={() => {
+                  spoken.stop();
+                  speech.listening ? speech.stop() : speech.start(text);
+                }}
                 className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50 ${speech.listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
                 aria-label={speech.listening ? "Stop microphone" : "Start microphone"}
                 aria-pressed={speech.listening}

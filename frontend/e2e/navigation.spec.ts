@@ -92,3 +92,15 @@ for (const width of [375, 1280]) {
     await page.screenshot({ path: `test-results/navigation-${width}.png`, fullPage: true });
   });
 }
+
+test("authentication and recovery links remain reachable", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Sign in to Interview Mirror" })).toBeVisible();
+  await page.getByRole("link", { name: "Create an account", exact: true }).click();
+  await expect(page).toHaveURL(/\/register/);
+  await page.getByRole("link", { name: "Already have an account? Sign in" }).click();
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(page).toHaveURL(/\/forgot-password/);
+  await page.goto("/reset-password?token=test-link");
+  await expect(page.getByRole("heading", { name: /password/i })).toBeVisible();
+});

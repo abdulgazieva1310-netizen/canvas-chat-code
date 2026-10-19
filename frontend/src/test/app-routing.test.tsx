@@ -10,6 +10,7 @@ describe("App routing", () => {
   it.each([
     "/",
     "/setup",
+    "/ready",
     "/interview",
     "/report",
     "/history",

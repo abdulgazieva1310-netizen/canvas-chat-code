@@ -1,0 +1,995 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "coding-junior-first-repeat",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "hashing",
+      "prompt": "Return the first integer encountered for a second time, or null if none repeats. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[4,2,4,2] => 4"
+      ],
+      "constraints": "0 <= n <= 100000; values are signed 32-bit integers.",
+      "reviewerNotes": "Track seen values; distinguish encounter order from numeric order."
+    },
+    {
+      "id": "coding-junior-runs",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "arrays",
+      "prompt": "Compress consecutive equal integers into pairs of value and run length. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[2,2,3,2] => [[2,2],[3,1],[2,1]]"
+      ],
+      "constraints": "0 <= n <= 100000.",
+      "reviewerNotes": "Single traversal with a current run; handle empty input."
+    },
+    {
+      "id": "coding-junior-merge-sorted",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "sorting",
+      "prompt": "Merge two sorted integer arrays into one sorted array, preserving duplicates. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[1,3], [2,3] => [1,2,3,3]"
+      ],
+      "constraints": "Combined length <= 100000; inputs sorted ascending.",
+      "reviewerNotes": "Two cursors and remaining suffix; linear time."
+    },
+    {
+      "id": "coding-junior-balanced",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "stack",
+      "prompt": "Decide whether a string containing only (), [], and {} has correctly nested brackets. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "([]) => true; ([)] => false"
+      ],
+      "constraints": "String length <= 100000.",
+      "reviewerNotes": "Stack of opening brackets and exact closing matches."
+    },
+    {
+      "id": "coding-junior-rotate",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "arrays",
+      "prompt": "Return an array rotated right by k positions. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[1,2,3,4], k=6 => [3,4,1,2]"
+      ],
+      "constraints": "0 <= n <= 100000; 0 <= k <= 1000000000.",
+      "reviewerNotes": "Normalize k when nonempty; explain allocation or reversal approach."
+    },
+    {
+      "id": "coding-junior-lower-bound",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "search",
+      "prompt": "Return the first index whose value is at least target, or array length if absent. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[1,3,3,7], target=3 => 1"
+      ],
+      "constraints": "Sorted ascending; n <= 100000.",
+      "reviewerNotes": "Binary search with a half-open interval; duplicates."
+    },
+    {
+      "id": "coding-junior-missing",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "arithmetic",
+      "prompt": "An array contains distinct values from 0 through n except one. Return the missing value. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[3,0,1] => 2"
+      ],
+      "constraints": "Array length n <= 100000.",
+      "reviewerNotes": "XOR or wide integer sum; discuss overflow in named language."
+    },
+    {
+      "id": "coding-junior-anagram",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "strings",
+      "prompt": "Determine whether two lowercase ASCII strings contain the same letters with the same counts. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "abb, bab => true"
+      ],
+      "constraints": "Each length <= 100000.",
+      "reviewerNotes": "Frequency counts and unequal lengths."
+    },
+    {
+      "id": "coding-junior-reverse-list",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "linked-list",
+      "prompt": "Reverse a singly linked list and return its new head. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "1 -> 2 -> 3 => 3 -> 2 -> 1"
+      ],
+      "constraints": "0 <= node count <= 100000; no cycles.",
+      "reviewerNotes": "Maintain previous/current/next; constant extra space."
+    },
+    {
+      "id": "coding-junior-tree-depth",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "trees",
+      "prompt": "Return the maximum number of nodes on a root-to-leaf path in a binary tree. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "Root with two leaf children => 2; empty tree => 0"
+      ],
+      "constraints": "At most 100000 nodes.",
+      "reviewerNotes": "Traversal with depth; avoid recursion overflow on skewed trees."
+    },
+    {
+      "id": "coding-junior-unique-sorted",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "arrays",
+      "prompt": "Modify a sorted integer array so its prefix contains each distinct value once; return that prefix length. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[1,1,2,2,4] => 3, prefix [1,2,4]"
+      ],
+      "constraints": "n <= 100000; constant extra space required.",
+      "reviewerNotes": "Read and write indices; ignore suffix contents."
+    },
+    {
+      "id": "coding-junior-intersection",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "hashing",
+      "prompt": "Return the distinct integers present in both arrays, sorted ascending. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[3,1,3], [3,2,1] => [1,3]"
+      ],
+      "constraints": "Each length <= 100000.",
+      "reviewerNotes": "Set intersection then sorting; distinguish output uniqueness."
+    },
+    {
+      "id": "coding-junior-range-sums",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "prefix-sums",
+      "prompt": "Answer inclusive range-sum queries over a fixed integer array. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[2,-1,4], queries [[0,2],[1,1]] => [5,-1]"
+      ],
+      "constraints": "1 <= n <= 100000; q <= 100000; valid indices; values within +/-1000000000.",
+      "reviewerNotes": "Prefix sums with wide accumulation; O(n+q)."
+    },
+    {
+      "id": "coding-junior-move-zero",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "arrays",
+      "prompt": "Move all zeros to the end in place while preserving the order of nonzero values. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[0,2,0,1] => [2,1,0,0]"
+      ],
+      "constraints": "n <= 100000; constant extra space.",
+      "reviewerNotes": "Stable write cursor followed by zero fill."
+    },
+    {
+      "id": "coding-junior-word-count",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "strings",
+      "prompt": "Return counts of words separated by one or more ASCII spaces, treating letters case-insensitively. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "A  b a => {a:2,b:1}"
+      ],
+      "constraints": "Length <= 100000; input contains ASCII letters and spaces only.",
+      "reviewerNotes": "Token boundaries, lowercase normalization, empty input."
+    },
+    {
+      "id": "coding-middle-longest-distinct",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "sliding-window",
+      "prompt": "Return the length of the longest substring with no repeated character. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "abcaef => 5"
+      ],
+      "constraints": "ASCII string length <= 100000.",
+      "reviewerNotes": "Sliding window and last seen positions."
+    },
+    {
+      "id": "coding-middle-sum-count",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "prefix-sums",
+      "prompt": "Count contiguous nonempty subarrays whose sum equals k. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[1,-1,1], k=1 => 3"
+      ],
+      "constraints": "n <= 100000; values and k within +/-1000000000.",
+      "reviewerNotes": "Prefix sum frequencies including zero; wide sums and count."
+    },
+    {
+      "id": "coding-middle-intervals",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "sorting",
+      "prompt": "Merge overlapping closed intervals and return them sorted by start. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[[1,3],[3,5],[8,9]] => [[1,5],[8,9]]"
+      ],
+      "constraints": "n <= 100000; start <= end; endpoints signed integers.",
+      "reviewerNotes": "Sort then merge; touching intervals overlap."
+    },
+    {
+      "id": "coding-middle-top-k",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "heap",
+      "prompt": "Return the k most frequent integers ordered by decreasing count then increasing value. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[4,4,2,2,3], k=2 => [2,4]"
+      ],
+      "constraints": "1 <= k <= number of distinct values; n <= 100000.",
+      "reviewerNotes": "Frequency map and heap or sorting with explicit tie break."
+    },
+    {
+      "id": "coding-middle-islands",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "graphs",
+      "prompt": "Count four-directionally connected groups of 1 cells in a rectangular binary grid. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[[1,0],[0,1]] => 2"
+      ],
+      "constraints": "1 <= rows,cols <= 500; do not modify input.",
+      "reviewerNotes": "Iterative flood fill and visited set; diagonal not adjacent."
+    },
+    {
+      "id": "coding-middle-course-order",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "graphs",
+      "prompt": "Return the lexicographically smallest topological ordering of nodes 0..n-1, or an empty list if cyclic. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "n=3, edges [[0,2],[1,2]] => [0,1,2]"
+      ],
+      "constraints": "n <= 100000; unique directed edges <= 200000; edge [a,b] means a before b.",
+      "reviewerNotes": "Indegree tracking with min heap; detect incomplete traversal."
+    },
+    {
+      "id": "coding-middle-coins",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Return the fewest coins needed to total amount, or -1 if impossible; each denomination is reusable. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "coins=[3,5], amount=7 => -1"
+      ],
+      "constraints": "1 <= coin <= 10000; denominations distinct; 0 <= amount <= 10000.",
+      "reviewerNotes": "Bottom-up minimum DP with unreachable sentinel."
+    },
+    {
+      "id": "coding-middle-tree-lca",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "trees",
+      "prompt": "Find the lowest common ancestor of two distinct node objects in a binary tree. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "Root 1 with children 2 and 3; targets 2,3 => node 1"
+      ],
+      "constraints": "Both targets exist; <= 100000 nodes; values need not be unique.",
+      "reviewerNotes": "Compare identity; parent map or traversal; deep trees."
+    },
+    {
+      "id": "coding-middle-list-cycle",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "linked-list",
+      "prompt": "Return the node where a singly linked list cycle starts, or null when acyclic, using constant extra space. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "1 -> 2 -> 3 -> 2 => node 2"
+      ],
+      "constraints": "At most 100000 distinct nodes.",
+      "reviewerNotes": "Two-pointer meeting then entrance proof."
+    },
+    {
+      "id": "coding-middle-product",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "arrays",
+      "prompt": "Return for each index the product of all other elements without division. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[2,0,4] => [0,8,0]"
+      ],
+      "constraints": "1 <= n <= 100000; all prefix/suffix and output products fit signed 64-bit.",
+      "reviewerNotes": "Prefix and suffix products; empty product is one."
+    },
+    {
+      "id": "coding-middle-next-warmer",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "stack",
+      "prompt": "For each temperature, return days until a strictly warmer temperature, or zero if none. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[20,20,22,21] => [2,1,0,0]"
+      ],
+      "constraints": "n <= 100000; integer temperatures.",
+      "reviewerNotes": "Monotonic stack of unresolved indices; equality not warmer."
+    },
+    {
+      "id": "coding-middle-shortest-route",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "graphs",
+      "prompt": "Return shortest edge count between source and target in an unweighted undirected graph, or -1. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "n=4, edges [[0,1],[1,2]], source=0,target=2 => 2"
+      ],
+      "constraints": "n <= 100000; edges <= 200000; nodes 0..n-1.",
+      "reviewerNotes": "Breadth-first traversal; source equals target and disconnected nodes."
+    },
+    {
+      "id": "coding-middle-kth",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "search",
+      "prompt": "Return the kth smallest integer in an unsorted array, counting duplicate occurrences. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[7,2,2,5], k=3 => 5"
+      ],
+      "constraints": "1 <= k <= n <= 100000.",
+      "reviewerNotes": "Quickselect or bounded heap; discuss worst-case behavior."
+    },
+    {
+      "id": "coding-middle-decode",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Count decodings of a digit string where 1 maps to A through 26 maps to Z; return count modulo 1000000007. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "226 => 3; 06 => 0"
+      ],
+      "constraints": "1 <= length <= 100000; digits only.",
+      "reviewerNotes": "One/two digit transitions; zero validity; constant-space DP."
+    },
+    {
+      "id": "coding-middle-cache",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "linked-list",
+      "prompt": "Implement an integer-key LRU cache with get returning null for missing keys and put replacing or inserting values. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "capacity=2; put(1,8); put(2,9); get(1); put(3,7); get(2) => null"
+      ],
+      "constraints": "Capacity 1..100000; <= 200000 operations; expected O(1) per operation.",
+      "reviewerNotes": "Hash map plus doubly linked list; updates refresh recency."
+    },
+    {
+      "id": "coding-senior-window-max",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "deque",
+      "prompt": "Return the maximum in each consecutive window of width k. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[2,1,5,3], k=2 => [2,5,5]"
+      ],
+      "constraints": "1 <= k <= n <= 1000000; require O(n) time.",
+      "reviewerNotes": "Monotonic deque of indices; eviction boundaries."
+    },
+    {
+      "id": "coding-senior-median-stream",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "heap",
+      "prompt": "Implement add(integer) and median() for an initially empty stream; median averages the two central values for even size. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "add(4); add(1); median() => 2.5"
+      ],
+      "constraints": "<= 1000000 adds; signed 32-bit values; median called only when nonempty.",
+      "reviewerNotes": "Two balanced heaps; avoid overflow averaging."
+    },
+    {
+      "id": "coding-senior-weighted-path",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "graphs",
+      "prompt": "Return shortest distance from source to every vertex in a directed graph, using null for unreachable nodes. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "n=3, edges [[0,1,4],[0,2,1],[2,1,2]], source=0 => [0,3,1]"
+      ],
+      "constraints": "n <= 100000; edges <= 200000; weights 0..1000000000.",
+      "reviewerNotes": "Dijkstra with stale heap entry checks; wide distances."
+    },
+    {
+      "id": "coding-senior-range-updates",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "segment-tree",
+      "prompt": "Implement rangeAdd(l,r,delta) and rangeSum(l,r) over an initially zero array, with inclusive indices. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "n=4; add(1,3,2); sum(0,2) => 4"
+      ],
+      "constraints": "n,q <= 200000; valid ranges; all sums fit signed 64-bit; O(log n) per operation.",
+      "reviewerNotes": "Lazy segment tree or two Fenwick trees; boundary arithmetic."
+    },
+    {
+      "id": "coding-senior-edit-distance",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Return minimum unit-cost insertions, deletions, and substitutions to transform one string into another using O(min(m,n)) extra space. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "cat, cut => 1"
+      ],
+      "constraints": "Each lowercase ASCII string length <= 3000.",
+      "reviewerNotes": "Rolling edit-distance rows; preserve diagonal state."
+    },
+    {
+      "id": "coding-senior-bridges",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "graphs",
+      "prompt": "Return all bridges in a simple undirected graph as sorted endpoint pairs in lexicographic order. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "n=4, edges [[0,1],[1,2],[2,0],[2,3]] => [[2,3]]"
+      ],
+      "constraints": "n <= 100000; edges <= 200000; disconnected graph allowed.",
+      "reviewerNotes": "Discovery/low-link traversal; parent handling and stack depth."
+    },
+    {
+      "id": "coding-senior-lis",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Return the length of a strictly increasing subsequence in O(n log n) time. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[3,1,2,2,4] => 3"
+      ],
+      "constraints": "n <= 1000000; signed integer values.",
+      "reviewerNotes": "Minimal tails with lower bound; duplicates not increasing."
+    },
+    {
+      "id": "coding-senior-word-break",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Decide whether a string can be segmented into nonempty dictionary words; dictionary words may be reused. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "applepie, [apple,pie] => true"
+      ],
+      "constraints": "String <= 10000 lowercase letters; total dictionary characters <= 100000; word length <= 100.",
+      "reviewerNotes": "Reachability DP with trie or bounded substring lookup; complexity includes hashing."
+    },
+    {
+      "id": "coding-senior-minimum-cover",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "sliding-window",
+      "prompt": "Return the shortest substring containing every character of target with multiplicity; break ties by earliest start; return empty if impossible. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "source=aaabbc, target=abc => abbc"
+      ],
+      "constraints": "Nonempty ASCII strings length <= 1000000.",
+      "reviewerNotes": "Deficit counts and shrinking valid window; preserve multiplicity."
+    },
+    {
+      "id": "coding-senior-pair-distance",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "binary-search",
+      "prompt": "Return the kth smallest absolute difference among all unordered pairs of array positions. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[1,3,1], k=2 => 2"
+      ],
+      "constraints": "2 <= n <= 100000; 0 <= values <= 1000000000; 1 <= k <= n*(n-1)/2.",
+      "reviewerNotes": "Sort then binary search distance using two-pointer pair counts."
+    },
+    {
+      "id": "coding-senior-weighted-jobs",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Return the maximum profit from nonoverlapping jobs; a job ending at t may precede one starting at t. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[[1,3,5],[2,4,6],[3,5,5]] => 10"
+      ],
+      "constraints": "n <= 200000; start < end; profits 0..1000000000.",
+      "reviewerNotes": "Sort by end, binary-search predecessor, wide profit DP."
+    },
+    {
+      "id": "coding-senior-tree-codec",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "trees",
+      "prompt": "Implement serialize and deserialize for binary trees preserving shape and signed integer values. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "Tree with root 1 and right child -2 must round-trip with absent left child preserved."
+      ],
+      "constraints": "At most 100000 nodes; empty trees and duplicate values allowed.",
+      "reviewerNotes": "Explicit null markers or child indices; iterative traversal; unambiguous framing."
+    },
+    {
+      "id": "coding-senior-union-online",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "disjoint-set",
+      "prompt": "Process addEdge(u,v) on an initially edgeless undirected graph and return component count after each insertion. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "n=4, edges [[0,1],[2,3],[1,2],[0,3]] => [3,2,1,1]"
+      ],
+      "constraints": "n,q <= 1000000; duplicate edges and self loops allowed.",
+      "reviewerNotes": "Path compression and union by rank/size; decrement only on merge."
+    },
+    {
+      "id": "coding-senior-histogram",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "stack",
+      "prompt": "Return the largest rectangle area under a histogram of unit-width bars. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "[2,1,4,4] => 8"
+      ],
+      "constraints": "n <= 1000000; heights 0..1000000000.",
+      "reviewerNotes": "Monotonic stack and final flush; wide areas; equal heights."
+    },
+    {
+      "id": "coding-senior-palindrome-cuts",
+      "version": 1,
+      "roles": [
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "Backend Developer",
+        "Full Stack Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "dynamic-programming",
+      "prompt": "Return the fewest cuts partitioning a string into palindromic substrings; empty string needs zero cuts. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "examples": [
+        "aab => 1"
+      ],
+      "constraints": "Lowercase ASCII length <= 3000; target O(n^2) time.",
+      "reviewerNotes": "Palindrome table or center expansion paired with minimum-prefix cuts."
+    }
+  ]
+}

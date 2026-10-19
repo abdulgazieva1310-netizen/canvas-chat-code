@@ -1,0 +1,2525 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "technical-frontend-junior-semantics",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "semantics",
+      "prompt": "A checkout page uses clickable div elements instead of buttons. Explain what behavior you would inspect and how you would choose appropriate elements.",
+      "reviewerNotes": "Semantic controls, keyboard activation, accessible names, focus management, assistive testing. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-semantics",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "semantics",
+      "prompt": "A reusable menu must support keyboard navigation and screen readers. Describe its interaction and focus contract.",
+      "reviewerNotes": "Semantic controls, keyboard activation, accessible names, focus management, assistive testing. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-semantics",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "semantics",
+      "prompt": "Several teams implement incompatible accessible navigation patterns. Design a strategy for establishing and validating a shared interaction model.",
+      "reviewerNotes": "Semantic controls, keyboard activation, accessible names, focus management, assistive testing. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-layout",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "layout",
+      "prompt": "A two-column page overflows a 375px viewport. Describe how you would diagnose the layout and make it usable.",
+      "reviewerNotes": "Intrinsic sizing, flexible layout, breakpoints, zoom, content-driven validation. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-layout",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "layout",
+      "prompt": "A dashboard must accommodate long localized labels and user-resized text. Explain a responsive layout strategy.",
+      "reviewerNotes": "Intrinsic sizing, flexible layout, breakpoints, zoom, content-driven validation. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-layout",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "layout",
+      "prompt": "A design system must serve dense desktop workflows and mobile forms. Explain how you would define layout primitives and validate their limits.",
+      "reviewerNotes": "Intrinsic sizing, flexible layout, breakpoints, zoom, content-driven validation. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-state",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "state",
+      "prompt": "A form displays an old value immediately after the user edits it. Explain how you would trace where that value comes from.",
+      "reviewerNotes": "Source of truth, derived state, update sequencing, synchronization, conflict handling. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-state",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "state",
+      "prompt": "Two components edit the same entity and sometimes overwrite one another. Describe how you would coordinate their state.",
+      "reviewerNotes": "Source of truth, derived state, update sequencing, synchronization, conflict handling. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-state",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "state",
+      "prompt": "An application combines server cache, optimistic edits and offline changes. Define ownership and reconciliation rules for that state.",
+      "reviewerNotes": "Source of truth, derived state, update sequencing, synchronization, conflict handling. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-effects",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "effects",
+      "prompt": "A component starts a timer each time it renders and the page gradually slows down. How would you investigate?",
+      "reviewerNotes": "Effect dependencies, cleanup, cancellation, stale closures, subscription ownership. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-effects",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "effects",
+      "prompt": "A search screen fires requests for old terms after navigation. Explain how you would control side effects and cleanup.",
+      "reviewerNotes": "Effect dependencies, cleanup, cancellation, stale closures, subscription ownership. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-effects",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "effects",
+      "prompt": "A shared UI framework causes repeated subscriptions and stale data across transitions. Describe a lifecycle policy and migration plan.",
+      "reviewerNotes": "Effect dependencies, cleanup, cancellation, stale closures, subscription ownership. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-network",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "network",
+      "prompt": "A list request fails and the page stays blank. Describe the states the interface should expose.",
+      "reviewerNotes": "Loading/error/empty states, cancellation, request identity, retry budgets, cache consistency. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-network",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "network",
+      "prompt": "Typing quickly in a search box produces results for an earlier query. Explain how you would prevent stale responses from winning.",
+      "reviewerNotes": "Loading/error/empty states, cancellation, request identity, retry budgets, cache consistency. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-network",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "network",
+      "prompt": "Several critical screens depend on a slow upstream API. Design a client data strategy with explicit consistency and failure behavior.",
+      "reviewerNotes": "Loading/error/empty states, cancellation, request identity, retry budgets, cache consistency. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-forms",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "forms",
+      "prompt": "A registration form rejects a submission without explaining which field is wrong. How would you improve its behavior?",
+      "reviewerNotes": "Field errors, focus, client/server validation, persistence, pending state, accessible recovery. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-forms",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "forms",
+      "prompt": "An autosaved form must recover edits after network loss and server validation errors. Describe its state transitions.",
+      "reviewerNotes": "Field errors, focus, client/server validation, persistence, pending state, accessible recovery. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-forms",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "forms",
+      "prompt": "A platform hosts many regulated forms with conditional fields. Propose a validation and recovery architecture shared across teams.",
+      "reviewerNotes": "Field errors, focus, client/server validation, persistence, pending state, accessible recovery. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-performance",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "performance",
+      "prompt": "A page loads a large image much bigger than its display size. Explain how you would measure and reduce its cost.",
+      "reviewerNotes": "Network cost, responsive assets, main-thread work, virtualization, user-centric budgets. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-performance",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "performance",
+      "prompt": "A filtered table becomes unresponsive with tens of thousands of rows. Describe a profiling and optimization plan.",
+      "reviewerNotes": "Network cost, responsive assets, main-thread work, virtualization, user-centric budgets. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-performance",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "performance",
+      "prompt": "A product wants a performance budget across many routes and devices. Define useful measurements, enforcement and rollout trade-offs.",
+      "reviewerNotes": "Network cost, responsive assets, main-thread work, virtualization, user-centric budgets. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-security",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "security",
+      "prompt": "A page displays a user's comment using raw HTML insertion. Explain what risks you would investigate.",
+      "reviewerNotes": "Untrusted content, contextual escaping, sanitization, isolation, CSP, least privilege. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-security",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "security",
+      "prompt": "An embedded third-party widget requests access to application data. Describe how you would isolate and evaluate it.",
+      "reviewerNotes": "Untrusted content, contextual escaping, sanitization, isolation, CSP, least privilege. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-security",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "security",
+      "prompt": "A frontend platform needs a policy for third-party code, content injection and authentication boundaries. Define defense layers and ownership.",
+      "reviewerNotes": "Untrusted content, contextual escaping, sanitization, isolation, CSP, least privilege. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-testing",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "testing",
+      "prompt": "A button test passes even when clicking it does nothing. Explain what the test should observe.",
+      "reviewerNotes": "Behavioral assertions, contracts, integration boundaries, deterministic fixtures, risk-based coverage. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-testing",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "testing",
+      "prompt": "A checkout flow has unit tests but repeatedly fails after API changes. Propose a balanced regression strategy.",
+      "reviewerNotes": "Behavioral assertions, contracts, integration boundaries, deterministic fixtures, risk-based coverage. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-testing",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "testing",
+      "prompt": "A large frontend suite is slow and flaky while release defects continue. Design a plan to improve signal and feedback time.",
+      "reviewerNotes": "Behavioral assertions, contracts, integration boundaries, deterministic fixtures, risk-based coverage. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-routing",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "routing",
+      "prompt": "Refreshing a nested application URL returns a server 404. Describe how you would locate the configuration problem.",
+      "reviewerNotes": "Server fallback, route matching, local redirect validation, SSR identity isolation, cache ownership. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-routing",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "routing",
+      "prompt": "A protected route should return the user to their original screen after login. Explain the redirect and validation flow.",
+      "reviewerNotes": "Server fallback, route matching, local redirect validation, SSR identity isolation, cache ownership. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-routing",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "routing",
+      "prompt": "An application mixes public SSR pages and private client data. Define route, authentication and cache boundaries for safe navigation.",
+      "reviewerNotes": "Server fallback, route matching, local redirect validation, SSR identity isolation, cache ownership. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-rendering",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "rendering",
+      "prompt": "A screen initially shows content and then shifts when an image loads. Explain how you would diagnose it.",
+      "reviewerNotes": "Layout stability, server/client parity, browser-only state, cache variation, rendering boundaries. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-rendering",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "rendering",
+      "prompt": "A server-rendered page reports hydration mismatches after reading browser storage. How would you repair the data flow?",
+      "reviewerNotes": "Layout stability, server/client parity, browser-only state, cache variation, rendering boundaries. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-rendering",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "rendering",
+      "prompt": "A global storefront needs personalized content, fast public pages and reliable hydration. Explain rendering and caching trade-offs.",
+      "reviewerNotes": "Layout stability, server/client parity, browser-only state, cache variation, rendering boundaries. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-caching",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "caching",
+      "prompt": "A user saves a profile but the previous name remains on another screen. Explain how you would track the stale value.",
+      "reviewerNotes": "Invalidation, identity-scoped keys, cache clearing, freshness, offline reconciliation. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-caching",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "caching",
+      "prompt": "A data cache serves one account's records immediately after switching accounts. Describe the required lifecycle changes.",
+      "reviewerNotes": "Invalidation, identity-scoped keys, cache clearing, freshness, offline reconciliation. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-caching",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "caching",
+      "prompt": "An offline-capable application must expire sensitive records and reconcile updates after reconnecting. Design a cache policy.",
+      "reviewerNotes": "Invalidation, identity-scoped keys, cache clearing, freshness, offline reconciliation. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-components",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "components",
+      "prompt": "Two components copy nearly identical markup but expose different behavior. How would you decide whether to share them?",
+      "reviewerNotes": "Composition, contracts, accessibility invariants, versioning, deprecation, migration. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-components",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "components",
+      "prompt": "A reusable dialog must support multiple content types without losing focus behavior. Describe its public contract.",
+      "reviewerNotes": "Composition, contracts, accessibility invariants, versioning, deprecation, migration. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-components",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "components",
+      "prompt": "A component library needs to evolve without breaking dozens of applications. Propose an API compatibility and adoption strategy.",
+      "reviewerNotes": "Composition, contracts, accessibility invariants, versioning, deprecation, migration. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-localization",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "localization",
+      "prompt": "A translated heading is twice as long and overlaps a control. How would you investigate and validate a fix?",
+      "reviewerNotes": "Flexible text layout, locale versus timezone, UTC instants, bidirectionality, representative fixtures. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-localization",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "localization",
+      "prompt": "A scheduling screen displays dates incorrectly for users in different time zones. Explain a consistent data and display model.",
+      "reviewerNotes": "Flexible text layout, locale versus timezone, UTC instants, bidirectionality, representative fixtures. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-localization",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "localization",
+      "prompt": "A global application must support bidirectional text, locale formats and user-generated content. Define ownership and testing of localization behavior.",
+      "reviewerNotes": "Flexible text layout, locale versus timezone, UTC instants, bidirectionality, representative fixtures. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-frontend-junior-observability",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "observability",
+      "prompt": "A user reports a blank screen but you cannot reproduce it. What information would you collect safely?",
+      "reviewerNotes": "Release correlation, breadcrumbs, error boundaries, sampling, redaction, actionable signals. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-frontend-middle-observability",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "observability",
+      "prompt": "A frontend error occurs only after a particular sequence of actions. Design useful diagnostics without exposing form contents.",
+      "reviewerNotes": "Release correlation, breadcrumbs, error boundaries, sampling, redaction, actionable signals. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-frontend-senior-observability",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "observability",
+      "prompt": "Several applications share a release pipeline and error platform. Define how to detect regressions, correlate versions and control sensitive telemetry.",
+      "reviewerNotes": "Release correlation, breadcrumbs, error boundaries, sampling, redaction, actionable signals. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-boundaries",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "boundaries",
+      "prompt": "A field accepts quantities from 1 through 100. Describe the cases you would test and why.",
+      "reviewerNotes": "Boundary values, partitions, decision tables, interaction risk, traceability. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-boundaries",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "boundaries",
+      "prompt": "An order limit depends on quantity, account tier and region. Explain how you would choose a manageable set of tests.",
+      "reviewerNotes": "Boundary values, partitions, decision tables, interaction risk, traceability. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-boundaries",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "boundaries",
+      "prompt": "A platform has many interacting business limits that change frequently. Design a systematic coverage and maintenance strategy.",
+      "reviewerNotes": "Boundary values, partitions, decision tables, interaction risk, traceability. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-state",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "state",
+      "prompt": "A ticket moves from Open to Closed and may be reopened. How would you test its transitions?",
+      "reviewerNotes": "State transitions, invalid paths, timing, invariants, compensation, observability. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-state",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "state",
+      "prompt": "A subscription can be paused, renewed, cancelled or expired by asynchronous jobs. Describe a state-based test model.",
+      "reviewerNotes": "State transitions, invalid paths, timing, invariants, compensation, observability. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-state",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "state",
+      "prompt": "A distributed workflow has retries and compensating actions across services. Explain how to validate its lifecycle invariants.",
+      "reviewerNotes": "State transitions, invalid paths, timing, invariants, compensation, observability. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-api",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "api",
+      "prompt": "An endpoint returns HTTP 200 but the body is missing a required field. What would you check?",
+      "reviewerNotes": "Status and payload assertions, schema contracts, compatibility, error semantics, consumer boundaries. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-api",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "api",
+      "prompt": "A versioned API adds optional fields while older clients remain deployed. Describe compatibility tests.",
+      "reviewerNotes": "Status and payload assertions, schema contracts, compatibility, error semantics, consumer boundaries. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-api",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "api",
+      "prompt": "Multiple teams publish APIs with inconsistent error and pagination behavior. Design contract verification across service versions.",
+      "reviewerNotes": "Status and payload assertions, schema contracts, compatibility, error semantics, consumer boundaries. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-authorization",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "authorization",
+      "prompt": "Two accounts can each view a private record. Describe how you would test isolation.",
+      "reviewerNotes": "Authentication versus authorization, ownership matrix, negative cases, tenant scope, delayed access. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-authorization",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "authorization",
+      "prompt": "An API supports read, update, export and delete under several roles. Build an authorization test strategy.",
+      "reviewerNotes": "Authentication versus authorization, ownership matrix, negative cases, tenant scope, delayed access. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-authorization",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "authorization",
+      "prompt": "A multi-tenant platform has delegated access and asynchronous exports. Explain how to verify isolation across all boundaries.",
+      "reviewerNotes": "Authentication versus authorization, ownership matrix, negative cases, tenant scope, delayed access. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-concurrency",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "concurrency",
+      "prompt": "Clicking Submit twice creates two orders. How would you reproduce and characterize the defect?",
+      "reviewerNotes": "Synchronization, single-use invariants, idempotency, transaction boundaries, failure injection. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-concurrency",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "concurrency",
+      "prompt": "Two workers may consume the same reset token. Describe a deterministic concurrency test.",
+      "reviewerNotes": "Synchronization, single-use invariants, idempotency, transaction boundaries, failure injection. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-concurrency",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "concurrency",
+      "prompt": "A financial workflow promises idempotent effects across retries, timeouts and worker restarts. Design a fault-driven verification strategy.",
+      "reviewerNotes": "Synchronization, single-use invariants, idempotency, transaction boundaries, failure injection. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-testdata",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "testdata",
+      "prompt": "A test depends on a shared account that other people modify. How would you stabilize it?",
+      "reviewerNotes": "Deterministic fixtures, ownership, synthetic data, cleanup, parallel isolation. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-testdata",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "testdata",
+      "prompt": "A regression suite needs realistic relational fixtures without customer data. Describe generation and cleanup.",
+      "reviewerNotes": "Deterministic fixtures, ownership, synthetic data, cleanup, parallel isolation. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-testdata",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "testdata",
+      "prompt": "Thousands of parallel tests share expensive infrastructure. Design isolated data lifecycles with reproducibility and diagnostics.",
+      "reviewerNotes": "Deterministic fixtures, ownership, synthetic data, cleanup, parallel isolation. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-automation",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "automation",
+      "prompt": "An automated check uses a fixed sleep and fails intermittently. How would you improve it?",
+      "reviewerNotes": "Observable readiness, accessible locators, isolation, retries as diagnostics, flake ownership. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-automation",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "automation",
+      "prompt": "A browser suite relies on brittle text and CSS selectors. Propose a migration to reliable interactions.",
+      "reviewerNotes": "Observable readiness, accessible locators, isolation, retries as diagnostics, flake ownership. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-automation",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "automation",
+      "prompt": "A cross-browser suite has a growing runtime and flaky release gates. Design a maintenance and execution policy.",
+      "reviewerNotes": "Observable readiness, accessible locators, isolation, retries as diagnostics, flake ownership. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-exploration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "exploration",
+      "prompt": "A new upload feature has only a happy-path specification. How would you explore it?",
+      "reviewerNotes": "Heuristics, charters, sessions, evidence, risk discovery, feedback into automation. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-exploration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "exploration",
+      "prompt": "Users report failures only after repeated edits and uploads. Develop a focused exploratory charter.",
+      "reviewerNotes": "Heuristics, charters, sessions, evidence, risk discovery, feedback into automation. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-exploration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "exploration",
+      "prompt": "A mature product has broad scripted coverage but recurring unexpected interaction defects. Design an exploratory testing program.",
+      "reviewerNotes": "Heuristics, charters, sessions, evidence, risk discovery, feedback into automation. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-performance",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "performance",
+      "prompt": "A page becomes slower as more records are added. What measurements would you collect?",
+      "reviewerNotes": "Percentiles, realistic workloads, concurrency, bottlenecks, saturation, extrapolation limits. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-performance",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "performance",
+      "prompt": "An API's average latency looks healthy while customers see timeouts. Describe a load-test plan.",
+      "reviewerNotes": "Percentiles, realistic workloads, concurrency, bottlenecks, saturation, extrapolation limits. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-performance",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "performance",
+      "prompt": "A service must survive a major traffic event with limited test infrastructure. Design credible capacity and resilience evidence.",
+      "reviewerNotes": "Percentiles, realistic workloads, concurrency, bottlenecks, saturation, extrapolation limits. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-reliability",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "reliability",
+      "prompt": "An application loses a draft when the network disconnects. How would you test recovery?",
+      "reviewerNotes": "Failure modes, recovery, retry budgets, duplicate effects, dependency degradation. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-reliability",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "reliability",
+      "prompt": "A background task retries after a timeout and sometimes duplicates work. Describe failure scenarios to exercise.",
+      "reviewerNotes": "Failure modes, recovery, retry budgets, duplicate effects, dependency degradation. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-reliability",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "reliability",
+      "prompt": "A system depends on several external providers. Design resilience tests and safe operational experiments.",
+      "reviewerNotes": "Failure modes, recovery, retry budgets, duplicate effects, dependency degradation. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-accessibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "accessibility",
+      "prompt": "A modal cannot be closed from the keyboard. Describe how you would investigate.",
+      "reviewerNotes": "Focus order, accessible semantics, assistive technology, automation limits, user journeys. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-accessibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "accessibility",
+      "prompt": "A checkout redesign must support keyboard and screen-reader users. Define an acceptance test plan.",
+      "reviewerNotes": "Focus order, accessible semantics, assistive technology, automation limits, user journeys. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-accessibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "accessibility",
+      "prompt": "A design system serves many products and accessibility regressions recur. Design shared checks and human validation gates.",
+      "reviewerNotes": "Focus order, accessible semantics, assistive technology, automation limits, user journeys. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-security",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "security",
+      "prompt": "A login error reveals whether an email exists. How would you verify the exposure?",
+      "reviewerNotes": "Enumeration, untrusted input, access boundaries, abuse cases, evidence, scope. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-security",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "security",
+      "prompt": "A file upload feature accepts content from untrusted users. Propose a security-focused test plan.",
+      "reviewerNotes": "Enumeration, untrusted input, access boundaries, abuse cases, evidence, scope. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-security",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "security",
+      "prompt": "A platform introduces delegated authorization across organizations. Describe a threat-informed verification approach.",
+      "reviewerNotes": "Enumeration, untrusted input, access boundaries, abuse cases, evidence, scope. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-observability",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "observability",
+      "prompt": "A test fails only in CI and produces no useful details. What diagnostics would you add?",
+      "reviewerNotes": "Structured diagnostics, correlation IDs, retained artifacts, classifications, ownership. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-observability",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "observability",
+      "prompt": "A release suite spans several services with independent logs. Explain how you would correlate a failed operation.",
+      "reviewerNotes": "Structured diagnostics, correlation IDs, retained artifacts, classifications, ownership. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-observability",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "observability",
+      "prompt": "Teams cannot distinguish product regressions from infrastructure noise. Design a quality signal and failure-triage strategy.",
+      "reviewerNotes": "Structured diagnostics, correlation IDs, retained artifacts, classifications, ownership. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-compatibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "compatibility",
+      "prompt": "A browser feature works on desktop but fails on a supported phone. How would you investigate?",
+      "reviewerNotes": "Support matrix, version skew, contract tests, migration boundaries, progressive rollout. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-compatibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "compatibility",
+      "prompt": "A mobile app and server update independently. Define a compatibility test matrix.",
+      "reviewerNotes": "Support matrix, version skew, contract tests, migration boundaries, progressive rollout. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-compatibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "compatibility",
+      "prompt": "A platform supports old clients, schema migrations and rolling deployments. Design a strategy to detect incompatible transitions.",
+      "reviewerNotes": "Support matrix, version skew, contract tests, migration boundaries, progressive rollout. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-qa-junior-measurement",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "measurement",
+      "prompt": "A manager asks whether a high test pass rate means the release is safe. How would you answer?",
+      "reviewerNotes": "Risk coverage, assertion strength, escaped defects, feedback time, metric gaming. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-qa-middle-measurement",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "measurement",
+      "prompt": "A team has high line coverage and frequent production defects. Explain what evidence you would examine.",
+      "reviewerNotes": "Risk coverage, assertion strength, escaped defects, feedback time, metric gaming. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-qa-senior-measurement",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "measurement",
+      "prompt": "An organization wants common quality metrics without encouraging superficial test counts. Propose a measurement system.",
+      "reviewerNotes": "Risk coverage, assertion strength, escaped defects, feedback time, metric gaming. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-grain",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "grain",
+      "prompt": "A sales table contains one row per item but the report counts orders. Explain how you would validate the count.",
+      "reviewerNotes": "Data grain, distinct entities, join cardinality, aggregation, semantic contracts. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-grain",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "grain",
+      "prompt": "A join between orders and support contacts inflates revenue. Describe how you would identify and repair the analysis.",
+      "reviewerNotes": "Data grain, distinct entities, join cardinality, aggregation, semantic contracts. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-grain",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "grain",
+      "prompt": "Several domains aggregate events at different grains. Design a shared metric layer that prevents incompatible joins.",
+      "reviewerNotes": "Data grain, distinct entities, join cardinality, aggregation, semantic contracts. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-nulls",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "nulls",
+      "prompt": "A column contains both zero and missing values. Explain why that distinction matters for an average.",
+      "reviewerNotes": "Null semantics, denominators, missingness mechanisms, sensitivity, bias. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-nulls",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "nulls",
+      "prompt": "A report's conversion rate changes after records with missing country are removed. How would you investigate?",
+      "reviewerNotes": "Null semantics, denominators, missingness mechanisms, sensitivity, bias. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-nulls",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "nulls",
+      "prompt": "Missingness differs by user group and affects a strategic model. Design an analysis of the bias and reporting policy.",
+      "reviewerNotes": "Null semantics, denominators, missingness mechanisms, sensitivity, bias. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-joins",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "joins",
+      "prompt": "Some customers have no orders. Describe how you would include them in a customer summary.",
+      "reviewerNotes": "Join types, cardinality, effective dates, point-in-time correctness, constraints. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-joins",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "joins",
+      "prompt": "A slowly changing customer dimension has several historical rows per customer. Explain a correct point-in-time join.",
+      "reviewerNotes": "Join types, cardinality, effective dates, point-in-time correctness, constraints. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-joins",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "joins",
+      "prompt": "A data platform repeatedly produces duplicate aggregates after joining evolving dimensions. Propose modeling and validation rules.",
+      "reviewerNotes": "Join types, cardinality, effective dates, point-in-time correctness, constraints. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-windows",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "windows",
+      "prompt": "A stakeholder needs each customer's most recent purchase. Explain how you would identify it reproducibly.",
+      "reviewerNotes": "Partitioning, ordering, ties, window frames, date spines, event-time policy. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-windows",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "windows",
+      "prompt": "A report needs running revenue and a rolling seven-day comparison with gaps in dates. Describe your approach.",
+      "reviewerNotes": "Partitioning, ordering, ties, window frames, date spines, event-time policy. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-windows",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "windows",
+      "prompt": "A large event stream needs reproducible sessionization despite late events and timestamp ties. Design the analytical semantics.",
+      "reviewerNotes": "Partitioning, ordering, ties, window frames, date spines, event-time policy. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-metrics",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "metrics",
+      "prompt": "Two reports use different denominators for conversion. How would you reconcile them?",
+      "reviewerNotes": "Population, denominator, metric versioning, comparability, incentives, guardrails. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-metrics",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "metrics",
+      "prompt": "A product changes its activation definition midway through a quarter. Explain how to preserve comparability.",
+      "reviewerNotes": "Population, denominator, metric versioning, comparability, incentives, guardrails. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-metrics",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "metrics",
+      "prompt": "Executives need a north-star metric across products with different usage patterns. Propose definition, guardrails and governance.",
+      "reviewerNotes": "Population, denominator, metric versioning, comparability, incentives, guardrails. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-sampling",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "sampling",
+      "prompt": "A survey includes only users who completed checkout. What limits would you explain?",
+      "reviewerNotes": "Selection bias, nonresponse, stratification, weighting, uncertainty. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-sampling",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "sampling",
+      "prompt": "An opt-in survey suggests strong satisfaction while churn rises. Describe how you would assess representativeness.",
+      "reviewerNotes": "Selection bias, nonresponse, stratification, weighting, uncertainty. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-sampling",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "sampling",
+      "prompt": "A costly study must support estimates across rare segments. Design a sampling and uncertainty strategy.",
+      "reviewerNotes": "Selection bias, nonresponse, stratification, weighting, uncertainty. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-experiments",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "experiments",
+      "prompt": "A product experiment assigns users to two variants. What would you check before comparing outcomes?",
+      "reviewerNotes": "Randomization, sample-ratio mismatch, power, stopping rules, interference. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-experiments",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "experiments",
+      "prompt": "An experiment has repeated peeking and uneven assignment ratios. Describe how you would evaluate its validity.",
+      "reviewerNotes": "Randomization, sample-ratio mismatch, power, stopping rules, interference. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-experiments",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "experiments",
+      "prompt": "A product portfolio runs interacting experiments with network effects. Propose an experimentation and decision framework.",
+      "reviewerNotes": "Randomization, sample-ratio mismatch, power, stopping rules, interference. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-causality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "causality",
+      "prompt": "Sales increased after a promotion. Explain why that alone may not establish its effect.",
+      "reviewerNotes": "Counterfactual, confounding, assumptions, comparison groups, sensitivity, pre-trends. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-causality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "causality",
+      "prompt": "A policy launched in some regions before others. Describe how you would assess its impact without random assignment.",
+      "reviewerNotes": "Counterfactual, confounding, assumptions, comparison groups, sensitivity, pre-trends. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-causality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "causality",
+      "prompt": "A business needs a causal estimate from observational data with changing treatment adoption. Design an approach and falsification checks.",
+      "reviewerNotes": "Counterfactual, confounding, assumptions, comparison groups, sensitivity, pre-trends. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-cohorts",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "cohorts",
+      "prompt": "A retention chart mixes users who signed up in different months. How would you make the comparison clearer?",
+      "reviewerNotes": "Cohort definitions, censoring, composition effects, segmentation, decomposition. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-cohorts",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "cohorts",
+      "prompt": "A retention drop may reflect a shift in acquisition channels. Explain a cohort-based investigation.",
+      "reviewerNotes": "Cohort definitions, censoring, composition effects, segmentation, decomposition. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-cohorts",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "cohorts",
+      "prompt": "A global subscription business changes pricing, onboarding and acquisition simultaneously. Design a retention decomposition strategy.",
+      "reviewerNotes": "Cohort definitions, censoring, composition effects, segmentation, decomposition. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-visualization",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "visualization",
+      "prompt": "A bar chart starts its vertical axis near the observed values and exaggerates differences. How would you revise it?",
+      "reviewerNotes": "Encoding, scales, uncertainty, audience, accessibility, actionable context. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-visualization",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "visualization",
+      "prompt": "A dashboard must show trend, uncertainty and small segments without overwhelming users. Describe your choices.",
+      "reviewerNotes": "Encoding, scales, uncertainty, audience, accessibility, actionable context. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-visualization",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "visualization",
+      "prompt": "Executives and operators need different decisions from the same complex dataset. Design linked analytical views and communication rules.",
+      "reviewerNotes": "Encoding, scales, uncertainty, audience, accessibility, actionable context. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-quality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "quality",
+      "prompt": "A daily report has fewer rows than usual. What checks would you run before publishing it?",
+      "reviewerNotes": "Freshness, completeness, validity, semantic drift, lineage, ownership. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-quality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "quality",
+      "prompt": "A data pipeline is complete but one event type silently changes meaning. How would you detect and investigate the issue?",
+      "reviewerNotes": "Freshness, completeness, validity, semantic drift, lineage, ownership. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-quality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "quality",
+      "prompt": "Hundreds of datasets support critical decisions. Design data quality contracts and incident response prioritized by decision impact.",
+      "reviewerNotes": "Freshness, completeness, validity, semantic drift, lineage, ownership. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-privacy",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "privacy",
+      "prompt": "A requested report includes individual email addresses although only totals are needed. How would you respond?",
+      "reviewerNotes": "Minimization, aggregation, small-cell risk, access, retention, linkage. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-privacy",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "privacy",
+      "prompt": "A dashboard permits filters that isolate very small user groups. Describe how you would assess disclosure risk.",
+      "reviewerNotes": "Minimization, aggregation, small-cell risk, access, retention, linkage. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-privacy",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "privacy",
+      "prompt": "An analytics platform combines sensitive sources across organizations. Define access, retention and disclosure controls.",
+      "reviewerNotes": "Minimization, aggregation, small-cell risk, access, retention, linkage. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-reproducibility",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "reproducibility",
+      "prompt": "A spreadsheet total changes after someone edits a source file. How would you make the result reproducible?",
+      "reviewerNotes": "Versioned inputs, code, snapshots, environment, lineage, auditability. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-reproducibility",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "reproducibility",
+      "prompt": "An analysis depends on several extracts taken at different times. Explain how you would capture a consistent analytical snapshot.",
+      "reviewerNotes": "Versioned inputs, code, snapshots, environment, lineage, auditability. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-reproducibility",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "reproducibility",
+      "prompt": "A regulated business must reproduce historical decisions after logic and source data evolve. Design an analytical provenance system.",
+      "reviewerNotes": "Versioned inputs, code, snapshots, environment, lineage, auditability. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-queryperformance",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "queryperformance",
+      "prompt": "A query scans every row to find one day's events. How would you investigate its cost?",
+      "reviewerNotes": "Query plans, predicates, partitioning, preaggregation, workload isolation, cost. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-queryperformance",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "queryperformance",
+      "prompt": "A dashboard query joins several large tables and repeatedly times out. Describe a profiling and redesign plan.",
+      "reviewerNotes": "Query plans, predicates, partitioning, preaggregation, workload isolation, cost. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-queryperformance",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "queryperformance",
+      "prompt": "A shared warehouse must balance interactive latency, freshness and cost across teams. Propose workload and modeling policies.",
+      "reviewerNotes": "Query plans, predicates, partitioning, preaggregation, workload isolation, cost. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-data-junior-uncertainty",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "uncertainty",
+      "prompt": "A report compares rates from groups with very different sample sizes. How would you explain the evidence?",
+      "reviewerNotes": "Intervals, sample size, multiple comparisons, effect size, decision sensitivity. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-data-middle-uncertainty",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "uncertainty",
+      "prompt": "A small segment shows a large effect after many segments were explored. Describe your validation approach.",
+      "reviewerNotes": "Intervals, sample size, multiple comparisons, effect size, decision sensitivity. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-data-senior-uncertainty",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "uncertainty",
+      "prompt": "A high-cost decision must combine uncertain estimates from several data sources. Design a transparent decision and sensitivity analysis.",
+      "reviewerNotes": "Intervals, sample size, multiple comparisons, effect size, decision sensitivity. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-linux",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "linux",
+      "prompt": "A service fails to start after a configuration change. Describe the operating-system evidence you would collect.",
+      "reviewerNotes": "Process state, logs, resource pressure, I/O wait, scheduling, safe diagnostics. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-linux",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "linux",
+      "prompt": "A host has high load but modest CPU utilization. Explain an investigation plan.",
+      "reviewerNotes": "Process state, logs, resource pressure, I/O wait, scheduling, safe diagnostics. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-linux",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "linux",
+      "prompt": "A fleet intermittently loses responsiveness under mixed workloads. Design a diagnostic strategy that limits production risk.",
+      "reviewerNotes": "Process state, logs, resource pressure, I/O wait, scheduling, safe diagnostics. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-network",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "network",
+      "prompt": "A service is reachable by IP address but not by its hostname. How would you investigate?",
+      "reviewerNotes": "DNS, connectivity, TLS, health checks, routing, layered diagnosis. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-network",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "network",
+      "prompt": "Requests through a load balancer fail while direct backend requests succeed. Describe the layers you would check.",
+      "reviewerNotes": "DNS, connectivity, TLS, health checks, routing, layered diagnosis. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-network",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "network",
+      "prompt": "A multi-region application has intermittent routing failures during failover. Design observability and validation for its network path.",
+      "reviewerNotes": "DNS, connectivity, TLS, health checks, routing, layered diagnosis. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-containers",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "containers",
+      "prompt": "A container exits immediately although the image builds successfully. How would you debug it?",
+      "reviewerNotes": "Entrypoint, logs, permissions, immutable images, supply chain, controlled upgrades. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-containers",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "containers",
+      "prompt": "A container works locally but fails under the production runtime's user and filesystem restrictions. Explain your approach.",
+      "reviewerNotes": "Entrypoint, logs, permissions, immutable images, supply chain, controlled upgrades. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-containers",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "containers",
+      "prompt": "An organization needs secure reproducible base images across many services. Design the build, provenance and upgrade process.",
+      "reviewerNotes": "Entrypoint, logs, permissions, immutable images, supply chain, controlled upgrades. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-orchestration",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "orchestration",
+      "prompt": "A workload remains pending because the scheduler cannot place it. What information would you inspect?",
+      "reviewerNotes": "Resource requests, placement, readiness, rollout strategy, disruption budgets, isolation. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-orchestration",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "orchestration",
+      "prompt": "A rolling deployment briefly removes all healthy replicas. Explain how you would redesign and validate it.",
+      "reviewerNotes": "Resource requests, placement, readiness, rollout strategy, disruption budgets, isolation. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-orchestration",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "orchestration",
+      "prompt": "A multi-tenant cluster must isolate workloads while tolerating node failures. Propose scheduling, capacity and disruption policies.",
+      "reviewerNotes": "Resource requests, placement, readiness, rollout strategy, disruption budgets, isolation. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-iac",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "iac",
+      "prompt": "An infrastructure plan proposes deleting a resource you expected to preserve. How would you review it?",
+      "reviewerNotes": "Plan review, state, locking, drift, module contracts, blast radius. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-iac",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "iac",
+      "prompt": "Two engineers apply changes against shared infrastructure state. Describe a safe collaboration model.",
+      "reviewerNotes": "Plan review, state, locking, drift, module contracts, blast radius. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-iac",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "iac",
+      "prompt": "Many teams manage related infrastructure across accounts. Design module ownership, policy checks and staged rollout.",
+      "reviewerNotes": "Plan review, state, locking, drift, module contracts, blast radius. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-ci",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "ci",
+      "prompt": "A build passes on a developer machine but fails in CI. How would you compare the environments?",
+      "reviewerNotes": "Locked dependencies, reproducibility, artifact identity, promotion, least privilege, trust boundaries. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-ci",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "ci",
+      "prompt": "A pipeline must deliver one tested artifact through staging and production. Describe the artifact and promotion flow.",
+      "reviewerNotes": "Locked dependencies, reproducibility, artifact identity, promotion, least privilege, trust boundaries. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-ci",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "ci",
+      "prompt": "An organization needs fast pipelines without trusting unreviewed pull-request code with deployment credentials. Design the security boundaries.",
+      "reviewerNotes": "Locked dependencies, reproducibility, artifact identity, promotion, least privilege, trust boundaries. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-secrets",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "secrets",
+      "prompt": "A service receives a secret through a checked-in configuration file. What would you change and verify?",
+      "reviewerNotes": "Secret storage, revocation, overlap, least privilege, workload identity, audit. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-secrets",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "secrets",
+      "prompt": "An application must rotate a database credential without downtime. Describe a rollout and rollback plan.",
+      "reviewerNotes": "Secret storage, revocation, overlap, least privilege, workload identity, audit. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-secrets",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "secrets",
+      "prompt": "A platform needs short-lived workload credentials across clouds. Design issuance, scope, auditing and incident response.",
+      "reviewerNotes": "Secret storage, revocation, overlap, least privilege, workload identity, audit. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-monitoring",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "monitoring",
+      "prompt": "An alert triggers on every short CPU spike. How would you decide whether it is useful?",
+      "reviewerNotes": "User outcomes, SLIs, SLOs, alert actionability, error budgets, burn rates. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-monitoring",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "monitoring",
+      "prompt": "A service meets infrastructure thresholds while customers experience failed purchases. Define better signals.",
+      "reviewerNotes": "User outcomes, SLIs, SLOs, alert actionability, error budgets, burn rates. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-monitoring",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "monitoring",
+      "prompt": "Several teams need service objectives and an actionable alert strategy. Design measurement, burn-rate response and ownership.",
+      "reviewerNotes": "User outcomes, SLIs, SLOs, alert actionability, error budgets, burn rates. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-logging",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "logging",
+      "prompt": "A production failure has only an unstructured error message. What logging changes would help?",
+      "reviewerNotes": "Structured events, correlation, tracing, sampling, redaction, retention. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-logging",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "logging",
+      "prompt": "A request crosses several services and asynchronous workers. Describe how to trace its progress safely.",
+      "reviewerNotes": "Structured events, correlation, tracing, sampling, redaction, retention. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-logging",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "logging",
+      "prompt": "A high-volume platform needs useful telemetry under strict cost and privacy constraints. Design collection and retention policies.",
+      "reviewerNotes": "Structured events, correlation, tracing, sampling, redaction, retention. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-capacity",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "capacity",
+      "prompt": "A disk is nearly full and growing steadily. Describe immediate checks and safe next steps.",
+      "reviewerNotes": "Growth rates, saturation, bottlenecks, backpressure, quotas, load shedding. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-capacity",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "capacity",
+      "prompt": "A queue backlog grows during peak demand despite adding workers. Explain how you would find the limiting resource.",
+      "reviewerNotes": "Growth rates, saturation, bottlenecks, backpressure, quotas, load shedding. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-capacity",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "capacity",
+      "prompt": "A service faces unpredictable demand and hard downstream quotas. Design capacity planning and overload behavior.",
+      "reviewerNotes": "Growth rates, saturation, bottlenecks, backpressure, quotas, load shedding. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-recovery",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "recovery",
+      "prompt": "A scheduled backup reports success. What would you check before trusting recovery?",
+      "reviewerNotes": "Restore validation, RTO, RPO, dependency order, runbooks, recovery evidence. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-recovery",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "recovery",
+      "prompt": "A database restore must meet stated recovery-time and recovery-point objectives. Design a test.",
+      "reviewerNotes": "Restore validation, RTO, RPO, dependency order, runbooks, recovery evidence. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-recovery",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "recovery",
+      "prompt": "A multi-region system has coupled data and infrastructure dependencies. Plan a credible disaster recovery exercise.",
+      "reviewerNotes": "Restore validation, RTO, RPO, dependency order, runbooks, recovery evidence. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-releases",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "releases",
+      "prompt": "A deployment introduces errors immediately after release. Describe a safe initial response.",
+      "reviewerNotes": "Rollback, expand-contract, version skew, canaries, irreversible changes, failure containment. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-releases",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "releases",
+      "prompt": "A database change must work with old and new application versions during rollout. Explain sequencing and rollback limits.",
+      "reviewerNotes": "Rollback, expand-contract, version skew, canaries, irreversible changes, failure containment. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-releases",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "releases",
+      "prompt": "A platform wants progressive delivery for stateful services across regions. Design gates, observations and recovery decisions.",
+      "reviewerNotes": "Rollback, expand-contract, version skew, canaries, irreversible changes, failure containment. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-storage",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "storage",
+      "prompt": "A service cannot write to its mounted directory. What would you inspect?",
+      "reviewerNotes": "Permissions, persistence, lifecycle, durability, consistency, backup responsibility. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-storage",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "storage",
+      "prompt": "A workload loses data when its container is rescheduled. Explain a durable storage design and validation.",
+      "reviewerNotes": "Permissions, persistence, lifecycle, durability, consistency, backup responsibility. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-storage",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "storage",
+      "prompt": "Several critical services need storage with different consistency and recovery needs. Propose a storage selection and operational policy.",
+      "reviewerNotes": "Permissions, persistence, lifecycle, durability, consistency, backup responsibility. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-cost",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "cost",
+      "prompt": "A cloud bill shows a sudden rise in data-transfer charges. How would you investigate?",
+      "reviewerNotes": "Attribution, utilization, scaling, unit economics, reliability guardrails, ownership. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-cost",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "cost",
+      "prompt": "A service is overprovisioned at night but must meet daytime latency goals. Describe an optimization experiment.",
+      "reviewerNotes": "Attribution, utilization, scaling, unit economics, reliability guardrails, ownership. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-cost",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "cost",
+      "prompt": "A platform must reduce spending while preserving agreed reliability. Design cost allocation, prioritization and verification.",
+      "reviewerNotes": "Attribution, utilization, scaling, unit economics, reliability guardrails, ownership. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    },
+    {
+      "id": "technical-devops-junior-resilience",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Technical",
+      "topic": "resilience",
+      "prompt": "An upstream timeout causes requests to wait indefinitely. Explain how you would characterize the failure.",
+      "reviewerNotes": "Timeouts, retry budgets, jitter, circuit breakers, dependency risk, controlled experiments. Look for concrete investigation steps and accurate fundamentals."
+    },
+    {
+      "id": "technical-devops-middle-resilience",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Technical",
+      "topic": "resilience",
+      "prompt": "Retries across several services amplify a short provider outage. Propose controls and a validation plan.",
+      "reviewerNotes": "Timeouts, retry budgets, jitter, circuit breakers, dependency risk, controlled experiments. Look for independent diagnosis, trade-offs and a verification plan."
+    },
+    {
+      "id": "technical-devops-senior-resilience",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Technical",
+      "topic": "resilience",
+      "prompt": "A critical platform depends on providers with correlated failure modes. Design resilience experiments and graceful degradation.",
+      "reviewerNotes": "Timeouts, retry budgets, jitter, circuit breakers, dependency risk, controlled experiments. Look for system boundaries, failure modes, organizational ownership and measurable validation."
+    }
+  ]
+}

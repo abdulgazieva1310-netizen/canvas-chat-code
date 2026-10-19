@@ -22,6 +22,17 @@ Coverage checks select 15 distinct records for all 54 workplace combinations:
 uv run --project backend pytest backend/tests/test_workplace_questions.py backend/tests/test_question_bank.py
 ```
 
-Technical content for noncoding roles is delivered separately in issue #38.
-Until it is present, the default all-MVP coverage validator correctly reports
-those missing combinations; workplace coverage is validated independently.
+`noncoding_questions.v1.json` adds 180 technical scenarios: 15 distinct topics
+for each of Frontend Developer, QA Engineer, Data Analyst and DevOps Engineer,
+with separate Junior, Middle and Senior prompts. Junior asks for fundamentals
+and concrete diagnostic steps; Middle adds independent investigation and
+verification; Senior adds platform scope, systemic failure modes and ownership.
+Each prompt describes an answerable situation and keeps expected concepts in
+reviewer notes. These roles do not receive the coding-only constraints rule.
+
+The complete bank contains 495 stable records and covers all 81 MVP
+role/type/level combinations with 15 unique questions in each. Run:
+
+```sh
+uv run --project backend pytest backend/tests/test_noncoding_questions.py backend/tests/test_workplace_questions.py backend/tests/test_question_bank.py
+```

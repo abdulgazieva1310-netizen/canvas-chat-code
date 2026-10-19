@@ -105,3 +105,56 @@ def test_expired_invalid_and_delivery_failure(tmp_path):
         assert known.content == unknown.content
         with app.state.store.sessions() as session:
             assert len(session.scalars(select(PasswordResetRecord)).all()) == 1  # Only the expired link.
+
+
+def test_new_link_invalidates_previous_link_before_consumption(tmp_path):
+    mailbox = LocalMailbox()
+    app = create_app(database_url=f'sqlite:///{tmp_path / "replacement.db"}', mailer=mailbox)
+    with TestClient(app) as client:
+        client.post('/api/auth/password-reset/request', json={'email': 'demo@example.com'})
+        previous = reset_token(mailbox)
+        client.post('/api/auth/password-reset/request', json={'email': 'demo@example.com'})
+        current = reset_token(mailbox)
+        assert previous != current
+        assert client.post('/api/auth/password-reset/confirm', json={
+            'token': previous, 'password': 'obsolete-password'}).status_code == 400
+        assert client.post('/api/auth/password-reset/confirm', json={
+            'token': current, 'password': 'current-password'}).status_code == 204
+
+
+def test_concurrent_reset_consumption_has_one_winner(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    mailbox = LocalMailbox()
+    app = create_app(database_url=f'sqlite:///{tmp_path / "concurrent.db"}', mailer=mailbox)
+    with TestClient(app) as client:
+        client.post('/api/auth/password-reset/request', json={'email': 'demo@example.com'})
+        token = reset_token(mailbox)
+        def consume(index):
+            return client.post('/api/auth/password-reset/confirm', json={
+                'token': token, 'password': f'replacement-{index}'}).status_code
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            assert sorted(pool.map(consume, range(2))) == [204, 400]
+
+
+def test_reset_expiry_is_exactly_thirty_minutes(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+    from app.routers import auth
+
+    instant = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return instant
+    monkeypatch.setattr(auth, 'datetime', Clock)
+    mailbox = LocalMailbox()
+    app = create_app(database_url=f'sqlite:///{tmp_path / "boundary.db"}', mailer=mailbox)
+    with TestClient(app) as client:
+        client.post('/api/auth/password-reset/request', json={'email': 'demo@example.com'})
+        token = reset_token(mailbox)
+        with app.state.store.sessions() as session:
+            expiry = session.get(PasswordResetRecord, token_key(token)).expires_at
+        assert expiry == instant.timestamp() + 1800
+        instant = datetime.fromtimestamp(expiry, timezone.utc)
+        assert client.post('/api/auth/password-reset/confirm', json={
+            'token': token, 'password': 'replacement'}).status_code == 400

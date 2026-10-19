@@ -35,6 +35,10 @@ def request_reset(data: ResetRequest, request: Request, response: Response):
                 # Do not expose account existence, provider errors, or reset credentials.
                 store.session.expunge(reset)
                 logging.getLogger(__name__).warning('Password recovery email delivery failed')
+            else:
+                store.session.execute(delete(PasswordResetRecord).where(
+                    PasswordResetRecord.user_id == user.id,
+                    PasswordResetRecord.digest != reset.digest))
     return {'message': 'If this account exists, a password reset link will be sent.'}
 
 

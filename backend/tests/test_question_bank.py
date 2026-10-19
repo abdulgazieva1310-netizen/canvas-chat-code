@@ -43,6 +43,7 @@ def test_fifteen_distinct_compatible_questions(role, level):
 
 def test_full_coding_coverage():
     bank = load_bank()
+    bank = [q for q in bank if q.type == 'Technical' and CODING_ROLES.intersection(q.roles)]
     assert len(bank) == 45
     validate_coverage(bank, [setup(role, level) for role, level in
                            product(sorted(CODING_ROLES), ['Junior', 'Middle', 'Senior'])])
@@ -74,7 +75,7 @@ def test_default_coverage_validator_checks_all_role_type_level_combinations():
 def test_incompatible_role_type_and_empty_bank():
     for config in [setup(role='QA Engineer'), setup(type='Behavioral'), setup(type='Role-specific')]:
         with pytest.raises(BankError):
-            select_question(load_bank(), config, set())
+            select_question([q for q in load_bank() if q.type == 'Technical' and CODING_ROLES.intersection(q.roles)], config, set())
     with pytest.raises(BankError):
         select_question([], setup(), set())
     with pytest.raises(BankError):

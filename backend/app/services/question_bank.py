@@ -47,7 +47,13 @@ class BankQuestion(BaseModel):
 
 
 def load_bank(path: Path | None = None) -> list[BankQuestion]:
-    path = path or Path(__file__).resolve().parents[1] / 'data' / 'coding_questions.v1.json'
+    if path is None:
+        directory = Path(__file__).resolve().parents[1] / 'data'
+        questions = [question for source in sorted(directory.glob('*_questions.v1.json'))
+                     for question in load_bank(source)]
+        if not questions or len({q.id for q in questions}) != len(questions):
+            raise BankError('Empty bank or duplicate question IDs')
+        return questions
     try:
         payload = json.loads(path.read_text())
         if payload['version'] != 1:

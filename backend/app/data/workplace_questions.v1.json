@@ -1,0 +1,4325 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "behavioral-junior-feedback",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "feedback",
+      "prompt": "Tell me about feedback that changed how you worked. What did you change and how did you know it helped? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Specific feedback, reflection, observable change, evidence of improvement. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-disagreement",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "disagreement",
+      "prompt": "Describe a disagreement over a technical decision. How did you understand the other position and reach an outcome? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Listening, evidence, decision process, respectful escalation. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-mistake",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "mistake",
+      "prompt": "Tell me about a mistake you made that affected someone else. What did you do after discovering it? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Ownership, disclosure, containment, prevention without blame. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-ambiguity",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "ambiguity",
+      "prompt": "Describe a task whose requirements were unclear. How did you decide what to clarify before proceeding? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Unknowns, stakeholders, assumptions, validated scope. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-deadline",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "deadline",
+      "prompt": "Tell me about a deadline you could not meet as originally planned. How did you communicate and adjust? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Early risk communication, scope negotiation, realistic commitments. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-learning",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "learning",
+      "prompt": "Describe a time you had to learn an unfamiliar tool for real work. How did you check your understanding? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Learning plan, application, feedback, measurable result. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-collaboration",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "collaboration",
+      "prompt": "Tell me about a result that depended on another team. How did you coordinate your responsibilities? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Explicit handoffs, shared goals, dependency management. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-priority",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "priority",
+      "prompt": "Describe a time two important requests competed for your attention. How did you choose what to do first? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Impact, urgency, transparent prioritization, consequences. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-quality",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "quality",
+      "prompt": "Tell me about a time you raised a quality concern despite pressure to ship. What happened? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Evidence, proportionate risk, alternatives, outcome. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-initiative",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "initiative",
+      "prompt": "Describe an improvement you initiated without being assigned it. How did you decide it was worth doing? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Observed need, bounded experiment, alignment, measured value. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-inclusion",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "inclusion",
+      "prompt": "Tell me about a time a quieter colleague had useful information the team was missing. What did you do? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Inclusive facilitation, respectful attribution, changed decision. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-conflict",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "conflict",
+      "prompt": "Describe a difficult conversation about an unmet commitment. How did you handle it? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Concrete facts, empathy, agreed next steps, follow-through. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-uncertainty",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "uncertainty",
+      "prompt": "Tell me about a decision you made with incomplete information. How did you manage the uncertainty? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Explicit assumptions, reversible choices, monitoring, learning. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-customer",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "customer",
+      "prompt": "Describe a time user feedback challenged your initial approach. How did you respond? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "User evidence, revised hypothesis, testing, impact. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-junior-handoff",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Behavioral",
+      "topic": "handoff",
+      "prompt": "Tell me about a time you handed work to someone else. How did you ensure they could continue successfully? Use an example from a project, study group or workplace. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Context, documentation, demonstration, confirmation of understanding. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-feedback",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "feedback",
+      "prompt": "Tell me about feedback that changed how you worked. What did you change and how did you know it helped? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Specific feedback, reflection, observable change, evidence of improvement. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-disagreement",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "disagreement",
+      "prompt": "Describe a disagreement over a technical decision. How did you understand the other position and reach an outcome? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Listening, evidence, decision process, respectful escalation. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-mistake",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "mistake",
+      "prompt": "Tell me about a mistake you made that affected someone else. What did you do after discovering it? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Ownership, disclosure, containment, prevention without blame. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-ambiguity",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "ambiguity",
+      "prompt": "Describe a task whose requirements were unclear. How did you decide what to clarify before proceeding? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Unknowns, stakeholders, assumptions, validated scope. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-deadline",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "deadline",
+      "prompt": "Tell me about a deadline you could not meet as originally planned. How did you communicate and adjust? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Early risk communication, scope negotiation, realistic commitments. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-learning",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "learning",
+      "prompt": "Describe a time you had to learn an unfamiliar tool for real work. How did you check your understanding? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Learning plan, application, feedback, measurable result. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-collaboration",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "collaboration",
+      "prompt": "Tell me about a result that depended on another team. How did you coordinate your responsibilities? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Explicit handoffs, shared goals, dependency management. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-priority",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "priority",
+      "prompt": "Describe a time two important requests competed for your attention. How did you choose what to do first? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Impact, urgency, transparent prioritization, consequences. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-quality",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "quality",
+      "prompt": "Tell me about a time you raised a quality concern despite pressure to ship. What happened? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Evidence, proportionate risk, alternatives, outcome. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-initiative",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "initiative",
+      "prompt": "Describe an improvement you initiated without being assigned it. How did you decide it was worth doing? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Observed need, bounded experiment, alignment, measured value. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-inclusion",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "inclusion",
+      "prompt": "Tell me about a time a quieter colleague had useful information the team was missing. What did you do? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Inclusive facilitation, respectful attribution, changed decision. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-conflict",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "conflict",
+      "prompt": "Describe a difficult conversation about an unmet commitment. How did you handle it? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Concrete facts, empathy, agreed next steps, follow-through. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-uncertainty",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "uncertainty",
+      "prompt": "Tell me about a decision you made with incomplete information. How did you manage the uncertainty? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Explicit assumptions, reversible choices, monitoring, learning. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-customer",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "customer",
+      "prompt": "Describe a time user feedback challenged your initial approach. How did you respond? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "User evidence, revised hypothesis, testing, impact. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-middle-handoff",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Behavioral",
+      "topic": "handoff",
+      "prompt": "Tell me about a time you handed work to someone else. How did you ensure they could continue successfully? Use an example where you owned the outcome. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Context, documentation, demonstration, confirmation of understanding. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-feedback",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "feedback",
+      "prompt": "Tell me about feedback that changed how you worked. What did you change and how did you know it helped? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Specific feedback, reflection, observable change, evidence of improvement. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-disagreement",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "disagreement",
+      "prompt": "Describe a disagreement over a technical decision. How did you understand the other position and reach an outcome? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Listening, evidence, decision process, respectful escalation. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-mistake",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "mistake",
+      "prompt": "Tell me about a mistake you made that affected someone else. What did you do after discovering it? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Ownership, disclosure, containment, prevention without blame. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-ambiguity",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "ambiguity",
+      "prompt": "Describe a task whose requirements were unclear. How did you decide what to clarify before proceeding? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Unknowns, stakeholders, assumptions, validated scope. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-deadline",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "deadline",
+      "prompt": "Tell me about a deadline you could not meet as originally planned. How did you communicate and adjust? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Early risk communication, scope negotiation, realistic commitments. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-learning",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "learning",
+      "prompt": "Describe a time you had to learn an unfamiliar tool for real work. How did you check your understanding? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Learning plan, application, feedback, measurable result. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-collaboration",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "collaboration",
+      "prompt": "Tell me about a result that depended on another team. How did you coordinate your responsibilities? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Explicit handoffs, shared goals, dependency management. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-priority",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "priority",
+      "prompt": "Describe a time two important requests competed for your attention. How did you choose what to do first? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Impact, urgency, transparent prioritization, consequences. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-quality",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "quality",
+      "prompt": "Tell me about a time you raised a quality concern despite pressure to ship. What happened? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Evidence, proportionate risk, alternatives, outcome. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-initiative",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "initiative",
+      "prompt": "Describe an improvement you initiated without being assigned it. How did you decide it was worth doing? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Observed need, bounded experiment, alignment, measured value. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-inclusion",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "inclusion",
+      "prompt": "Tell me about a time a quieter colleague had useful information the team was missing. What did you do? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Inclusive facilitation, respectful attribution, changed decision. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-conflict",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "conflict",
+      "prompt": "Describe a difficult conversation about an unmet commitment. How did you handle it? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Concrete facts, empathy, agreed next steps, follow-through. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-uncertainty",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "uncertainty",
+      "prompt": "Tell me about a decision you made with incomplete information. How did you manage the uncertainty? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Explicit assumptions, reversible choices, monitoring, learning. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-customer",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "customer",
+      "prompt": "Describe a time user feedback challenged your initial approach. How did you respond? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "User evidence, revised hypothesis, testing, impact. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "behavioral-senior-handoff",
+      "version": 1,
+      "roles": [
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer",
+        "QA Engineer",
+        "Data Analyst",
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Behavioral",
+      "topic": "handoff",
+      "prompt": "Tell me about a time you handed work to someone else. How did you ensure they could continue successfully? Use an example involving multiple teams or a durable change in how others worked. Explain the situation, your actions, the result and what you learned.",
+      "reviewerNotes": "Context, documentation, demonstration, confirmation of understanding. Look for a concrete personal contribution, not only a hypothetical answer."
+    },
+    {
+      "id": "role-developer-junior-requirements",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "requirements",
+      "prompt": "A stakeholder requests a feature with no measurable success criteria. How would you turn the request into deliverable work? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Acceptance criteria, examples, scope, feedback loop. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-review",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "review",
+      "prompt": "A code review contains a serious correctness concern and several style disagreements. How would you resolve it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Risk prioritization, constructive review, team conventions. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-legacy",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "legacy",
+      "prompt": "You inherit a module with no tests that must change this week. How would you approach the work? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Characterization tests, narrow change, rollback, risk communication. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-estimation",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "estimation",
+      "prompt": "Your estimate doubles after discovering an undocumented integration. How would you reset the delivery plan? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Explain evidence, surface dependency, split scope, revised forecast. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-incident",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "A recent release appears related to a customer outage. How would you contribute to recovery? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Containment, ownership, incident coordination, preservation of evidence. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-debt",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "debt",
+      "prompt": "Repeated workarounds slow every feature in one subsystem. How would you decide whether to invest in repair? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Cost of delay, quantified debt, incremental remediation. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-handover",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "handover",
+      "prompt": "A teammate leaves a partially completed change without documentation. How would you establish its status? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Inspect behavior, clarify intent, reproduce checks, document ownership. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-scope",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "scope",
+      "prompt": "A small feature request expands to include several unrelated workflows. How would you keep delivery predictable? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Boundary negotiation, vertical slices, explicit exclusions, stakeholder agreement. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-privacy",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "A product proposal requires collecting more user data than the feature seems to need. How would you review it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Purpose, minimization, retention, access boundaries. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-accessibility",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "An essential flow cannot be completed with a keyboard. How would you organize remediation? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Reproduction, user impact, acceptance checks, regression coverage. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-dependency",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "dependency",
+      "prompt": "An upstream library becomes unmaintained. How would you decide what to do with its uses? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Inventory, exposure, replacement cost, migration strategy. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-discovery",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "discovery",
+      "prompt": "You are asked to commit to an architecture before the highest-risk requirement is understood. How would you proceed? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Time-boxed spike, hypotheses, decision records, reversible design. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-release",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "release",
+      "prompt": "Two teams need incompatible changes to a shared interface. How would you coordinate the releases? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Contract negotiation, compatibility, versioning, rollout sequencing. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-ownership",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "ownership",
+      "prompt": "A production bug spans components with no clear owner. How would you get it resolved? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Temporary coordination, shared diagnosis, explicit long-term responsibility. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-junior-mentoring",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "mentoring",
+      "prompt": "A colleague repeatedly needs help in an area you know well. How would you support their independence? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Understand gaps, guided practice, documentation, feedback. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-developer-middle-requirements",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "requirements",
+      "prompt": "A stakeholder requests a feature with no measurable success criteria. How would you turn the request into deliverable work? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Acceptance criteria, examples, scope, feedback loop. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-review",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "review",
+      "prompt": "A code review contains a serious correctness concern and several style disagreements. How would you resolve it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Risk prioritization, constructive review, team conventions. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-legacy",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "legacy",
+      "prompt": "You inherit a module with no tests that must change this week. How would you approach the work? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Characterization tests, narrow change, rollback, risk communication. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-estimation",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "estimation",
+      "prompt": "Your estimate doubles after discovering an undocumented integration. How would you reset the delivery plan? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Explain evidence, surface dependency, split scope, revised forecast. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-incident",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "A recent release appears related to a customer outage. How would you contribute to recovery? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Containment, ownership, incident coordination, preservation of evidence. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-debt",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "debt",
+      "prompt": "Repeated workarounds slow every feature in one subsystem. How would you decide whether to invest in repair? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Cost of delay, quantified debt, incremental remediation. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-handover",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "handover",
+      "prompt": "A teammate leaves a partially completed change without documentation. How would you establish its status? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Inspect behavior, clarify intent, reproduce checks, document ownership. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-scope",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "scope",
+      "prompt": "A small feature request expands to include several unrelated workflows. How would you keep delivery predictable? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Boundary negotiation, vertical slices, explicit exclusions, stakeholder agreement. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-privacy",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "A product proposal requires collecting more user data than the feature seems to need. How would you review it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Purpose, minimization, retention, access boundaries. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-accessibility",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "An essential flow cannot be completed with a keyboard. How would you organize remediation? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Reproduction, user impact, acceptance checks, regression coverage. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-dependency",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "dependency",
+      "prompt": "An upstream library becomes unmaintained. How would you decide what to do with its uses? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Inventory, exposure, replacement cost, migration strategy. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-discovery",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "discovery",
+      "prompt": "You are asked to commit to an architecture before the highest-risk requirement is understood. How would you proceed? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Time-boxed spike, hypotheses, decision records, reversible design. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-release",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "release",
+      "prompt": "Two teams need incompatible changes to a shared interface. How would you coordinate the releases? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Contract negotiation, compatibility, versioning, rollout sequencing. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-ownership",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "ownership",
+      "prompt": "A production bug spans components with no clear owner. How would you get it resolved? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Temporary coordination, shared diagnosis, explicit long-term responsibility. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-middle-mentoring",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "mentoring",
+      "prompt": "A colleague repeatedly needs help in an area you know well. How would you support their independence? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Understand gaps, guided practice, documentation, feedback. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-developer-senior-requirements",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "requirements",
+      "prompt": "A stakeholder requests a feature with no measurable success criteria. How would you turn the request into deliverable work? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Acceptance criteria, examples, scope, feedback loop. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-review",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "review",
+      "prompt": "A code review contains a serious correctness concern and several style disagreements. How would you resolve it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Risk prioritization, constructive review, team conventions. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-legacy",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "legacy",
+      "prompt": "You inherit a module with no tests that must change this week. How would you approach the work? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Characterization tests, narrow change, rollback, risk communication. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-estimation",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "estimation",
+      "prompt": "Your estimate doubles after discovering an undocumented integration. How would you reset the delivery plan? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Explain evidence, surface dependency, split scope, revised forecast. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-incident",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "A recent release appears related to a customer outage. How would you contribute to recovery? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Containment, ownership, incident coordination, preservation of evidence. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-debt",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "debt",
+      "prompt": "Repeated workarounds slow every feature in one subsystem. How would you decide whether to invest in repair? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Cost of delay, quantified debt, incremental remediation. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-handover",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "handover",
+      "prompt": "A teammate leaves a partially completed change without documentation. How would you establish its status? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Inspect behavior, clarify intent, reproduce checks, document ownership. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-scope",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "scope",
+      "prompt": "A small feature request expands to include several unrelated workflows. How would you keep delivery predictable? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Boundary negotiation, vertical slices, explicit exclusions, stakeholder agreement. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-privacy",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "A product proposal requires collecting more user data than the feature seems to need. How would you review it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Purpose, minimization, retention, access boundaries. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-accessibility",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "An essential flow cannot be completed with a keyboard. How would you organize remediation? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Reproduction, user impact, acceptance checks, regression coverage. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-dependency",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "dependency",
+      "prompt": "An upstream library becomes unmaintained. How would you decide what to do with its uses? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Inventory, exposure, replacement cost, migration strategy. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-discovery",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "discovery",
+      "prompt": "You are asked to commit to an architecture before the highest-risk requirement is understood. How would you proceed? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Time-boxed spike, hypotheses, decision records, reversible design. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-release",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "release",
+      "prompt": "Two teams need incompatible changes to a shared interface. How would you coordinate the releases? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Contract negotiation, compatibility, versioning, rollout sequencing. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-ownership",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "ownership",
+      "prompt": "A production bug spans components with no clear owner. How would you get it resolved? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Temporary coordination, shared diagnosis, explicit long-term responsibility. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-developer-senior-mentoring",
+      "version": 1,
+      "roles": [
+        "Backend Developer",
+        "Full Stack Developer",
+        "Java Developer",
+        "Python Developer",
+        "C++ Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "mentoring",
+      "prompt": "A colleague repeatedly needs help in an area you know well. How would you support their independence? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Understand gaps, guided practice, documentation, feedback. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-junior-risk",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "risk",
+      "prompt": "A release window permits only a small fraction of the planned tests. How would you choose coverage? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Impact-likelihood analysis, critical paths, residual risk communication. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-reproduction",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "reproduction",
+      "prompt": "A customer reports an intermittent failure that nobody can reproduce locally. How would you investigate? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Environment, evidence, minimal reproduction, collaboration. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-triage",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "triage",
+      "prompt": "Developers and product disagree about whether a defect blocks release. How would you facilitate triage? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Severity versus priority, user impact, workaround, decision owner. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-automation",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "automation",
+      "prompt": "A proposed automation project would replace many manual checks. How would you choose its first cases? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Stability, repeat frequency, business risk, maintenance cost. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-flakiness",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "flakiness",
+      "prompt": "The team routinely ignores a flaky release test. How would you restore trust? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Measure flakiness, isolate cause, bounded quarantine, ownership. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-requirements",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "requirements",
+      "prompt": "A story is ready for implementation but expected behavior at a boundary is unclear. How would you contribute? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Concrete examples, boundary cases, shared acceptance criteria. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-data",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "data",
+      "prompt": "Testing a payment change requires realistic but private customer data. How would you arrange fixtures? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Synthetic data, minimization, masking limits, access controls. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-reporting",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "reporting",
+      "prompt": "A test run finds many minor defects and one rare destructive failure. How would you report readiness? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Risk-focused summary, reproducible evidence, release recommendation. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-exploration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "exploration",
+      "prompt": "A new feature passes scripted checks but still feels unreliable. How would you explore it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Charters, heuristics, observations, focused follow-up. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-coverage",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "coverage",
+      "prompt": "A team equates a high code-coverage number with product quality. How would you review that claim? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Assertion quality, behavioral gaps, risk, meaningful measures. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-collaboration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "collaboration",
+      "prompt": "A developer says testing should begin only after all implementation is finished. How would you negotiate involvement? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Early examples, prevention, collaboration, practical workflow. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-environment",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "environment",
+      "prompt": "Staging differs substantially from production. How would you decide which test results remain useful? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Configuration inventory, fidelity, limits, targeted verification. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-accessibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "A customer using assistive technology cannot finish checkout. How would you organize validation? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Reproduce with assistive tools, user impact, standards-based checks. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-handoff",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "Another team will maintain a test suite you created. What would you deliver beyond the tests? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Execution, fixtures, diagnostics, ownership, known limitations. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-junior-escape",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "escape",
+      "prompt": "A serious escaped defect passed the release suite. How would you lead the learning process? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Blameless analysis, missing signal, preventive changes, verify effectiveness. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-qa-middle-risk",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "risk",
+      "prompt": "A release window permits only a small fraction of the planned tests. How would you choose coverage? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Impact-likelihood analysis, critical paths, residual risk communication. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-reproduction",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "reproduction",
+      "prompt": "A customer reports an intermittent failure that nobody can reproduce locally. How would you investigate? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Environment, evidence, minimal reproduction, collaboration. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-triage",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "triage",
+      "prompt": "Developers and product disagree about whether a defect blocks release. How would you facilitate triage? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Severity versus priority, user impact, workaround, decision owner. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-automation",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "automation",
+      "prompt": "A proposed automation project would replace many manual checks. How would you choose its first cases? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Stability, repeat frequency, business risk, maintenance cost. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-flakiness",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "flakiness",
+      "prompt": "The team routinely ignores a flaky release test. How would you restore trust? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Measure flakiness, isolate cause, bounded quarantine, ownership. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-requirements",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "requirements",
+      "prompt": "A story is ready for implementation but expected behavior at a boundary is unclear. How would you contribute? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Concrete examples, boundary cases, shared acceptance criteria. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-data",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "data",
+      "prompt": "Testing a payment change requires realistic but private customer data. How would you arrange fixtures? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Synthetic data, minimization, masking limits, access controls. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-reporting",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "reporting",
+      "prompt": "A test run finds many minor defects and one rare destructive failure. How would you report readiness? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Risk-focused summary, reproducible evidence, release recommendation. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-exploration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "exploration",
+      "prompt": "A new feature passes scripted checks but still feels unreliable. How would you explore it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Charters, heuristics, observations, focused follow-up. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-coverage",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "coverage",
+      "prompt": "A team equates a high code-coverage number with product quality. How would you review that claim? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Assertion quality, behavioral gaps, risk, meaningful measures. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-collaboration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "collaboration",
+      "prompt": "A developer says testing should begin only after all implementation is finished. How would you negotiate involvement? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Early examples, prevention, collaboration, practical workflow. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-environment",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "environment",
+      "prompt": "Staging differs substantially from production. How would you decide which test results remain useful? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Configuration inventory, fidelity, limits, targeted verification. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-accessibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "A customer using assistive technology cannot finish checkout. How would you organize validation? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Reproduce with assistive tools, user impact, standards-based checks. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-handoff",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "Another team will maintain a test suite you created. What would you deliver beyond the tests? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Execution, fixtures, diagnostics, ownership, known limitations. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-middle-escape",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "escape",
+      "prompt": "A serious escaped defect passed the release suite. How would you lead the learning process? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Blameless analysis, missing signal, preventive changes, verify effectiveness. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-qa-senior-risk",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "risk",
+      "prompt": "A release window permits only a small fraction of the planned tests. How would you choose coverage? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Impact-likelihood analysis, critical paths, residual risk communication. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-reproduction",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "reproduction",
+      "prompt": "A customer reports an intermittent failure that nobody can reproduce locally. How would you investigate? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Environment, evidence, minimal reproduction, collaboration. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-triage",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "triage",
+      "prompt": "Developers and product disagree about whether a defect blocks release. How would you facilitate triage? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Severity versus priority, user impact, workaround, decision owner. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-automation",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "automation",
+      "prompt": "A proposed automation project would replace many manual checks. How would you choose its first cases? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Stability, repeat frequency, business risk, maintenance cost. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-flakiness",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "flakiness",
+      "prompt": "The team routinely ignores a flaky release test. How would you restore trust? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Measure flakiness, isolate cause, bounded quarantine, ownership. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-requirements",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "requirements",
+      "prompt": "A story is ready for implementation but expected behavior at a boundary is unclear. How would you contribute? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Concrete examples, boundary cases, shared acceptance criteria. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-data",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "data",
+      "prompt": "Testing a payment change requires realistic but private customer data. How would you arrange fixtures? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Synthetic data, minimization, masking limits, access controls. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-reporting",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "reporting",
+      "prompt": "A test run finds many minor defects and one rare destructive failure. How would you report readiness? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Risk-focused summary, reproducible evidence, release recommendation. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-exploration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "exploration",
+      "prompt": "A new feature passes scripted checks but still feels unreliable. How would you explore it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Charters, heuristics, observations, focused follow-up. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-coverage",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "coverage",
+      "prompt": "A team equates a high code-coverage number with product quality. How would you review that claim? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Assertion quality, behavioral gaps, risk, meaningful measures. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-collaboration",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "collaboration",
+      "prompt": "A developer says testing should begin only after all implementation is finished. How would you negotiate involvement? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Early examples, prevention, collaboration, practical workflow. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-environment",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "environment",
+      "prompt": "Staging differs substantially from production. How would you decide which test results remain useful? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Configuration inventory, fidelity, limits, targeted verification. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-accessibility",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "A customer using assistive technology cannot finish checkout. How would you organize validation? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Reproduce with assistive tools, user impact, standards-based checks. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-handoff",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "Another team will maintain a test suite you created. What would you deliver beyond the tests? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Execution, fixtures, diagnostics, ownership, known limitations. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-qa-senior-escape",
+      "version": 1,
+      "roles": [
+        "QA Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "escape",
+      "prompt": "A serious escaped defect passed the release suite. How would you lead the learning process? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Blameless analysis, missing signal, preventive changes, verify effectiveness. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-junior-definition",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "definition",
+      "prompt": "Two teams use different definitions of an active customer. How would you create an analysis they can trust? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Stakeholder agreement, grain, metric definition, documented caveats. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-request",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "request",
+      "prompt": "A stakeholder asks for a dashboard before explaining the decision it should support. How would you scope it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Decision context, audience, actionable metrics, success criteria. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-quality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "quality",
+      "prompt": "You discover missing events shortly before an important report is due. How would you proceed? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Quantify gaps, explain uncertainty, bounded alternatives, remediation. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-causality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "causality",
+      "prompt": "A stakeholder attributes a sales increase to a campaign using a before-after chart. How would you assess the claim? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Confounders, counterfactual, experiment or cautious inference. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-privacy",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "An analysis request includes sensitive attributes that may not be necessary. How would you handle it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Purpose, minimization, aggregation, controlled access. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-communication",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "communication",
+      "prompt": "Your results contradict a widely held business belief. How would you communicate them? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Reproducibility, assumptions, accessible explanation, stakeholder dialogue. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-priority",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "priority",
+      "prompt": "Several teams need analyses before the same planning meeting. How would you prioritize requests? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Decision value, urgency, effort, transparent trade-offs. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-dashboard",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "dashboard",
+      "prompt": "A dashboard is widely viewed but rarely used to change decisions. How would you evaluate its value? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "User interviews, decision mapping, adoption versus impact. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-handoff",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "A colleague must refresh your monthly report while you are away. How would you prepare? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Lineage, documented logic, validation, reproducible execution. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-uncertainty",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "uncertainty",
+      "prompt": "A small sample suggests a large improvement. How would you advise the decision maker? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Uncertainty, effect size, sampling bias, additional evidence. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-instrumentation",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "instrumentation",
+      "prompt": "A product team wants to measure a new workflow. How would you define its instrumentation? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Event contracts, identifiers, consent, QA, funnel definitions. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-discovery",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "discovery",
+      "prompt": "You have a broad request to find why retention is declining. How would you structure the investigation? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Cohorts, hypotheses, segmentation, confounders. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-errors",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "errors",
+      "prompt": "You find an error in an analysis already circulated to executives. How would you respond? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Timely correction, impact assessment, clear revision, prevention. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-governance",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "governance",
+      "prompt": "Different dashboards report inconsistent revenue. How would you coordinate a durable fix? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Lineage, source of truth, reconciliation, ownership. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-junior-ethics",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "ethics",
+      "prompt": "A requested segment could encourage unfair treatment of customers. How would you review the request? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Purpose, harm assessment, alternatives, appropriate escalation. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-analyst-middle-definition",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "definition",
+      "prompt": "Two teams use different definitions of an active customer. How would you create an analysis they can trust? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Stakeholder agreement, grain, metric definition, documented caveats. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-request",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "request",
+      "prompt": "A stakeholder asks for a dashboard before explaining the decision it should support. How would you scope it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Decision context, audience, actionable metrics, success criteria. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-quality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "quality",
+      "prompt": "You discover missing events shortly before an important report is due. How would you proceed? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Quantify gaps, explain uncertainty, bounded alternatives, remediation. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-causality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "causality",
+      "prompt": "A stakeholder attributes a sales increase to a campaign using a before-after chart. How would you assess the claim? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Confounders, counterfactual, experiment or cautious inference. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-privacy",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "An analysis request includes sensitive attributes that may not be necessary. How would you handle it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Purpose, minimization, aggregation, controlled access. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-communication",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "communication",
+      "prompt": "Your results contradict a widely held business belief. How would you communicate them? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Reproducibility, assumptions, accessible explanation, stakeholder dialogue. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-priority",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "priority",
+      "prompt": "Several teams need analyses before the same planning meeting. How would you prioritize requests? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Decision value, urgency, effort, transparent trade-offs. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-dashboard",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "dashboard",
+      "prompt": "A dashboard is widely viewed but rarely used to change decisions. How would you evaluate its value? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "User interviews, decision mapping, adoption versus impact. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-handoff",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "A colleague must refresh your monthly report while you are away. How would you prepare? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Lineage, documented logic, validation, reproducible execution. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-uncertainty",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "uncertainty",
+      "prompt": "A small sample suggests a large improvement. How would you advise the decision maker? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Uncertainty, effect size, sampling bias, additional evidence. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-instrumentation",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "instrumentation",
+      "prompt": "A product team wants to measure a new workflow. How would you define its instrumentation? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Event contracts, identifiers, consent, QA, funnel definitions. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-discovery",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "discovery",
+      "prompt": "You have a broad request to find why retention is declining. How would you structure the investigation? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Cohorts, hypotheses, segmentation, confounders. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-errors",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "errors",
+      "prompt": "You find an error in an analysis already circulated to executives. How would you respond? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Timely correction, impact assessment, clear revision, prevention. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-governance",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "governance",
+      "prompt": "Different dashboards report inconsistent revenue. How would you coordinate a durable fix? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Lineage, source of truth, reconciliation, ownership. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-middle-ethics",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "ethics",
+      "prompt": "A requested segment could encourage unfair treatment of customers. How would you review the request? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Purpose, harm assessment, alternatives, appropriate escalation. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-analyst-senior-definition",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "definition",
+      "prompt": "Two teams use different definitions of an active customer. How would you create an analysis they can trust? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Stakeholder agreement, grain, metric definition, documented caveats. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-request",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "request",
+      "prompt": "A stakeholder asks for a dashboard before explaining the decision it should support. How would you scope it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Decision context, audience, actionable metrics, success criteria. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-quality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "quality",
+      "prompt": "You discover missing events shortly before an important report is due. How would you proceed? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Quantify gaps, explain uncertainty, bounded alternatives, remediation. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-causality",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "causality",
+      "prompt": "A stakeholder attributes a sales increase to a campaign using a before-after chart. How would you assess the claim? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Confounders, counterfactual, experiment or cautious inference. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-privacy",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "An analysis request includes sensitive attributes that may not be necessary. How would you handle it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Purpose, minimization, aggregation, controlled access. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-communication",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "communication",
+      "prompt": "Your results contradict a widely held business belief. How would you communicate them? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Reproducibility, assumptions, accessible explanation, stakeholder dialogue. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-priority",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "priority",
+      "prompt": "Several teams need analyses before the same planning meeting. How would you prioritize requests? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Decision value, urgency, effort, transparent trade-offs. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-dashboard",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "dashboard",
+      "prompt": "A dashboard is widely viewed but rarely used to change decisions. How would you evaluate its value? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "User interviews, decision mapping, adoption versus impact. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-handoff",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "A colleague must refresh your monthly report while you are away. How would you prepare? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Lineage, documented logic, validation, reproducible execution. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-uncertainty",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "uncertainty",
+      "prompt": "A small sample suggests a large improvement. How would you advise the decision maker? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Uncertainty, effect size, sampling bias, additional evidence. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-instrumentation",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "instrumentation",
+      "prompt": "A product team wants to measure a new workflow. How would you define its instrumentation? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Event contracts, identifiers, consent, QA, funnel definitions. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-discovery",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "discovery",
+      "prompt": "You have a broad request to find why retention is declining. How would you structure the investigation? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Cohorts, hypotheses, segmentation, confounders. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-errors",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "errors",
+      "prompt": "You find an error in an analysis already circulated to executives. How would you respond? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Timely correction, impact assessment, clear revision, prevention. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-governance",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "governance",
+      "prompt": "Different dashboards report inconsistent revenue. How would you coordinate a durable fix? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Lineage, source of truth, reconciliation, ownership. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-analyst-senior-ethics",
+      "version": 1,
+      "roles": [
+        "Data Analyst"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "ethics",
+      "prompt": "A requested segment could encourage unfair treatment of customers. How would you review the request? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Purpose, harm assessment, alternatives, appropriate escalation. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-junior-oncall",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "oncall",
+      "prompt": "An alert wakes the on-call engineer repeatedly without requiring action. How would you improve it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Actionability, thresholds, ownership, alert burden. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-release",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "release",
+      "prompt": "A team wants faster releases while operations fears instability. How would you align the goals? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Delivery metrics, change risk, progressive rollout, shared responsibility. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-incident",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "Two production services fail at once with unclear causal order. How would you coordinate response? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Incident roles, timeline, mitigation priority, communication. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-capacity",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "capacity",
+      "prompt": "A planned event may multiply traffic but forecasts are uncertain. How would you prepare? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Capacity evidence, load testing, scaling limits, contingency. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-cost",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "cost",
+      "prompt": "Cloud spending rises unexpectedly without a matching traffic increase. How would you organize an investigation? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Attribution, usage versus price, anomalies, budgets, ownership. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-secrets",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "secrets",
+      "prompt": "A credential appears in a build log. How would you respond and prevent recurrence? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Revocation, exposure assessment, redaction, scoped credentials. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-handover",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "handover",
+      "prompt": "A critical service is moving to your on-call rotation. What would you require before accepting it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Runbooks, service objectives, access, alerts, recovery exercises. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-toil",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "toil",
+      "prompt": "Manual maintenance consumes a growing share of the team\u2019s week. How would you choose what to automate? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Frequency, risk, effort, measured savings, safe automation. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-recovery",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "recovery",
+      "prompt": "Backups succeed but nobody has restored them recently. How would you evaluate readiness? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Restore tests, recovery objectives, dependencies, evidence. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-change",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "change",
+      "prompt": "An urgent configuration change conflicts with the normal review process. How would you handle it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Emergency path, authorization, audit trail, rollback, retrospective. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-dependencies",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "dependencies",
+      "prompt": "A provider announces retirement of a service your platform depends on. How would you organize migration? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Inventory, critical paths, compatibility, staged migration. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-standards",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "standards",
+      "prompt": "Product teams use inconsistent deployment conventions. How would you introduce common practices? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Understand needs, paved paths, adoption, exception handling. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-access",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "access",
+      "prompt": "Developers need production visibility without unrestricted access. How would you design the operating process? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Least privilege, observability, break-glass, auditability. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-reliability",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "reliability",
+      "prompt": "A team wants to promise perfect availability. How would you guide a practical reliability commitment? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "User journeys, measurable objectives, error budgets, cost trade-offs. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-junior-learning",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "learning",
+      "prompt": "A rollback took longer than the outage itself. How would you improve future response? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Timeline, rollback prerequisites, rehearsal, ownership. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-devops-middle-oncall",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "oncall",
+      "prompt": "An alert wakes the on-call engineer repeatedly without requiring action. How would you improve it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Actionability, thresholds, ownership, alert burden. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-release",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "release",
+      "prompt": "A team wants faster releases while operations fears instability. How would you align the goals? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Delivery metrics, change risk, progressive rollout, shared responsibility. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-incident",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "Two production services fail at once with unclear causal order. How would you coordinate response? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Incident roles, timeline, mitigation priority, communication. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-capacity",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "capacity",
+      "prompt": "A planned event may multiply traffic but forecasts are uncertain. How would you prepare? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Capacity evidence, load testing, scaling limits, contingency. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-cost",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "cost",
+      "prompt": "Cloud spending rises unexpectedly without a matching traffic increase. How would you organize an investigation? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Attribution, usage versus price, anomalies, budgets, ownership. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-secrets",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "secrets",
+      "prompt": "A credential appears in a build log. How would you respond and prevent recurrence? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Revocation, exposure assessment, redaction, scoped credentials. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-handover",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "handover",
+      "prompt": "A critical service is moving to your on-call rotation. What would you require before accepting it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Runbooks, service objectives, access, alerts, recovery exercises. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-toil",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "toil",
+      "prompt": "Manual maintenance consumes a growing share of the team\u2019s week. How would you choose what to automate? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Frequency, risk, effort, measured savings, safe automation. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-recovery",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "recovery",
+      "prompt": "Backups succeed but nobody has restored them recently. How would you evaluate readiness? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Restore tests, recovery objectives, dependencies, evidence. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-change",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "change",
+      "prompt": "An urgent configuration change conflicts with the normal review process. How would you handle it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Emergency path, authorization, audit trail, rollback, retrospective. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-dependencies",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "dependencies",
+      "prompt": "A provider announces retirement of a service your platform depends on. How would you organize migration? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Inventory, critical paths, compatibility, staged migration. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-standards",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "standards",
+      "prompt": "Product teams use inconsistent deployment conventions. How would you introduce common practices? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Understand needs, paved paths, adoption, exception handling. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-access",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "access",
+      "prompt": "Developers need production visibility without unrestricted access. How would you design the operating process? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Least privilege, observability, break-glass, auditability. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-reliability",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "reliability",
+      "prompt": "A team wants to promise perfect availability. How would you guide a practical reliability commitment? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "User journeys, measurable objectives, error budgets, cost trade-offs. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-middle-learning",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "learning",
+      "prompt": "A rollback took longer than the outage itself. How would you improve future response? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Timeline, rollback prerequisites, rehearsal, ownership. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-devops-senior-oncall",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "oncall",
+      "prompt": "An alert wakes the on-call engineer repeatedly without requiring action. How would you improve it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Actionability, thresholds, ownership, alert burden. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-release",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "release",
+      "prompt": "A team wants faster releases while operations fears instability. How would you align the goals? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Delivery metrics, change risk, progressive rollout, shared responsibility. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-incident",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "Two production services fail at once with unclear causal order. How would you coordinate response? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Incident roles, timeline, mitigation priority, communication. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-capacity",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "capacity",
+      "prompt": "A planned event may multiply traffic but forecasts are uncertain. How would you prepare? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Capacity evidence, load testing, scaling limits, contingency. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-cost",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "cost",
+      "prompt": "Cloud spending rises unexpectedly without a matching traffic increase. How would you organize an investigation? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Attribution, usage versus price, anomalies, budgets, ownership. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-secrets",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "secrets",
+      "prompt": "A credential appears in a build log. How would you respond and prevent recurrence? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Revocation, exposure assessment, redaction, scoped credentials. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-handover",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "handover",
+      "prompt": "A critical service is moving to your on-call rotation. What would you require before accepting it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Runbooks, service objectives, access, alerts, recovery exercises. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-toil",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "toil",
+      "prompt": "Manual maintenance consumes a growing share of the team\u2019s week. How would you choose what to automate? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Frequency, risk, effort, measured savings, safe automation. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-recovery",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "recovery",
+      "prompt": "Backups succeed but nobody has restored them recently. How would you evaluate readiness? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Restore tests, recovery objectives, dependencies, evidence. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-change",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "change",
+      "prompt": "An urgent configuration change conflicts with the normal review process. How would you handle it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Emergency path, authorization, audit trail, rollback, retrospective. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-dependencies",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "dependencies",
+      "prompt": "A provider announces retirement of a service your platform depends on. How would you organize migration? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Inventory, critical paths, compatibility, staged migration. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-standards",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "standards",
+      "prompt": "Product teams use inconsistent deployment conventions. How would you introduce common practices? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Understand needs, paved paths, adoption, exception handling. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-access",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "access",
+      "prompt": "Developers need production visibility without unrestricted access. How would you design the operating process? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Least privilege, observability, break-glass, auditability. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-reliability",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "reliability",
+      "prompt": "A team wants to promise perfect availability. How would you guide a practical reliability commitment? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "User journeys, measurable objectives, error budgets, cost trade-offs. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-devops-senior-learning",
+      "version": 1,
+      "roles": [
+        "DevOps Engineer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "learning",
+      "prompt": "A rollback took longer than the outage itself. How would you improve future response? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Timeline, rollback prerequisites, rehearsal, ownership. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-junior-design",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "design",
+      "prompt": "A supplied design omits loading, empty and error states. How would you complete the specification? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "State inventory, design collaboration, accessible feedback. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-accessibility",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "A new interaction depends on dragging with a mouse. How would you make delivery inclusive? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Keyboard alternatives, focus, assistive technology, acceptance tests. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-performance",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "performance",
+      "prompt": "A marketing feature noticeably slows the main page. How would you negotiate the release decision? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "User metrics, budgets, profiling, alternatives. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-browsers",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "browsers",
+      "prompt": "A feature works on your browser but fails for a customer on an older supported device. How would you respond? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Support matrix, reproduction, progressive enhancement. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-contracts",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "contracts",
+      "prompt": "The API team changes a field needed by a nearly completed screen. How would you coordinate delivery? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Contract examples, compatibility, adapters, sequencing. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-content",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "content",
+      "prompt": "Long translated text breaks a page just before launch. How would you approach the fix? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Flexible layout, localization, truncation trade-offs, realistic fixtures. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-consistency",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "consistency",
+      "prompt": "Three teams implement visually different versions of the same control. How would you reduce divergence? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Shared components, design tokens, ownership, migration. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-privacy",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "A third-party widget asks to track users to enable a small UI feature. How would you evaluate it? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Purpose, alternatives, consent, dependency risk. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-forms",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "forms",
+      "prompt": "Support reports users losing long form entries after validation failures. How would you define the repair? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Preserve input, actionable errors, recovery, regression tests. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-handoff",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "A complex screen will be maintained by a new teammate. What context would you transfer? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "State flows, component boundaries, contracts, debugging. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-experiments",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "experiments",
+      "prompt": "Two experiments need to modify the same screen. How would you coordinate their implementation? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Variant isolation, measurement, combinations, cleanup. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-scope",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "scope",
+      "prompt": "A proposed animation consumes time needed for an essential interaction. How would you prioritize? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "User value, accessibility, reduced motion, staged delivery. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-quality",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "quality",
+      "prompt": "Visual snapshots pass while keyboard navigation is broken. How would you improve confidence? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Behavioral tests, focus checks, assistive testing. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-incident",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "A frontend deployment prevents some users from signing in. How would you contribute to recovery? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Reproduce cohort, telemetry, rollback, communicate impact. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-junior-ownership",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Junior"
+      ],
+      "type": "Role-specific",
+      "topic": "ownership",
+      "prompt": "An inconsistent design system API forces repeated local workarounds. How would you propose a durable change? Describe the steps you would take with guidance from an experienced teammate.",
+      "reviewerNotes": "Use cases, compatibility, contribution process, migration. Assess concrete next steps, knowing when to ask for help, and basic risk awareness."
+    },
+    {
+      "id": "role-frontend-middle-design",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "design",
+      "prompt": "A supplied design omits loading, empty and error states. How would you complete the specification? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "State inventory, design collaboration, accessible feedback. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-accessibility",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "A new interaction depends on dragging with a mouse. How would you make delivery inclusive? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Keyboard alternatives, focus, assistive technology, acceptance tests. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-performance",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "performance",
+      "prompt": "A marketing feature noticeably slows the main page. How would you negotiate the release decision? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "User metrics, budgets, profiling, alternatives. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-browsers",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "browsers",
+      "prompt": "A feature works on your browser but fails for a customer on an older supported device. How would you respond? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Support matrix, reproduction, progressive enhancement. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-contracts",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "contracts",
+      "prompt": "The API team changes a field needed by a nearly completed screen. How would you coordinate delivery? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Contract examples, compatibility, adapters, sequencing. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-content",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "content",
+      "prompt": "Long translated text breaks a page just before launch. How would you approach the fix? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Flexible layout, localization, truncation trade-offs, realistic fixtures. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-consistency",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "consistency",
+      "prompt": "Three teams implement visually different versions of the same control. How would you reduce divergence? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Shared components, design tokens, ownership, migration. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-privacy",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "A third-party widget asks to track users to enable a small UI feature. How would you evaluate it? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Purpose, alternatives, consent, dependency risk. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-forms",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "forms",
+      "prompt": "Support reports users losing long form entries after validation failures. How would you define the repair? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Preserve input, actionable errors, recovery, regression tests. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-handoff",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "A complex screen will be maintained by a new teammate. What context would you transfer? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "State flows, component boundaries, contracts, debugging. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-experiments",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "experiments",
+      "prompt": "Two experiments need to modify the same screen. How would you coordinate their implementation? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Variant isolation, measurement, combinations, cleanup. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-scope",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "scope",
+      "prompt": "A proposed animation consumes time needed for an essential interaction. How would you prioritize? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "User value, accessibility, reduced motion, staged delivery. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-quality",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "quality",
+      "prompt": "Visual snapshots pass while keyboard navigation is broken. How would you improve confidence? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Behavioral tests, focus checks, assistive testing. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-incident",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "A frontend deployment prevents some users from signing in. How would you contribute to recovery? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Reproduce cohort, telemetry, rollback, communicate impact. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-middle-ownership",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Middle"
+      ],
+      "type": "Role-specific",
+      "topic": "ownership",
+      "prompt": "An inconsistent design system API forces repeated local workarounds. How would you propose a durable change? Explain how you would own this work across stakeholders and verify the outcome.",
+      "reviewerNotes": "Use cases, compatibility, contribution process, migration. Assess independent delivery, trade-offs, coordination, and measurable validation."
+    },
+    {
+      "id": "role-frontend-senior-design",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "design",
+      "prompt": "A supplied design omits loading, empty and error states. How would you complete the specification? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "State inventory, design collaboration, accessible feedback. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-accessibility",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "accessibility",
+      "prompt": "A new interaction depends on dragging with a mouse. How would you make delivery inclusive? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Keyboard alternatives, focus, assistive technology, acceptance tests. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-performance",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "performance",
+      "prompt": "A marketing feature noticeably slows the main page. How would you negotiate the release decision? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "User metrics, budgets, profiling, alternatives. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-browsers",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "browsers",
+      "prompt": "A feature works on your browser but fails for a customer on an older supported device. How would you respond? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Support matrix, reproduction, progressive enhancement. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-contracts",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "contracts",
+      "prompt": "The API team changes a field needed by a nearly completed screen. How would you coordinate delivery? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Contract examples, compatibility, adapters, sequencing. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-content",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "content",
+      "prompt": "Long translated text breaks a page just before launch. How would you approach the fix? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Flexible layout, localization, truncation trade-offs, realistic fixtures. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-consistency",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "consistency",
+      "prompt": "Three teams implement visually different versions of the same control. How would you reduce divergence? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Shared components, design tokens, ownership, migration. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-privacy",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "privacy",
+      "prompt": "A third-party widget asks to track users to enable a small UI feature. How would you evaluate it? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Purpose, alternatives, consent, dependency risk. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-forms",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "forms",
+      "prompt": "Support reports users losing long form entries after validation failures. How would you define the repair? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Preserve input, actionable errors, recovery, regression tests. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-handoff",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "handoff",
+      "prompt": "A complex screen will be maintained by a new teammate. What context would you transfer? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "State flows, component boundaries, contracts, debugging. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-experiments",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "experiments",
+      "prompt": "Two experiments need to modify the same screen. How would you coordinate their implementation? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Variant isolation, measurement, combinations, cleanup. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-scope",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "scope",
+      "prompt": "A proposed animation consumes time needed for an essential interaction. How would you prioritize? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "User value, accessibility, reduced motion, staged delivery. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-quality",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "quality",
+      "prompt": "Visual snapshots pass while keyboard navigation is broken. How would you improve confidence? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Behavioral tests, focus checks, assistive testing. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-incident",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "incident",
+      "prompt": "A frontend deployment prevents some users from signing in. How would you contribute to recovery? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Reproduce cohort, telemetry, rollback, communicate impact. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    },
+    {
+      "id": "role-frontend-senior-ownership",
+      "version": 1,
+      "roles": [
+        "Frontend Developer"
+      ],
+      "levels": [
+        "Senior"
+      ],
+      "type": "Role-specific",
+      "topic": "ownership",
+      "prompt": "An inconsistent design system API forces repeated local workarounds. How would you propose a durable change? Explain how you would set direction across teams and make the improvement sustainable.",
+      "reviewerNotes": "Use cases, compatibility, contribution process, migration. Assess systemic risk, organizational incentives, sequencing, ownership, and long-term measurement."
+    }
+  ]
+}

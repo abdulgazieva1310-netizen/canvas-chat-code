@@ -164,6 +164,45 @@ it("shows a recovery link when the backend returns no interview", async () => {
   client.clear();
 });
 
+it("can retry loading after a recoverable fetch error", async () => {
+  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null };
+  const getInterview = vi.spyOn(Api, "getInterview")
+    .mockRejectedValueOnce(new Error("Network unavailable."))
+    .mockResolvedValueOnce(active);
+  const client = openInterview();
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "Retry loading" }));
+  await screen.findByText(active.messages[0]!.text);
+  expect(getInterview).toHaveBeenCalledTimes(2);
+  expect(await screen.findByRole("button", { name: "Send" })).toBeDisabled();
+  client.clear();
+});
+
+it("shows persisted elapsed time and removes answer controls for completed sessions", async () => {
+  const endedAt = new Date();
+  const startedAt = new Date(endedAt.getTime() - 123_000).toISOString();
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "complete",
+    startedAt,
+    endedAt: endedAt.toISOString(),
+    answeredCount: 10,
+    setup: { ...defaultSetup, questionCount: 10 },
+  });
+  const client = openInterview();
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("This interview has ended."),
+  );
+  expect(screen.getByText("02:03")).toBeInTheDocument();
+  expect(screen.queryByRole("textbox", { name: "Your answer" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+  expect(screen.getByRole("link", { name: "View results" })).toHaveAttribute(
+    "href",
+    "/report?interviewId=session-123",
+  );
+  client.clear();
+});
+
 it.each(["/interview", "/interview?interviewId=", "/interview?interviewId=%20%20"])(
   "redirects %s to setup without fetching",
   async (url) => {
@@ -293,6 +332,9 @@ it.each(["click", "Enter"])(
       expect(send).toHaveBeenCalledExactlyOnceWith(saved.id, "My resumed answer"),
     );
     expect(input).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Sending…" }));
+    expect(send).toHaveBeenCalledOnce();
     finishSend(updated);
     await screen.findByText("Next question after resuming?");
     expect(input).toHaveValue("");

@@ -73,6 +73,7 @@ function Interview() {
     data: interview,
     error,
     isPending,
+    refetch,
   } = useQuery({
     queryKey,
     queryFn: async () => {
@@ -164,7 +165,11 @@ function Interview() {
   if (error || !interview)
     return (
       <p role="alert">
-        {error?.message ?? "Interview unavailable."} <Link to="/setup">New interview</Link>
+        {error?.message ?? "Interview unavailable."} {error && (
+          <button type="button" className="btn btn-ghost ml-2" onClick={() => void refetch()}>
+            Retry loading
+          </button>
+        )} <Link to="/setup">New interview</Link>
       </p>
     );
   const setup = interview.setup;
@@ -289,7 +294,7 @@ function Interview() {
               {spoken.error}
             </p>
           )}
-          <div
+          {interview.status === "active" ? <div
             className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
           >
             {codingLanguage && (
@@ -366,7 +371,14 @@ function Interview() {
             >
               {answer.isPending ? "Sending…" : "Send"}
             </button>
-          </div>
+          </div> : (
+            <div role="status" className="card-surface mt-6 p-4">
+              <p className="font-medium">This interview has ended.</p>
+              <Link className="btn btn-primary mt-3 inline-flex" to="/report" search={{ interviewId }}>
+                View results
+              </Link>
+            </div>
+          )}
           {voiceMode && !speech.supported && (
             <p className="mt-2 text-sm text-muted-foreground">
               Voice transcription is unavailable in this browser. You can type your answer instead.

@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 import logging
 import secrets
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
@@ -26,7 +26,9 @@ def request_reset(data: ResetRequest, request: Request, response: Response):
             reset = PasswordResetRecord(digest=token_key(token), user_id=user.id,
                 expires_at=(datetime.now(timezone.utc) + timedelta(minutes=30)).timestamp())
             store.session.add(reset)
-            link = request.app.state.reset_url + '?' + urlencode({'token': token})
+            parts = urlsplit(request.app.state.reset_url)
+            query = [(key, value) for key, value in parse_qsl(parts.query) if key != 'token']
+            link = urlunsplit(parts._replace(query=urlencode(query + [('token', token)])))
             try:
                 request.app.state.mailer.send_reset(user.email, link)
             except Exception:

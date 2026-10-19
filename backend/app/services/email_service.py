@@ -3,6 +3,7 @@ import os
 import smtplib
 import ssl
 from email.message import EmailMessage
+from urllib.parse import urlsplit
 
 
 class LocalMailbox:
@@ -35,3 +36,14 @@ def email_delivery():
     if adapter == 'smtp':
         return SMTPDelivery()
     raise ValueError('EMAIL_ADAPTER must be local or smtp')
+
+
+def password_reset_url():
+    value = os.getenv('PASSWORD_RESET_URL')
+    if value is None and os.getenv('EMAIL_ADAPTER', 'local') == 'smtp':
+        raise ValueError('PASSWORD_RESET_URL is required for SMTP delivery')
+    value = value or 'http://localhost:8080/reset-password'
+    parsed = urlsplit(value)
+    if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+        raise ValueError('PASSWORD_RESET_URL must be an absolute HTTP(S) URL without credentials or fragment')
+    return value

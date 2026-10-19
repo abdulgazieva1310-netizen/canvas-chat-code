@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 
 from .routers import auth, interviews
 from .store import Store
-from .services.email_service import email_delivery
+from .services.email_service import email_delivery, password_reset_url
 
 
 def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None):
@@ -31,7 +31,7 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
     app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
     app.state.store = store
     app.state.mailer = mailer if mailer is not None else email_delivery()
-    app.state.reset_url = os.getenv('PASSWORD_RESET_URL', 'http://localhost:8080/reset-password')
+    app.state.reset_url = password_reset_url()
     app.state.secure_cookies = (os.getenv('SECURE_COOKIES', 'false').lower() == 'true'
                                 if secure_cookies is None else secure_cookies)
     app.add_middleware(CORSMiddleware,

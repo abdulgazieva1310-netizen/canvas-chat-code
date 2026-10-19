@@ -205,25 +205,45 @@ paths:
     get:
       operationId: getHistory
       summary: Get saved interview history
-      description: Returns complete and incomplete interviews only, newest startedAt first. Returns an empty array when none exist. No request body or query parameters.
-      x-planned-contract:
-        issue: 40
-        description: Replace the array with HistoryPage and migrate every consumer together. All filters combine with AND and all counts are owner-scoped. Order by startedAt descending then ID ascending. Dates are inclusive UTC calendar days. Search is case-insensitive substring over role and jobDescription. Unscored interviews remain unless score bounds are supplied. Invalid ranges return 400.
-        querySchema:
-          $ref: '#/components/schemas/HistoryQuery'
-        responseSchema:
-          $ref: '#/components/schemas/HistoryPage'
-        errorSchema:
-          $ref: '#/components/schemas/Error'
+      description: Returns owner-scoped complete and incomplete interviews in a page envelope. Filters combine with AND. Order is startedAt descending then ID ascending. Date bounds are inclusive UTC calendar days; search is a case-insensitive substring over role and optional job description. Unscored sessions remain unless score bounds are supplied. Invalid pages or ranges return 400.
+      x-implementation-status: implemented
+      parameters:
+        - in: query
+          name: role
+          schema: {$ref: '#/components/schemas/Role'}
+        - in: query
+          name: type
+          schema: {type: string, enum: [Technical, Behavioral, Role-specific]}
+        - in: query
+          name: startDate
+          schema: {type: string, format: date}
+        - in: query
+          name: endDate
+          schema: {type: string, format: date}
+        - in: query
+          name: minScore
+          schema: {type: number, minimum: 1, maximum: 10}
+        - in: query
+          name: maxScore
+          schema: {type: number, minimum: 1, maximum: 10}
+        - in: query
+          name: search
+          schema: {type: string, maxLength: 200}
+        - in: query
+          name: page
+          schema: {type: integer, minimum: 1, default: 1}
+        - in: query
+          name: pageSize
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
       responses:
         '200':
-          description: Current user's ended interviews
+          description: Current user's ended interviews and owner-scoped total
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Interview'
+                $ref: '#/components/schemas/HistoryPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /interviews/{interviewId}:
@@ -546,7 +566,7 @@ components:
             mainQuestionId: {type: string}
             mainQuestionNumber: {type: integer, minimum: 1, maximum: 15}
     HistoryQuery:
-      x-implementation-status: planned
+      x-implementation-status: implemented
       type: object
       additionalProperties: false
       properties:
@@ -561,7 +581,7 @@ components:
         page: {type: integer, minimum: 1, default: 1}
         pageSize: {type: integer, minimum: 1, maximum: 100, default: 20}
     HistoryPage:
-      x-implementation-status: planned
+      x-implementation-status: implemented
       type: object
       required: [items, total, page, pageSize]
       properties:

@@ -26,7 +26,7 @@ def test_private_operations_require_identity_and_hide_other_owners(tmp_path, mon
             absent = client.request(method, '/api/interviews/absent' + suffix, json=body)
             assert foreign.status_code == absent.status_code == 404
             assert foreign.json() == absent.json()
-        assert client.get('/api/interviews', params={'ownerId': 'demo-user'}).json() == []
+        assert client.get('/api/interviews', params={'ownerId': 'demo-user'}).json()['items'] == []
         assert client.get('/api/auth/me', params={'ownerId': 'demo-user'}).json()['id'] != owner_profile['id']
         client.patch('/api/auth/me', json={'name': 'Other renamed'})
         client.post('/api/auth/login', json={'email': 'demo@example.com', 'password': 'demo-password'})

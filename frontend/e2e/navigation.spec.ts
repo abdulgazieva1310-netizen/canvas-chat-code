@@ -37,9 +37,7 @@ test.beforeEach(async ({ page }) => {
     else if (path === "/api/dashboard/summary")
       body = { completedCount: 1, recentActivity: [complete], groups: [], strengths: [], weaknesses: [], suggestions: [] };
     else if (path === "/api/interviews")
-      body = new URL(route.request().url()).search
-        ? { items: [complete, active], total: 2, page: 1, pageSize: 20 }
-        : [complete, active];
+      body = { items: [complete, active], total: 2, page: 1, pageSize: 20 };
     else if (path.endsWith("/report"))
       body = {
         interview: complete,

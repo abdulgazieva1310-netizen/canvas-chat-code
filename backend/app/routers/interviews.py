@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from typing import Annotated
+from ..history import HistoryPage, HistoryQuery, history_page
 from sqlalchemy.exc import IntegrityError
 from ..database import InterviewStartRecord
 
@@ -53,11 +55,11 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
         raise
 
 
-@router.get('', response_model=list[Interview])
-def history(request: Request, user: CurrentUser):
+@router.get('', response_model=HistoryPage)
+def history(request: Request, user: CurrentUser, query: Annotated[HistoryQuery, Query()]):
     store = request.app.state.store
     with store.transaction() as store:
-        return store.history(user.id)
+        return history_page(store.session, user.id, query)
 
 
 @router.get('/{interviewId}', response_model=Interview)

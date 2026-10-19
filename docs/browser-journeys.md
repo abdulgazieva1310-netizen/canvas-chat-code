@@ -66,3 +66,9 @@ because they share frontend build outputs.
 
 Hosted execution must be checked on GitHub after the workflow is pushed or
 merged; a local run cannot verify GitHub runner provisioning or upload delivery.
+
+History API now returns `{items, total, page, pageSize}` for every request.
+`Api.getHistoryPage` exposes one filtered page; `Api.getHistory` collects pages
+for the existing Dashboard, AuthGate and navigation array consumers. History
+includes saved complete/incomplete sessions; active rooms are opened separately.
+Filters, counts, score aggregation, ordering and pagination execute in SQL.

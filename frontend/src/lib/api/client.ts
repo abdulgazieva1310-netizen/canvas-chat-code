@@ -158,5 +158,15 @@ export const Api = {
     const suffix = encoded ? `?${encoded}` : "";
     return request<HistoryPage>(`/interviews${suffix}`);
   },
-  getHistory: () => request<Interview[]>("/interviews"),
+  async getHistory(): Promise<Interview[]> {
+    // Existing dashboard/session consumers still need the complete saved history.
+    const first = await request<HistoryPage>("/interviews");
+    const items = [...(first.items ?? [])];
+    for (let page = 2; items.length < first.total; page++) {
+      const next = await request<HistoryPage>(`/interviews?page=${page}&pageSize=${first.pageSize}`);
+      if (!next.items.length) break;
+      items.push(...next.items);
+    }
+    return items;
+  },
 };

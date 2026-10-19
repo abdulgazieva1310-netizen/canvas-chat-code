@@ -48,7 +48,7 @@ def test_authentication_and_seed(client):
         password_hash = session.get(UserRecord, 'demo-user').password_hash
         assert hasher.verify('demo-password', password_hash)
         assert password_hash != 'demo-password'
-    history = client.get('/api/interviews').json()
+    history = client.get('/api/interviews').json()['items']
     assert len(history) == 2
     assert history[0]['startedAt'] > history[1]['startedAt']
     assert client.get('/api/interviews', headers={'Authorization': 'Bearer invalid'}).status_code == 401
@@ -66,7 +66,7 @@ def test_register_and_ownership(client):
     assert response.status_code == 201
     assert response.json()['targetRole'] == 'Frontend Developer'
     assert response.json()['name'] == 'New User'
-    assert client.get('/api/interviews').json() == []
+    assert client.get('/api/interviews').json()['items'] == []
     for suffix in ['', '/report']:
         assert client.get(f'/api/interviews/{ident}{suffix}').status_code == 404
     for suffix, body in [('/messages', {'text': 'answer'}), ('/hint', None), ('/end', None), ('/resume', None)]:
@@ -113,14 +113,14 @@ def test_complete_lifecycle(client, mode, monkeypatch):
     assert report['feedback']['questions'][0]['questionId'] == first_question['id']
     assert report['feedback']['questions'][0]['answerId'] == first_answer['id']
     assert report['feedback']['scores'] is not None
-    assert interview in client.get('/api/interviews').json()
+    assert interview in client.get('/api/interviews').json()['items']
 
 
 def test_empty_report_and_early_end(client):
     login(client)
     interview = start(client)
     path = '/api/interviews/' + interview['id']
-    assert interview not in client.get('/api/interviews').json()
+    assert interview not in client.get('/api/interviews').json()['items']
     ended = client.post(path + '/end').json()
     assert ended['status'] == 'incomplete'
     assert client.post(path + '/end').json() == ended
@@ -203,7 +203,7 @@ def test_responses_match_contract(client):
     validate('Interview', interview)
     client.post('/api/interviews/' + interview['id'] + '/end')
     validate('InterviewReport', client.get('/api/interviews/' + interview['id'] + '/report').json())
-    for saved in client.get('/api/interviews').json():
+    for saved in client.get('/api/interviews').json()['items']:
         validate('Interview', saved)
         validate('InterviewReport', client.get('/api/interviews/' + saved['id'] + '/report').json())
 
@@ -254,7 +254,7 @@ def test_persistence_and_shared_database(tmp_path, monkeypatch):
             assert first.get(path).json() == ended
     with TestClient(create_app(seed=False)) as restarted:
         assert restarted.get(path, headers=headers).json() == ended
-        assert restarted.get('/api/interviews', headers=headers).json() == [ended]
+        assert restarted.get('/api/interviews', headers=headers).json()['items'] == [ended]
         report = restarted.get(path + '/report', headers=headers).json()
         assert report['feedback']['questions'][0]['answer'] == 'Stored answer'
         assert restarted.post('/api/auth/login', json={
@@ -265,10 +265,10 @@ def test_seed_is_idempotent(tmp_path):
     url = f'sqlite:///{tmp_path / "seed.db"}'
     with TestClient(create_app(database_url=url)) as first:
         login(first)
-        history = first.get('/api/interviews').json()
+        history = first.get('/api/interviews').json()['items']
     with TestClient(create_app(database_url=url)) as second:
         login(second)
-        assert second.get('/api/interviews').json() == history
+        assert second.get('/api/interviews').json()['items'] == history
 
 
 def test_transaction_rollback_and_concurrent_updates(tmp_path):
@@ -633,7 +633,7 @@ def test_resume_incomplete_interview_preserves_progress(client, mode):
     assert resumed == ended | {'status': 'active', 'endedAt': None}
     assert client.post(path + '/resume').json() == resumed
     assert client.get(path).json() == resumed
-    assert all(item['id'] != interview['id'] for item in client.get('/api/interviews').json())
+    assert all(item['id'] != interview['id'] for item in client.get('/api/interviews').json()['items'])
     assert client.get(path + '/report').status_code == 409
     assert client.post(path + '/hint').status_code == (200 if mode == 'Practice' else 409)
     for index in range(4):
@@ -686,16 +686,16 @@ def test_delete_interview_removes_transcript_and_evaluations(client, status):
     assert client.post(path + '/resume').status_code == 404
     assert client.post(path + '/messages', json={'text': 'Cannot answer deleted session'}).status_code == 404
     assert client.delete(path).status_code == 404
-    assert all(item['id'] != interview['id'] for item in client.get('/api/interviews').json())
+    assert all(item['id'] != interview['id'] for item in client.get('/api/interviews').json()['items'])
     with client.app.state.store.sessions() as session:
         assert session.get(InterviewRecord, interview['id']) is None
         assert session.scalar(select(AnswerEvaluationRecord).where(
             AnswerEvaluationRecord.interview_id == interview['id'])) is None
     # Other sessions and the authenticated user's credentials survive deletion.
-    assert len(client.get('/api/interviews').json()) == 2
+    assert len(client.get('/api/interviews').json()['items']) == 2
     with TestClient(create_app(database_url=str(client.app.state.store.engine.url))) as restarted:
         assert restarted.get(path, headers={'Authorization': token}).status_code == 404
-        assert len(restarted.get('/api/interviews', headers={'Authorization': token}).json()) == 2
+        assert len(restarted.get('/api/interviews', headers={'Authorization': token}).json()['items']) == 2
 
 
 def test_delete_requires_authentication_and_ownership(client):
@@ -838,7 +838,7 @@ def test_profile_supports_all_roles_and_levels(client, role, level):
 
 def test_profile_update_does_not_change_past_interviews(client):
     login(client)
-    history_before = client.get('/api/interviews').json()
+    history_before = client.get('/api/interviews').json()['items']
     assert history_before
 
     response = client.patch('/api/auth/me', json={
@@ -847,7 +847,7 @@ def test_profile_update_does_not_change_past_interviews(client):
     })
 
     assert response.status_code == 200
-    assert client.get('/api/interviews').json() == history_before
+    assert client.get('/api/interviews').json()['items'] == history_before
 
 
 def test_logout_revokes_bearer_and_cookie_tokens_and_clears_cookie(client):

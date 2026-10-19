@@ -977,6 +977,68 @@ it("retains the code draft when AI review fails", async () => {
   client.clear();
 });
 
+it("runs the current coding draft and shows bounded execution feedback", async () => {
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer" },
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const run = vi.spyOn(Api, "runCode").mockResolvedValue({
+    status: "success",
+    stdout: "42\n",
+    stderr: "",
+  });
+  const send = vi.spyOn(Api, "sendMessage");
+  const client = openInterview();
+  await screen.findByRole("textbox", { name: "Code answer" });
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute(
+      "data-language",
+      "python",
+    ),
+  );
+  const editor = screen.getByRole("textbox", { name: "Code answer" });
+  fireEvent.change(editor, { target: { value: "def solve(): return 42" } });
+  fireEvent.click(screen.getByRole("button", { name: "Run code" }));
+  expect(await screen.findByLabelText("Code run result")).toHaveTextContent("Run completed");
+  expect(screen.getByLabelText("Code run result")).toHaveTextContent("42");
+  expect(run).toHaveBeenCalledExactlyOnceWith(active.id, {
+    language: "Python",
+    code: "def solve(): return 42",
+  });
+  expect(send).not.toHaveBeenCalled();
+  expect(editor).toHaveValue("def solve(): return 42");
+  client.clear();
+});
+
+it.each([
+  ["compile-error", "Compilation failed"],
+  ["runtime-error", "Runtime error"],
+  ["timeout", "Execution timed out"],
+  ["output-limit", "Output limit reached"],
+  ["unavailable", "Runner unavailable"],
+] as const)("explains a code-run %s result", async (status, message) => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer" },
+  });
+  vi.spyOn(Api, "runCode").mockResolvedValue({
+    status,
+    stdout: "",
+    stderr: "Details",
+  });
+  const client = openInterview();
+  await screen.findByRole("button", { name: "Run code" });
+  fireEvent.click(screen.getByRole("button", { name: "Run code" }));
+  expect(await screen.findByLabelText("Code run result")).toHaveTextContent(message);
+  expect(screen.getByLabelText("Code run result")).toHaveTextContent("Details");
+  client.clear();
+});
+
 it("renders AI problem statements, hints, and feedback as Markdown while keeping submitted code literal", async () => {
   const code = 'def solve():\n    return "**literal**"\n';
   const active: Interview = {

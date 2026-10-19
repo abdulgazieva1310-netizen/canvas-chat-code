@@ -1,0 +1,35 @@
+[Unit]
+Description=Interview Mirror isolated code runner gateway
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=coding-runner
+Group=coding-runner
+SupplementaryGroups=docker
+EnvironmentFile=/etc/interview-code-runner.env
+Environment=CODING_RUNNER_HOST=127.0.0.1
+Environment=CODING_RUNNER_PORT=8090
+Environment=CODING_RUNNER_SOURCE_DIR=/var/lib/interview-code-runner/submissions
+Environment=CODING_EXECUTOR_IMAGE=interview-code-executor:1
+WorkingDirectory=/opt/interview-code-runner
+ExecStart=/usr/bin/python3 /opt/interview-code-runner/server.py
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/lib/interview-code-runner/submissions
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

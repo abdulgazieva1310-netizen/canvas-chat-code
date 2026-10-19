@@ -185,6 +185,10 @@ values default to the named role language, Python for Backend, or JavaScript for
 Full Stack. Other roles and interview types ignore the coding language. Code whitespace is
 preserved in requests, stored transcripts, reports, and evaluation prompts. Groq
 reviews correctness, language semantics, edge cases, complexity, readability, and
-organization, and supplies an improved code example. This is static AI code review;
-there is no code execution, compilation, or automated test runner. Other interview
-types keep their existing answer evaluation.
+organization, and supplies an improved code example. The interview room also has
+an optional Run code action. It calls the separately deployed, authenticated
+coding runner, which executes each submission in a disposable network-disabled
+container with CPU, memory, process, output, filesystem, and time limits. Runner
+failure does not block static AI review or answer submission. Question-specific
+correctness tests and hidden test cases are not included; see issue #59. Other
+interview types keep their existing answer evaluation.

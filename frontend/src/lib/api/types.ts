@@ -46,6 +46,20 @@ export interface InterviewSetup {
   practiceTopic?: string | null;
 }
 
+export type CodeRunStatus =
+  "success" | "compile-error" | "runtime-error" | "timeout" | "output-limit" | "unavailable";
+
+export interface CodeRunRequest {
+  language: string;
+  code: string;
+}
+
+export interface CodeRunResult {
+  status: CodeRunStatus;
+  stdout: string;
+  stderr: string;
+}
+
 export interface Message {
   id: string;
   interviewId: string;

@@ -99,7 +99,11 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
 });
 
 it("encodes every history filter and pagination parameter in stable order", async () => {
-  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 2, pageSize: 20 })));
+  const fetch = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(JSON.stringify({ items: [], total: 0, page: 2, pageSize: 20 })),
+    );
   vi.stubGlobal("fetch", fetch);
   await Api.getHistoryPage({
     role: "C++ Developer",
@@ -259,4 +263,20 @@ it("includes the selected coding language in message requests", async () => {
     selectedLanguage: "JavaScript",
     expectedQuestionId: "question-1",
   });
+});
+
+it("runs code through the authenticated interview endpoint", async () => {
+  const result = { status: "success", stdout: "42\n", stderr: "" };
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(result)));
+  vi.stubGlobal("fetch", fetch);
+  sessionStorage.setItem("interview-mirror.authorization", "Bearer token");
+  await expect(
+    Api.runCode("session/123", { language: "Python", code: "print(42)" }),
+  ).resolves.toEqual(result);
+  expect(fetch.mock.calls[0]?.[0]).toBe("http://localhost:8000/api/interviews/session%2F123/run");
+  expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toEqual({
+    language: "Python",
+    code: "print(42)",
+  });
+  expect(fetch.mock.calls[0]?.[1].headers.Authorization).toBe("Bearer token");
 });

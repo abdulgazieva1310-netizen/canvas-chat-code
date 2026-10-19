@@ -294,6 +294,35 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/InvalidState'
+  /interviews/{interviewId}/run:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    post:
+      operationId: runCode
+      summary: Run code in the isolated coding runner
+      description: Runs bounded source in a disposable, network-disabled container only for the authenticated owner's active technical coding interview. This does not submit an answer or change interview state. If the runner is unavailable, the response says so and static AI review remains available through sendMessage.
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeRunRequest'
+      responses:
+        '200':
+          description: Bounded compile/runtime result, or an explicit runner-unavailable result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeRunResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidState'
   /interviews/{interviewId}/messages:
     parameters:
       - $ref: '#/components/parameters/InterviewId'
@@ -432,6 +461,11 @@ components:
       value:
         text: "def two_sum(nums, target):\n    seen = {}\n    for i, value in enumerate(nums):\n        if target - value in seen:\n            return [seen[target - value], i]\n        seen[value] = i\n"
         selectedLanguage: Python
+    CodeRun:
+      x-schema: CodeRunRequest
+      value:
+        language: Python
+        code: "print(42)"
     FollowUp:
       x-schema: PlannedMessage
       value:
@@ -858,6 +892,32 @@ components:
           $ref: '#/components/schemas/Interview'
         feedback:
           $ref: '#/components/schemas/Feedback'
+    CodeRunRequest:
+      type: object
+      additionalProperties: false
+      required: [language, code]
+      properties:
+        language:
+          type: string
+          enum: [Python, Java, C++, JavaScript, TypeScript]
+        code:
+          type: string
+          minLength: 1
+          maxLength: 50000
+    CodeRunResult:
+      type: object
+      additionalProperties: false
+      required: [status, stdout, stderr]
+      properties:
+        status:
+          type: string
+          enum: [success, compile-error, runtime-error, timeout, output-limit, unavailable]
+        stdout:
+          type: string
+          maxLength: 32768
+        stderr:
+          type: string
+          maxLength: 32768
     Error:
       type: object
       required: [message]

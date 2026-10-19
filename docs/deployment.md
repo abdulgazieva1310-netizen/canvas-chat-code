@@ -107,6 +107,59 @@ Linux, install its system libraries with `npx playwright install-deps chromium`
 The loopback check sets Secure cookies false; HTTPS termination and Secure cookie
 transport require verification in the deployment environment.
 
+## Optional isolated coding runner
+
+Code execution is disabled unless `CODING_RUNNER_URL` and
+`CODING_RUNNER_TOKEN` are configured on the API. Static AI code review remains
+available without them. Deploy the gateway on a dedicated, patched host with no
+application database or AI/email/session secrets. Build the executor image from
+`coding-runner/Dockerfile` on that host and set `CODING_EXECUTOR_IMAGE` to the
+promoted immutable image digest. The gateway requires Docker Engine access and a
+private submissions directory; this Docker access is confined to the dedicated
+runner host.
+
+Set a runner-only random token of at least 32 characters in both the API and
+runner secret stores. Keep the gateway bound to loopback behind a private TLS
+proxy or expose it only on an authenticated private network with firewall rules
+allowing the API service. Do not expose port 8090 publicly. Set
+`CODING_RUNNER_HOST=127.0.0.1`, `CODING_RUNNER_PORT=8090`, and
+`CODING_RUNNER_SOURCE_DIR=/var/lib/interview-code-runner/submissions` for a
+loopback deployment; create that directory for the runner service account with
+mode `0700`. For a remote API, use a private address and HTTPS proxy for
+`CODING_RUNNER_URL`. Never mount the Docker socket or any host directory into
+executor containers.
+
+On the dedicated runner host, install Docker Engine and Python 3, create the
+`coding-runner` service account, add it to the host's Docker group, and install
+the `coding-runner/` files under `/opt/interview-code-runner`. Create
+`/var/lib/interview-code-runner/submissions` owned by that account with mode
+`0700`, build the executor image, and configure the service token in a
+root-owned `/etc/interview-code-runner.env` file with mode `0600`:
+
+```sh
+docker build --pull -t interview-code-executor:1 /opt/interview-code-runner
+install -m 0644 /opt/interview-code-runner/interview-code-runner.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now interview-code-runner
+```
+
+Before production, tag the tested image by its immutable digest and set
+`CODING_EXECUTOR_IMAGE` to that digest in the service environment. On the API
+host, set `CODING_RUNNER_URL` to the private HTTPS gateway URL and configure the
+same runner-only token. The runner service unit enables filesystem and kernel
+hardening for the gateway process; its Docker group membership is root-equivalent
+on that dedicated host, which is why it must not share the API host or its
+credentials.
+
+Run gateway unit tests with `uv run --project backend python -m pytest -q
+coding-runner/test_runner.py backend/tests/test_coding_runner.py`. On a host
+with Docker access and the built executor image, run the security integration
+cases with `CODING_RUNNER_INTEGRATION=1` set. They exercise supported runtimes,
+compile and runtime failures, timeouts, memory and output limits, filesystem
+isolation, network denial, and environment-secret isolation. See
+[`security/coding-runner.md`](security/coding-runner.md) for the threat model,
+resource limits, and residual container-kernel risk.
+
 Run backend tests with `cd backend && uv run --locked pytest`, frontend tests with
 `cd frontend && npm test`, and the production build command above. CI automation
 and full product journey coverage are tracked separately in #41 and #34.

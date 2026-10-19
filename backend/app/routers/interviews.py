@@ -1,3 +1,6 @@
+import os
+
+import httpx
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from typing import Annotated
 from ..history import HistoryPage, HistoryQuery, history_page
@@ -5,12 +8,44 @@ from sqlalchemy.exc import IntegrityError
 from ..database import InterviewStartRecord
 
 from ..auth import CurrentUser
-from ..models import CODING_LANGUAGES, CODING_ROLES, Answer, Interview, InterviewReport, InterviewSetup
+from ..models import (CODING_LANGUAGES, CODING_ROLES, Answer, CodeRunRequest,
+                      CodeRunResult, Interview, InterviewReport, InterviewSetup)
 from ..store import answer_text, message, now
 from ..services.difficulty import transition as difficulty_transition
 from ..services import ai_service
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
+RUNNABLE_LANGUAGES = frozenset({'Python', 'Java', 'C++', 'JavaScript', 'TypeScript'})
+
+
+@router.post('/{interviewId}/run', response_model=CodeRunResult)
+def run_code(interviewId: str, data: CodeRunRequest, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        interview = store.find(user.id, interviewId)
+        if interview.status != 'active':
+            raise HTTPException(409, 'Code can only be run in an active interview.')
+        if interview.setup.type != 'Technical' or interview.setup.role not in CODING_ROLES:
+            raise HTTPException(409, 'Code execution is only available in technical coding interviews.')
+        if data.language not in RUNNABLE_LANGUAGES:
+            raise HTTPException(422, 'This coding language is not supported by the runner.')
+
+    runner_url = os.getenv('CODING_RUNNER_URL', '').strip().rstrip('/')
+    runner_token = os.getenv('CODING_RUNNER_TOKEN', '').strip()
+    if not runner_url or not runner_token:
+        return CodeRunResult(status='unavailable', stderr='Code runner is not configured. Static AI review remains available when you submit your answer.')
+    try:
+        response = httpx.post(
+            f'{runner_url}/run',
+            json={'language': data.language, 'code': data.code},
+            headers={'Authorization': f'Bearer {runner_token}'},
+            timeout=httpx.Timeout(12.0, connect=2.0),
+        )
+        if response.status_code == 429:
+            return CodeRunResult(status='unavailable', stderr='The code runner is busy. Try again shortly.')
+        response.raise_for_status()
+        return CodeRunResult.model_validate(response.json())
+    except (httpx.HTTPError, ValueError):
+        return CodeRunResult(status='unavailable', stderr='The code runner is temporarily unavailable. Static AI review remains available when you submit your answer.')
 
 
 @router.post('', response_model=Interview, response_model_exclude_none=False, status_code=201)

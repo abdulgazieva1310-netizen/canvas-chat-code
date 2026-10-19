@@ -86,6 +86,18 @@ class Answer(BaseModel):
     text: str = Field(min_length=1, pattern=r'\S')
 
 
+class CodeRunRequest(BaseModel):
+    model_config = {'extra': 'forbid'}
+    language: Literal['Python', 'Java', 'C++', 'JavaScript', 'TypeScript']
+    code: str = Field(min_length=1, max_length=50000)
+
+
+class CodeRunResult(BaseModel):
+    status: Literal['success', 'compile-error', 'runtime-error', 'timeout', 'output-limit', 'unavailable']
+    stdout: str = Field(default='', max_length=32768)
+    stderr: str = Field(default='', max_length=32768)
+
+
 class Message(BaseModel):
     id: str
     interviewId: str

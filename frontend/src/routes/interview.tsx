@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
-import type { Interview as InterviewData } from "@/lib/api/types";
+import type { CodeRunResult, Interview as InterviewData } from "@/lib/api/types";
 import {
   Component,
   lazy,
@@ -163,7 +163,6 @@ function Interview() {
     },
   });
   const hint = useMutation({ mutationFn: () => Api.getHint(interviewId), onSuccess: receive });
-  const busy = answer.isPending || end.isPending || hint.isPending;
   const codingLanguages: Record<string, CodingLanguage> = {
     "Python Developer": "python",
     "Java Developer": "java",
@@ -185,9 +184,19 @@ function Interview() {
     setSelectedLanguage(null);
   }, [interviewId, defaultLanguage]);
   const codingLanguage = defaultLanguage ? (selectedLanguage ?? defaultLanguage) : undefined;
+  const codeRun = useMutation({
+    mutationFn: (code: string) => {
+      if (!codingLanguage)
+        throw new Error("Code execution is only available for coding questions.");
+      return Api.runCode(interviewId, { language: languageLabels[codingLanguage], code });
+    },
+  });
+  const resetCodeRun = codeRun.reset;
+  const busy = answer.isPending || end.isPending || hint.isPending || codeRun.isPending;
   useEffect(() => {
     setText(codingLanguage ? codeTemplates[codingLanguage] : "");
-  }, [interviewId, interview?.answeredCount, codingLanguage]);
+    resetCodeRun();
+  }, [interviewId, interview?.answeredCount, codingLanguage, resetCodeRun]);
   const voiceMode = interview?.setup?.input === "Voice" && !codingLanguage;
   const speech = useSpeechRecognition(
     voiceMode && interview?.status === "active" && !busy && !error,
@@ -409,14 +418,31 @@ function Interview() {
                       ))}
                     </select>
                   </label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy || !text.trim() || interview.status !== "active"}
+                    onClick={() => codeRun.mutate(text)}
+                  >
+                    {codeRun.isPending ? "Running…" : "Run code"}
+                  </button>
                   <CodeEditor
                     key={`${interviewId}-${interview.answeredCount}`}
                     language={codingLanguage}
                     path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
                     value={text}
                     readOnly={busy || interview.status !== "active"}
-                    onChange={setText}
+                    onChange={(value) => {
+                      setText(value);
+                      codeRun.reset();
+                    }}
                   />
+                  {codeRun.data && <CodeExecutionResult result={codeRun.data} />}
+                  {codeRun.error && (
+                    <p className="text-sm text-destructive" role="alert">
+                      Could not run code: {codeRun.error.message}
+                    </p>
+                  )}
                 </>
               ) : (
                 <input
@@ -632,5 +658,33 @@ function Interview() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function CodeExecutionResult({ result }: { result: CodeRunResult }) {
+  const label: Record<CodeRunResult["status"], string> = {
+    success: "Run completed",
+    "compile-error": "Compilation failed",
+    "runtime-error": "Runtime error",
+    timeout: "Execution timed out",
+    "output-limit": "Output limit reached",
+    unavailable: "Runner unavailable",
+  };
+  return (
+    <section
+      aria-label="Code run result"
+      aria-live="polite"
+      className="w-full rounded-lg border bg-muted/40 p-3 text-sm"
+    >
+      <p className="font-semibold">{label[result.status]}</p>
+      {result.stdout && (
+        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap">{result.stdout}</pre>
+      )}
+      {result.stderr && (
+        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-destructive">
+          {result.stderr}
+        </pre>
+      )}
+    </section>
   );
 }

@@ -4,6 +4,8 @@ import type {
   DashboardSummary,
   InterviewReport,
   InterviewSetup,
+  CodeRunRequest,
+  CodeRunResult,
   HistoryPage,
   HistoryQuery,
   ProfileUpdate,
@@ -145,6 +147,8 @@ export const Api = {
       ...(selectedLanguage ? { selectedLanguage } : {}),
       ...(expectedQuestionId ? { expectedQuestionId } : {}),
     }),
+  runCode: (id: string, data: CodeRunRequest) =>
+    request<CodeRunResult>(`${interviewPath(id)}/run`, data),
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),
@@ -153,7 +157,9 @@ export const Api = {
     const first = await request<HistoryPage>("/interviews");
     const items = [...(first.items ?? [])];
     for (let page = 2; items.length < first.total; page++) {
-      const next = await request<HistoryPage>(`/interviews?page=${page}&pageSize=${first.pageSize}`);
+      const next = await request<HistoryPage>(
+        `/interviews?page=${page}&pageSize=${first.pageSize}`,
+      );
       if (!next.items.length) break;
       items.push(...next.items);
     }
@@ -161,7 +167,17 @@ export const Api = {
   },
   getHistoryPage: (query: HistoryQuery) => {
     const params = new URLSearchParams();
-    for (const key of ["role", "type", "startDate", "endDate", "minScore", "maxScore", "search", "page", "pageSize"] as const) {
+    for (const key of [
+      "role",
+      "type",
+      "startDate",
+      "endDate",
+      "minScore",
+      "maxScore",
+      "search",
+      "page",
+      "pageSize",
+    ] as const) {
       const value = query[key];
       if (value !== undefined && value !== "") params.set(key, String(value));
     }

@@ -7,6 +7,10 @@
 # Local environment secrets
 .env
 
+# Python bytecode
+__pycache__/
+*.py[cod]
+
 # Browser QA artifacts
 frontend/test-results/
 frontend/playwright-report/

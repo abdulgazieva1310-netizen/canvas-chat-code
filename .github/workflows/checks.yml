@@ -29,6 +29,7 @@ jobs:
       - run: uv sync --locked --project backend
       - run: npm ci --prefix frontend
       - run: uv run --locked --project backend pytest backend/tests
+      - run: uv run --locked --project backend python -m pytest coding-runner/test_runner.py
       - run: npm test --prefix frontend
       - run: npm run build --prefix frontend
   journeys:

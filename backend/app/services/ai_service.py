@@ -236,6 +236,7 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
                         'negative phrasing in went_well. If the answer is completely wrong or shows no positive '
                         'evidence, return an empty string for went_well; do not describe the failure or say '
                         '"Attempted to answer" or "The response was provided, but it contains no relevant information". '
+                        'For random letters, gibberish, or an unrelated token such as "gufr", went_well must be empty. '
                         'missing is the Weaknesses field and must contain only what the candidate '
                         'actually missed: specific gaps, omissions, or errors visible by comparing the answer '
                         'with the question. Do not put an ideal answer, rubric, expected answer description, '

@@ -94,8 +94,10 @@ def test_dashboard_summary_aggregates_owner_scoped_completed_scored_sessions(cli
     assert summary['strengths'] == [{'text': 'Clear explanations', 'sources': summary['strengths'][0]['sources']}]
     assert len(summary['strengths'][0]['sources']) == 11
     assert len(summary['weaknesses'][0]['sources']) == 11
+    assert summary['suggestions'][0]['topic'] == 'Add concrete examples'
     assert summary['suggestions'][0]['setup']['mode'] == 'Practice'
-    assert len(summary['suggestions'][0]['sources']) == 11
+    assert len({source['interviewId'] for source in summary['suggestions'][0]['sources']}) == 2
+    assert len(summary['suggestions'][0]['sources']) == 10
     assert not any(g['role'] == 'Backend Developer' for g in summary['groups'])
 
     # The same records are private to the first account.
@@ -123,6 +125,38 @@ def test_dashboard_summary_averages_only_available_categories(client, monkeypatc
     assert group['scores'] == {'accuracy': 8, 'completeness': 10, 'clarity': 6, 'structure': 8}
     assert group['overall'] == 8
     assert group['scoredCount'] == 1
+
+
+def test_dashboard_summary_withholds_topics_seen_in_only_one_interview(client, monkeypatch):
+    evaluations = iter([
+        AnswerEvaluation(accuracy=7, completeness=7, clarity=7, structure=7,
+            went_well='Clear response', missing='Include boundary cases', stronger_answer='Example.'),
+        AnswerEvaluation(accuracy=7, completeness=7, clarity=7, structure=7,
+            went_well='Clear response', missing='Explain test isolation', stronger_answer='Example.'),
+        None, None, None,
+        AnswerEvaluation(accuracy=7, completeness=7, clarity=7, structure=7,
+            went_well='Clear response', missing='Describe deployment rollback', stronger_answer='Example.'),
+        AnswerEvaluation(accuracy=7, completeness=7, clarity=7, structure=7,
+            went_well='Clear response', missing='Explain test isolation', stronger_answer='Example.'),
+        None, None, None,
+    ])
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: next(evaluations))
+    login(client)
+    ids = []
+    for _ in range(2):
+        interview = client.post('/api/interviews', json={
+            'role': 'QA Engineer', 'level': 'Junior', 'mode': 'Practice', 'questionCount': 5,
+            'type': 'Behavioral', 'input': 'Text', 'language': 'English',
+        }).json()
+        ids.append(interview['id'])
+        for index in range(5):
+            assert client.post(f"/api/interviews/{interview['id']}/messages",
+                               json={'text': f'answer {index}'}).status_code == 200
+
+    suggestions = client.get('/api/dashboard/summary').json()['suggestions']
+    assert len(suggestions) == 1
+    assert suggestions[0]['topic'] == 'test isolation'
+    assert {source['interviewId'] for source in suggestions[0]['sources']} == set(ids)
 
 
 def test_dashboard_summary_refreshes_after_deletion(client, monkeypatch):

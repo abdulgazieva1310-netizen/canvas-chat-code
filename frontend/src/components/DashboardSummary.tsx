@@ -20,6 +20,7 @@ export function DashboardSummary() {
     retry: false,
   });
   const [selected, setSelected] = useState(0);
+  const [dismissedTopics, setDismissedTopics] = useState<Set<string>>(() => new Set());
   const dashboardData = summary.data;
   const group = dashboardData?.groups[selected] ?? dashboardData?.groups[0];
   const latestInterviewId = group?.latestInterviewId;
@@ -49,34 +50,9 @@ export function DashboardSummary() {
     latestReport.data?.feedback.interviewId === latestInterviewId ? latestReport.data : undefined;
   const strengths = uniqueFeedback(report?.feedback.strengths ?? []);
   const weaknesses = uniqueFeedback(report?.feedback.gaps ?? []);
-  const seenTopics = new Set<string>();
-  const practiceTopics = (report?.feedback.questions ?? [])
-    .flatMap((question) => {
-      const topics = question.practiceTopics?.length
-        ? question.practiceTopics
-        : question.practiceTopic
-          ? [question.practiceTopic]
-          : [];
-      const hasWeakness =
-        question.miss.trim() && !/^(none|no supported|nothing was missed)\b/i.test(question.miss.trim());
-      if (!hasWeakness) return [];
-      return topics
-        .map((topic) => topic.trim().replace(/\s+/g, " "))
-        .filter(
-          (topic) =>
-            topic.length > 0 &&
-            topic.length <= 120 &&
-            !/^(a description of|an explanation of|expected answer|rubric|generic topic)\b/i.test(topic) &&
-            !/[.!?]\s/.test(topic),
-        );
-    })
-    .filter((topic) => {
-      const key = topic.replace(/\s+/g, " ").toLocaleLowerCase();
-      if (!key || seenTopics.has(key)) return false;
-      seenTopics.add(key);
-      return true;
-    })
-    .slice(0, 3);
+  const practiceSuggestions = (data.suggestions ?? []).filter(
+    (suggestion) => !dismissedTopics.has(suggestion.topic.toLocaleLowerCase()),
+  );
   const label = group ? `${group.role} · ${group.type} · ${group.mode} · ${group.level}` : "";
   const points = group?.trends ?? [];
   const positions = points.map(
@@ -143,18 +119,21 @@ export function DashboardSummary() {
                     strokeWidth="1"
                   />
                 )}
-                {positions.map((position, i) => (
-                  <circle
-                    key={points[i].interviewId}
-                    cx={position.split(",")[0]}
-                    cy={position.split(",")[1]}
-                    r="1.5"
-                  >
-                    <title>
-                      {points[i].date}: {points[i].overall} / 10
-                    </title>
-                  </circle>
-                ))}
+                {points.map((point, i) => {
+                  const position = positions[i] ?? "0,0";
+                  return (
+                    <circle
+                      key={point.interviewId}
+                      cx={position.split(",")[0]}
+                      cy={position.split(",")[1]}
+                      r="1.5"
+                    >
+                      <title>
+                        {point.date}: {point.overall} / 10
+                      </title>
+                    </circle>
+                  );
+                })}
               </svg>
               <table className="w-full text-left">
                 <caption>Score trend values (1–10)</caption>
@@ -193,10 +172,12 @@ export function DashboardSummary() {
         </div>
       )}
       <p className="text-sm">Scores are AI coaching estimates, not measures of hiring readiness.</p>
-      {([
-        [strengths, "Strengths"],
-        [weaknesses, "Weaknesses"],
-      ] as const).map(([kind, title]) => (
+      {(
+        [
+          [strengths, "Strengths"],
+          [weaknesses, "Weaknesses"],
+        ] as const
+      ).map(([kind, title]) => (
         <div key={title} className="card-surface p-5">
           <h2 className="text-xl">{title}</h2>
           {latestReport.isPending && latestInterviewId ? (
@@ -222,29 +203,76 @@ export function DashboardSummary() {
         </div>
       ))}
       <div className="card-surface p-5">
-        <h2 className="text-xl">Suggested practice</h2>
-        {latestReport.isPending && latestInterviewId ? (
-          <p>Loading practice topics…</p>
-        ) : latestReport.error ? (
-          <p role="alert">Could not load practice topics for this interview.</p>
-        ) : practiceTopics.length === 0 ? (
-          <p>No specific practice topics were identified in this interview’s feedback.</p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl">Your learning plan</h2>
+          <button
+            className="btn btn-ghost"
+            disabled={summary.isFetching}
+            onClick={() => {
+              setDismissedTopics(new Set());
+              void summary.refetch();
+            }}
+          >
+            {summary.isFetching ? "Refreshing…" : "Refresh plan"}
+          </button>
+        </div>
+        <p className="mt-2 text-sm">
+          Coaching guidance based on repeated feedback; one-off findings stay out of the plan, and
+          this does not predict hiring outcomes.
+        </p>
+        {practiceSuggestions.length === 0 && data.suggestions.length > 0 ? (
+          <p className="mt-3">
+            You dismissed the current recommendations. Refresh the plan to review them again.
+          </p>
+        ) : practiceSuggestions.length === 0 ? (
+          <p className="mt-3">
+            {data.completedCount === 0
+              ? "Complete practice interviews to build a learning plan. We’ll wait for the same improvement area to appear in at least two interviews before recommending a focus."
+              : "There isn’t enough repeated evidence for a personalized plan yet. Keep practicing; a focus will appear when the same improvement area is seen in at least two completed interviews."}
+          </p>
         ) : (
-          <ul className="mt-3 flex flex-wrap gap-3">
-            {practiceTopics.map((topic) => (
-              <li key={topic}>
+          <ul className="mt-3 space-y-4">
+            {practiceSuggestions.map((suggestion) => (
+              <li key={suggestion.topic} className="rounded border p-3">
+                <p className="font-medium">Focus: {suggestion.topic}</p>
+                <p className="text-sm">
+                  This area appeared in{" "}
+                  {new Set(suggestion.sources.map((source) => source.interviewId)).size} completed
+                  interviews.
+                </p>
                 <Link
                   to="/setup"
                   search={{
-                    practiceTopic: topic,
-                    role: report?.interview.setup.role,
-                    interviewType: report?.interview.setup.type,
-                    level: report?.interview.setup.level,
+                    practiceTopic: suggestion.topic,
+                    role: suggestion.setup.role,
+                    interviewType: suggestion.setup.type,
+                    level: suggestion.setup.level,
                   }}
                   className="btn btn-ghost"
                 >
-                  Practice: {topic}
+                  Start practice: {suggestion.topic}
                 </Link>
+                <button
+                  className="btn btn-ghost ml-2"
+                  onClick={() =>
+                    setDismissedTopics((current) =>
+                      new Set(current).add(suggestion.topic.toLocaleLowerCase()),
+                    )
+                  }
+                >
+                  Dismiss
+                </button>
+                <p className="mt-2 text-sm">
+                  Evidence:{" "}
+                  {suggestion.sources.map((source, index) => (
+                    <span key={`${source.interviewId}-${source.answerId}`}>
+                      {index > 0 ? ", " : ""}
+                      <Link to="/report" search={{ interviewId: source.interviewId }}>
+                        Review interview {index + 1}
+                      </Link>
+                    </span>
+                  ))}
+                </p>
               </li>
             ))}
           </ul>

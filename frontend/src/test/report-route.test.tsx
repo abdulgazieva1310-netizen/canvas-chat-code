@@ -113,6 +113,7 @@ it("renders Markdown questions and coaching in the final report", async () => {
           good: "Uses a **hash map**.",
           miss: "- Consider duplicates",
           better: "```python\ndef solve():\n    return []\n```",
+          practiceTopics: ["Duplicate handling"],
         },
       ],
     },
@@ -120,7 +121,7 @@ it("renders Markdown questions and coaching in the final report", async () => {
   vi.spyOn(Api, "getReport").mockResolvedValue(data);
   const { client } = openReport("/report?interviewId=session-123");
   await screen.findByRole("heading", { name: "Two Sum" });
-  expect(screen.getByRole("link", { name: /Practice: - Consider duplicates/ })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Practice: Duplicate handling" })).toBeVisible();
   expect(screen.getByText("Readable code").tagName).toBe("STRONG");
   expect(screen.getByText("hash map").tagName).toBe("STRONG");
   expect(document.querySelector("pre code.language-python")?.textContent).toBe(

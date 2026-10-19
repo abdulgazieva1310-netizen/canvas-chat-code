@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from app.services import ai_service
-from app.store import message
+from app.store import message, positive_observation, practice_topics
 
 
 def mock_provider(monkeypatch, handler):
@@ -154,7 +154,30 @@ def test_followup_missing_key_skips_provider(monkeypatch):
 def evaluation_payload():
     return dict(accuracy=8.5, completeness=6, clarity=9, structure=7,
         went_well='Explained indexing correctly.', missing='Discuss write overhead.',
-        stronger_answer='An index speeds up reads but adds write and storage costs.')
+        stronger_answer='An index speeds up reads but adds write and storage costs.', practice_topic=None)
+
+
+def test_empty_strength_is_allowed_when_an_answer_has_no_positive_evidence(monkeypatch):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    payload = evaluation_payload() | {'went_well': ''}
+    def handler(request):
+        prompt = json.loads(request.content)['messages'][0]['content']
+        assert 'return an empty string for went_well' in prompt
+        assert 'random letters' in prompt
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': json.dumps(payload)}}]})
+    mock_provider(monkeypatch, handler)
+    result = ai_service.evaluate_answer('Explain Selenium WebDriver.', 'gufr')
+    assert result is not None and result.went_well == ''
+
+
+def test_old_neutral_strengths_are_hidden_and_practice_topics_are_extracted():
+    assert positive_observation(
+        'The answer was provided, albeit it consisted of a single unrelated token.') == ''
+    assert positive_observation('Uses Selenium WebDriver clearly.') == 'Uses Selenium WebDriver clearly.'
+    assert practice_topics("'gufr' is unrelated to the question") == []
+    assert practice_topics('Missing: Selenium WebDriver, test design, and test data') == [
+        'Selenium WebDriver', 'test design', 'test data']
 
 
 def test_evaluation_sends_question_answer_and_validates_json(monkeypatch):

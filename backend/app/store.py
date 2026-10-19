@@ -60,6 +60,7 @@ def practice_topics(missing, suggested=None):
     for part in re.split(r'[\n;•]+', missing):
         value = re.sub(r'^\s*[-*\d.)]+\s*', '', part).strip()
         value = re.sub(r'^(?:the (?:candidate|response|answer|user)|your answer|you)\s+', '', value, flags=re.I)
+        value = re.sub(r'^(?:missing|weakness(?:es)?)(?:\s+include)?\s*:?\s*', '', value, flags=re.I)
         value = re.sub(r'^(?:missed|lacks?|omitted|is missing)\s+', '', value, flags=re.I)
         value = re.sub(
             r"^(?:(?:does not|doesn't|did not|didn't|fails to|failed to|needs to|should|must|omits|lacks|missed|forgot to|is missing)\s+)?"
@@ -261,6 +262,7 @@ class Repository:
 
         grouped = {}
         claim_sources = {'strengths': {}, 'weaknesses': {}}
+        practice_evidence = {}
         for interview in completed.values():
             setup = interview.setup
             key = (setup.role, setup.type, setup.mode, setup.level)
@@ -291,6 +293,16 @@ class Repository:
                 if entry is None:
                     continue
                 _, evaluation = entry
+                if interview.status == 'complete' and any(
+                    getattr(evaluation, name) is not None for name in Scores.model_fields
+                ):
+                    for topic in practice_topics(evaluation.missing, evaluation.practice_topic):
+                        normalized = ' '.join(topic.split()).casefold()
+                        context = (interview.setup.role, interview.setup.type, interview.setup.level)
+                        item = practice_evidence.setdefault((normalized, context),
+                                                            {'topic': topic, 'interviews': {}})
+                        item['interviews'].setdefault(interview.id, []).append(
+                            EvidenceReference(interviewId=interview.id, answerId=answer.id))
                 for field, label in (('went_well', 'strengths'), ('missing', 'weaknesses')):
                     text = getattr(evaluation, field).strip()
                     if field == 'went_well':
@@ -328,8 +340,21 @@ class Repository:
             return [EvidenceClaim(text=text, sources=sources) for text, sources in ranked[:3]]
 
         weaknesses = common_claims('weaknesses')
+        suggestions = []
+        for item in practice_evidence.values():
+            if len(item['interviews']) < 2:
+                continue
+            topic = item['topic']
+            source_interviews = [completed[ident] for ident in item['interviews']]
+            latest = max(source_interviews, key=lambda interview: (interview.startedAt, interview.id))
+            setup = latest.setup.model_copy(update={'mode': 'Practice', 'practiceTopic': topic})
+            sources = [source for refs in item['interviews'].values() for source in refs]
+            suggestions.append({'topic': topic, 'setup': setup, 'sources': sources})
+        suggestions.sort(key=lambda suggestion: (-len({source.interviewId for source in suggestion['sources']}),
+                                                   suggestion['topic'].casefold()))
         return DashboardSummary(completedCount=len(completed), recentActivity=interviews[:10], groups=groups,
-            strengths=common_claims('strengths'), weaknesses=weaknesses, suggestions=[])
+            strengths=common_claims('strengths'), weaknesses=weaknesses,
+            suggestions=suggestions[:3])
 
     def start(self, user_id, setup, first_question=None):
         ident = str(uuid4())

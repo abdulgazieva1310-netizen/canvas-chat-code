@@ -724,6 +724,19 @@ components:
         from: {type: string, enum: [ai, you, hint]}
         text: {type: string}
         createdAt: {type: string, format: date-time}
+        mainQuestionId: {type: string, nullable: true, description: Main-question ID for a follow-up message; null for main questions.}
+    DifficultyDecision:
+      type: object
+      required: [questionId, answerId, previousLevel, effectiveLevel, average, reason]
+      properties:
+        questionId: {type: string}
+        answerId: {type: string}
+        previousLevel:
+          $ref: '#/components/schemas/Level'
+        effectiveLevel:
+          $ref: '#/components/schemas/Level'
+        average: {type: number, minimum: 1, maximum: 10, nullable: true}
+        reason: {type: string}
     Scores: &scoreSchema
       type: object
       required: [accuracy, completeness, clarity, structure]
@@ -768,6 +781,15 @@ components:
           $ref: '#/components/schemas/NullableScores'
         lastAnswerFeedback:
           $ref: '#/components/schemas/NullableAnswerEvaluation'
+        effectiveLevel:
+          description: Persisted level used for future questions; the initial value equals setup.level.
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Level'
+        difficultyDecisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DifficultyDecision'
     Feedback:
       type: object
       required: [interviewId, answeredQuestions, selectedQuestions, overall, scores, strengths, gaps, questions]

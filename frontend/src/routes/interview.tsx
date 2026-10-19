@@ -189,6 +189,9 @@ function Interview() {
             Question <b>{Math.min(interview.answeredCount + 1, setup.questionCount)}</b> /{" "}
             {setup.questionCount}
           </span>
+          <span>
+            Difficulty <b>{interview.effectiveLevel ?? setup.level}</b>
+          </span>
           <span className="tabular-nums text-muted-foreground">
             {mm}:{ss}
           </span>
@@ -211,6 +214,14 @@ function Interview() {
           style={{ width: `${(interview.answeredCount / setup.questionCount) * 100}%` }}
         />
       </div>
+      {interview.difficultyDecisions?.length ? (
+        <p
+          role="status"
+          className="mx-auto mt-3 w-full max-w-6xl px-6 text-sm text-muted-foreground"
+        >
+          {interview.difficultyDecisions[interview.difficultyDecisions.length - 1].reason}
+        </p>
+      ) : null}
 
       <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-6 py-8 md:grid-cols-[1fr_320px]">
         <section className="flex min-w-0 flex-col">

@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from ..auth import CurrentUser
 from ..models import CODING_LANGUAGES, CODING_ROLES, Answer, Interview, InterviewReport, InterviewSetup
 from ..store import answer_text, message, now
+from ..services.difficulty import transition as difficulty_transition
 from ..services import ai_service
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
@@ -65,8 +66,16 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         next_question = None
         if interview.answeredCount + 1 < interview.setup.questionCount:
             setup = interview.setup
+            current_level = interview.effectiveLevel or setup.level
+            current_main_question = next(
+                item for item in reversed(interview.messages) if item.sender == 'ai')
+            main_question_id = current_main_question.mainQuestionId or current_main_question.id
+            already_adjusted = any(
+                decision.questionId == main_question_id for decision in interview.difficultyDecisions)
+            next_level = current_level if already_adjusted else difficulty_transition(
+                current_level, evaluation)[0]
             conversation = [*interview.messages, message(interviewId, 'you', submitted)]
-            next_question = ai_service.generate_question(setup.role, setup.level, conversation,
+            next_question = ai_service.generate_question(setup.role, next_level, conversation,
                 interview_type=setup.type, job_description=setup.jobDescription,
                 practice_topic=setup.practiceTopic)
         return store.answer(interview, data.text, next_question=next_question, evaluation=evaluation).model_copy(deep=True)

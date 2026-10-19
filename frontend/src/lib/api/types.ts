@@ -52,6 +52,16 @@ export interface Message {
   from: "ai" | "you" | "hint";
   text: string;
   createdAt: string;
+  mainQuestionId?: string | null;
+}
+
+export interface DifficultyDecision {
+  questionId: string;
+  answerId: string;
+  previousLevel: Level;
+  effectiveLevel: Level;
+  average: number | null;
+  reason: string;
 }
 
 export interface Scores {
@@ -98,6 +108,8 @@ export interface Interview {
   messages: Message[];
   lastFeedback: Scores | null;
   lastAnswerFeedback?: AnswerEvaluation | null;
+  effectiveLevel?: Level | null;
+  difficultyDecisions?: DifficultyDecision[];
 }
 
 export interface InterviewReport {

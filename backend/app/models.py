@@ -91,6 +91,16 @@ class Message(BaseModel):
     sender: Literal['ai', 'you', 'hint'] = Field(alias='from')
     text: str
     createdAt: datetime
+    mainQuestionId: str | None = None
+
+
+class DifficultyDecision(BaseModel):
+    questionId: str
+    answerId: str
+    previousLevel: Level
+    effectiveLevel: Level
+    average: float | None
+    reason: str
 
 
 class Scores(BaseModel):
@@ -120,6 +130,8 @@ class Interview(BaseModel):
     messages: list[Message]
     lastFeedback: Scores | None = None
     lastAnswerFeedback: AnswerEvaluation | None = None
+    effectiveLevel: Level | None = None
+    difficultyDecisions: list[DifficultyDecision] = Field(default_factory=list)
 
 
 class QuestionFeedback(BaseModel):

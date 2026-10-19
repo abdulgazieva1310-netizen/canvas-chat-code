@@ -394,6 +394,9 @@ def test_unavailable_evaluation_saves_unscored_answer(client, monkeypatch):
     path = '/api/interviews/' + interview['id']
     response = client.post(path + '/messages', json={'text': 'My unscored answer'})
     assert response.status_code == 200
+    assert response.json()['effectiveLevel'] == 'Middle'
+    assert response.json()['difficultyDecisions'][0]['average'] is None
+    assert 'No reliable evaluation' in response.json()['difficultyDecisions'][0]['reason']
     assert response.json()['lastFeedback'] is None
     client.post(path + '/end')
     report = client.get(path + '/report').json()['feedback']
@@ -401,6 +404,59 @@ def test_unavailable_evaluation_saves_unscored_answer(client, monkeypatch):
     assert report['questions'][0]['score'] is None
     assert report['questions'][0]['answer'] == 'My unscored answer'
     assert 'unavailable' in report['questions'][0]['good']
+
+
+def test_difficulty_transition_persists_and_drives_ai_and_curated_next_question(tmp_path, monkeypatch):
+    from app.models import AnswerEvaluation
+    from app.services import ai_service
+    url = f'sqlite:///{tmp_path / "difficulty.db"}'
+    levels = []
+    evaluation = AnswerEvaluation(accuracy=8, completeness=8, clarity=8, structure=8,
+        went_well='Strong answer', missing='None', stronger_answer='Well-supported answer.')
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: evaluation)
+    monkeypatch.setattr(ai_service, 'generate_question', lambda role, level, *args, **kwargs:
+        levels.append(level) or None)
+    with TestClient(create_app(database_url=url)) as client:
+        token = login(client).headers['authorization']
+        interview = start(client, role='Backend Developer', level='Middle')
+        path = '/api/interviews/' + interview['id']
+        assert interview['effectiveLevel'] == 'Middle'
+        updated = client.post(path + '/messages', json={'text': 'A strong answer'}).json()
+        assert levels == ['Middle', 'Senior']
+        assert updated['setup']['level'] == 'Middle'
+        assert updated['effectiveLevel'] == 'Senior'
+        assert updated['messages'][-1]['text'].startswith('Question 2 (Senior)')
+        decision = updated['difficultyDecisions'][0]
+        assert decision['questionId'] == interview['messages'][0]['id']
+        assert decision['answerId'] == next(m['id'] for m in updated['messages'] if m['from'] == 'you')
+        assert decision['average'] == 8
+        assert 'increased from Middle to Senior' in decision['reason']
+        assert client.get('/api/auth/me').json()['level'] == 'Middle'
+    with TestClient(create_app(database_url=url)) as restarted:
+        saved = restarted.get(path, headers={'Authorization': token}).json()
+        assert saved['effectiveLevel'] == 'Senior'
+        assert saved['difficultyDecisions'] == updated['difficultyDecisions']
+
+
+def test_followup_for_an_already_adjusted_main_question_keeps_level(tmp_path):
+    from app.models import AnswerEvaluation, InterviewSetup
+    from app.store import Store, message
+    store = Store(database_url=f'sqlite:///{tmp_path / "followup-difficulty.db"}')
+    evaluation = AnswerEvaluation(accuracy=9, completeness=9, clarity=9, structure=9,
+        went_well='Strong', missing='None', stronger_answer='Example.')
+    with store.transaction() as repository:
+        interview = repository.start('demo-user', InterviewSetup(**SETUP))
+        main_id = interview.messages[0].id
+        repository.answer(interview, 'Main answer', next_question='Next main question?', evaluation=evaluation)
+        assert interview.effectiveLevel == 'Senior'
+        followup = message(interview.id, 'ai', 'Follow-up question?').model_copy(
+            update={'mainQuestionId': main_id})
+        interview.messages.append(followup)
+        repository.save(interview)
+        repository.answer(interview, 'Follow-up answer', evaluation=evaluation)
+        assert interview.effectiveLevel == 'Senior'
+        assert len(interview.difficultyDecisions) == 1
+    store.engine.dispose()
 
 
 def test_report_averages_only_successful_evaluations(client, monkeypatch):

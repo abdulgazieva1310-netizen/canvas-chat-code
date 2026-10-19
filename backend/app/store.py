@@ -16,8 +16,10 @@ from fastapi import HTTPException
 from .auth import hasher
 from .services.question_bank import BankError, load_bank
 from .models import (CODING_ROLES, AnswerEvaluation, DashboardGroup, DashboardSummary, DashboardTrend,
+                     DifficultyDecision,
                      EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
                      PracticeSuggestion, QuestionFeedback, Scores, User)
+from .services.difficulty import transition as difficulty_transition
 
 
 def now():
@@ -32,11 +34,12 @@ def answer_text(setup, text):
     return text if setup.type == 'Technical' and setup.role in CODING_ROLES else text.strip()
 
 
-def question(setup, index):
+def question(setup, index, effective_level=None):
+    level = effective_level or setup.level
     if setup.practiceTopic:
         try:
             matches = [item for item in load_bank() if setup.role in item.roles
-                       and setup.level in item.levels and setup.type == item.type
+                       and level in item.levels and setup.type == item.type
                        and (item.topic.casefold() in setup.practiceTopic.casefold()
                             or setup.practiceTopic.casefold() in item.topic.casefold())]
         except BankError:
@@ -57,13 +60,13 @@ def question(setup, index):
             'the result sorted by start. Constraints: 1 <= len(intervals) <= 10000; '
             '0 <= start <= end <= 1000000. Example: [[1,3],[2,6],[8,10]] -> [[1,6],[8,10]].',
         ]
-        return (f'Question {index + 1} ({setup.level}): {prompts[index % len(prompts)]} '
+        return (f'Question {index + 1} ({level}): {prompts[index % len(prompts)]} '
                 f'Implement in {language} and explain time and space complexity.')
     prompts = (['Tell me about a difficult problem you solved.', 'Describe a disagreement with a teammate.',
                 'How did you respond to critical feedback?'] if setup.type == 'Behavioral' else
                [f'Describe a core concept you use as a {setup.role}.', 'How would you investigate a production issue?',
                 'What trade-offs would you consider when designing a reliable system?'])
-    fallback = f'Question {index + 1} ({setup.level}): {prompts[index % len(prompts)]}'
+    fallback = f'Question {index + 1} ({level}): {prompts[index % len(prompts)]}'
     if setup.practiceTopic and index == 0:
         return (f'No matching curated questions for “{setup.practiceTopic}”. '
                 f'Continuing with a role-compatible {setup.type.lower()} practice question.\n\n{fallback}')
@@ -253,7 +256,7 @@ class Repository:
 
     def start(self, user_id, setup, first_question=None):
         ident = str(uuid4())
-        interview = Interview(id=ident, setup=setup, startedAt=now(),
+        interview = Interview(id=ident, setup=setup, effectiveLevel=setup.level, startedAt=now(),
                               messages=[message(ident, 'ai', first_question or question(setup, 0))])
         self.session.add(InterviewRecord(id=ident, owner_id=user_id,
             started_at=interview.startedAt.timestamp(), status=interview.status,
@@ -295,13 +298,23 @@ class Repository:
             interview_id=interview.id, question_id=question_message.id,
             result=evaluation.model_dump(mode='json') if evaluation else None))
         interview.answeredCount += 1
+        current_level = interview.effectiveLevel or interview.setup.level
+        main_question_id = question_message.mainQuestionId or question_message.id
+        if not any(item.questionId == main_question_id for item in interview.difficultyDecisions):
+            effective_level, average, reason = difficulty_transition(current_level, evaluation)
+            interview.effectiveLevel = effective_level
+            interview.difficultyDecisions.append(DifficultyDecision(
+                questionId=main_question_id, answerId=answer_message.id,
+                previousLevel=current_level, effectiveLevel=effective_level,
+                average=average, reason=reason))
         interview.lastFeedback = evaluation.category_scores() if evaluation and interview.setup.mode == 'Practice' else None
         interview.lastAnswerFeedback = evaluation if interview.setup.mode == 'Practice' else None
         if interview.answeredCount == interview.setup.questionCount:
             interview.status = 'complete'
             interview.endedAt = now()
         else:
-            interview.messages.append(message(interview.id, 'ai', next_question or question(interview.setup, interview.answeredCount)))
+            interview.messages.append(message(interview.id, 'ai', next_question or question(
+                interview.setup, interview.answeredCount, interview.effectiveLevel)))
         self.save(interview)
         return interview
 

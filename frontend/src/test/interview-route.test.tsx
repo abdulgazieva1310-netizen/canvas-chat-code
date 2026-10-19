@@ -95,6 +95,30 @@ it("waits for missing setup and renders once complete data is available", async 
   client.clear();
 });
 
+it("shows the persisted effective difficulty and transition reason", async () => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    effectiveLevel: "Senior",
+    difficultyDecisions: [
+      {
+        questionId: "question-2",
+        answerId: "answer-1",
+        previousLevel: "Middle",
+        effectiveLevel: "Senior",
+        average: 8.5,
+        reason: "Average 8.5 was at least 8; increased from Middle to Senior.",
+      },
+    ],
+  });
+  const client = openInterview();
+  await screen.findByRole("button", { name: "Send" });
+  expect(screen.getByText(/Difficulty/)).toHaveTextContent("Difficulty Senior");
+  expect(screen.getByRole("status")).toHaveTextContent("increased from Middle to Senior");
+  client.clear();
+});
+
 it("shows a recovery link when the backend returns no interview", async () => {
   vi.spyOn(Api, "getInterview").mockResolvedValue(null as unknown as Interview);
   const client = openInterview();

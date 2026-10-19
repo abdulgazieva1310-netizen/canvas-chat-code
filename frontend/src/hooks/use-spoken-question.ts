@@ -48,10 +48,10 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
     }
     if (!questionId || !text || lastQuestion.current === questionId) return;
     lastQuestion.current = questionId;
-    if (!muted) replay();
+    if (!muted && supported) replay();
     else stop();
     return stop;
-  }, [enabled, questionId, text, muted, replay, stop]);
+  }, [enabled, questionId, text, muted, replay, stop, supported]);
 
   useEffect(() => stop, [stop]);
 

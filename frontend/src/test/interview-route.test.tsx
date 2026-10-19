@@ -454,6 +454,31 @@ it("stops listening when the candidate edits the transcript", async () => {
   client.clear();
 });
 
+it("shows an actionable permission denial and sends only reviewed text", async () => {
+  vi.stubGlobal("SpeechRecognition", RoomRecognition);
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, input: "Voice" },
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const send = vi.spyOn(Api, "sendMessage").mockResolvedValue(active);
+  const client = openInterview();
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));
+  act(() => RoomRecognition.last.onerror?.({ error: "not-allowed" }));
+  expect(await screen.findByText(/Microphone permission was denied/)).toBeInTheDocument();
+  expect(input).toBeEnabled();
+  fireEvent.change(input, { target: { value: "Reviewed typed fallback" } });
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() =>
+    expect(send).toHaveBeenCalledExactlyOnceWith(active.id, "Reviewed typed fallback"),
+  );
+  client.clear();
+});
+
 it.each(["Voice", "Text"] as const)(
   "keeps %s input usable without speech recognition support",
   async (inputMode) => {

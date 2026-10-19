@@ -11,7 +11,8 @@ router = APIRouter(prefix='/interviews', tags=['interviews'])
 @router.post('', response_model=Interview, response_model_exclude_none=False, status_code=201)
 def start(data: InterviewSetup, request: Request, user: CurrentUser):
     first_question = ai_service.generate_question(data.role, data.level, [],
-        interview_type=data.type, job_description=data.jobDescription)
+        interview_type=data.type, job_description=data.jobDescription,
+        practice_topic=data.practiceTopic)
     store = request.app.state.store
     with store.transaction() as store:
         interview = store.start(user.id, data, first_question=first_question)
@@ -66,7 +67,8 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             setup = interview.setup
             conversation = [*interview.messages, message(interviewId, 'you', submitted)]
             next_question = ai_service.generate_question(setup.role, setup.level, conversation,
-                interview_type=setup.type, job_description=setup.jobDescription)
+                interview_type=setup.type, job_description=setup.jobDescription,
+                practice_topic=setup.practiceTopic)
         return store.answer(interview, data.text, next_question=next_question, evaluation=evaluation).model_copy(deep=True)
 
 

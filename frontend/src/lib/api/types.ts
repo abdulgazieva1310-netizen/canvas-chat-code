@@ -43,6 +43,7 @@ export interface InterviewSetup {
   input: "Voice" | "Text";
   language: "English";
   jobDescription?: string;
+  practiceTopic?: string | null;
 }
 
 export interface Message {

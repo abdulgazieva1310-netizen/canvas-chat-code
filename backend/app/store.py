@@ -14,6 +14,7 @@ from .migrate import upgrade_database
 from fastapi import HTTPException
 
 from .auth import hasher
+from .services.question_bank import BankError, load_bank
 from .models import (CODING_ROLES, AnswerEvaluation, DashboardGroup, DashboardSummary, DashboardTrend,
                      EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
                      PracticeSuggestion, QuestionFeedback, Scores, User)
@@ -32,6 +33,17 @@ def answer_text(setup, text):
 
 
 def question(setup, index):
+    if setup.practiceTopic:
+        try:
+            matches = [item for item in load_bank() if setup.role in item.roles
+                       and setup.level in item.levels and setup.type == item.type
+                       and (item.topic.casefold() in setup.practiceTopic.casefold()
+                            or setup.practiceTopic.casefold() in item.topic.casefold())]
+        except BankError:
+            matches = []
+        if matches:
+            item = sorted(matches, key=lambda candidate: candidate.id)[index % len(matches)]
+            return item.candidate_prompt(setup.role)
     if setup.type == 'Technical' and setup.role in CODING_ROLES:
         language = {'Java Developer': 'Java', 'Python Developer': 'Python',
                     'C++ Developer': 'C++'}.get(setup.role, 'a language of your choice')
@@ -51,7 +63,11 @@ def question(setup, index):
                 'How did you respond to critical feedback?'] if setup.type == 'Behavioral' else
                [f'Describe a core concept you use as a {setup.role}.', 'How would you investigate a production issue?',
                 'What trade-offs would you consider when designing a reliable system?'])
-    return f'Question {index + 1} ({setup.level}): {prompts[index % len(prompts)]}'
+    fallback = f'Question {index + 1} ({setup.level}): {prompts[index % len(prompts)]}'
+    if setup.practiceTopic and index == 0:
+        return (f'No matching curated questions for “{setup.practiceTopic}”. '
+                f'Continuing with a role-compatible {setup.type.lower()} practice question.\n\n{fallback}')
+    return fallback
 
 
 def report(interview, evaluations=None):

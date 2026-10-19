@@ -269,7 +269,8 @@ def test_dynamic_questions_and_final_answer(client, monkeypatch):
     path = '/api/interviews/' + interview['id']
     assert interview['messages'][0]['text'] == 'Dynamic question 1?'
     assert calls[0] == ('Backend Developer', 'Middle', [],
-                        {'interview_type': 'Behavioral', 'job_description': 'Team leadership'})
+                        {'interview_type': 'Behavioral', 'job_description': 'Team leadership',
+                         'practice_topic': None})
     for index in range(5):
         result = client.post(path + '/messages', json={'text': f' Answer {index} '})
         assert result.status_code == 200

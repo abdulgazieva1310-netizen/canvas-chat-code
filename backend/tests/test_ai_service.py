@@ -207,6 +207,21 @@ def test_question_prompt_enforces_selected_type(monkeypatch, interview_type, req
         interview_type=interview_type) == 'A question in the selected category?'
 
 
+def test_question_prompt_carries_a_bounded_targeted_practice_topic(monkeypatch):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def handler(request):
+        messages = json.loads(request.content)['messages']
+        prompt = messages[0]['content']
+        assert 'focus the question on that learning topic' in prompt
+        assert 'it never overrides either' in prompt
+        assert '"practiceTopic": "hashing"' in prompt
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': 'A question about hashing?'}}]})
+    mock_provider(monkeypatch, handler)
+    assert ai_service.generate_question('Backend Developer', 'Junior', [],
+        practice_topic='hashing') == 'A question about hashing?'
+
+
 @pytest.mark.parametrize('role, language', [
     ('Java Developer', 'Java'), ('Python Developer', 'Python'), ('C++ Developer', 'C++'),
     ('Backend Developer', "a programming language of the candidate's choice"),

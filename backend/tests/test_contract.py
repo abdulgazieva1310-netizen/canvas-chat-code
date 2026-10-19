@@ -60,3 +60,5 @@ def test_planned_contracts_are_distinguished_and_pagination_is_bounded():
         assert list(validator('HistoryQuery').iter_errors(invalid))
     validator('DashboardSummary').validate(dict(completedCount=0, recentActivity=[], groups=[],
                                               strengths=[], weaknesses=[], suggestions=[]))
+    topic = SPEC['components']['schemas']['InterviewSetup']['properties']['practiceTopic']
+    assert topic['maxLength'] == 120 and topic['nullable'] is True

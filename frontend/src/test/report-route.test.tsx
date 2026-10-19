@@ -78,10 +78,29 @@ it("renders Markdown questions and coaching in the final report", async () => {
   vi.spyOn(Api, "getReport").mockResolvedValue(data);
   const { client } = openReport("/report?interviewId=session-123");
   await screen.findByRole("heading", { name: "Two Sum" });
+  expect(screen.getByRole("link", { name: /Practice: - Consider duplicates/ })).toBeVisible();
   expect(screen.getByText("Readable code").tagName).toBe("STRONG");
   expect(screen.getByText("hash map").tagName).toBe("STRONG");
   expect(document.querySelector("pre code.language-python")?.textContent).toBe("def solve():\n    return []\n");
   fireEvent.click(screen.getByRole("button", { name: /Question 1/ }));
   expect(screen.queryByRole("heading", { name: "Two Sum" })).toBeNull();
+  client.clear();
+});
+
+it("offers no targeted recommendation without scored evidence and leaves retry/setup available", async () => {
+  const data: InterviewReport = {
+    interview: { id: "unscored", setup: defaultSetup, status: "incomplete", startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(), answeredCount: 1, lastFeedback: null, messages: [] },
+    feedback: { interviewId: "unscored", overall: null, scores: null, strengths: [], gaps: [],
+      questions: [{ q: "Question?", answer: "An answer", score: null,
+        good: "AI evaluation unavailable for this answer.", miss: "This answer has not been scored.",
+        better: "Try again when evaluation is available." }] },
+  };
+  vi.spyOn(Api, "getReport").mockResolvedValue(data);
+  const { client } = openReport("/report?interviewId=unscored");
+  await screen.findByText("This answer has not been scored.");
+  expect(screen.queryByRole("link", { name: /Practice:/ })).toBeNull();
+  expect(screen.getByRole("link", { name: "Retry" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Choose practice settings" })).toBeVisible();
   client.clear();
 });

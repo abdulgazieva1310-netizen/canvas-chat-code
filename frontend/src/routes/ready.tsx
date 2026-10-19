@@ -8,9 +8,10 @@ import { AppShell } from "@/components/AppShell";
 export const Route = createFileRoute("/ready")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { interviewId?: string; retryId?: string } => ({
+  ): { interviewId?: string; retryId?: string; practiceTopic?: string } => ({
     interviewId: typeof search["interviewId"] === "string" ? search["interviewId"] : "",
     retryId: typeof search["retryId"] === "string" ? search["retryId"] : "",
+    practiceTopic: typeof search["practiceTopic"] === "string" ? search["practiceTopic"].trim() : "",
   }),
   head: () => ({
     meta: [
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/ready")({
 function Ready() {
   const client = useQueryClient();
   const [mic, setMic] = useState(false);
-  const { interviewId, retryId } = Route.useSearch();
+  const { interviewId, retryId, practiceTopic } = Route.useSearch();
   const navigate = useNavigate();
   const sourceId = interviewId || retryId || "";
   const {
@@ -42,7 +43,11 @@ function Ready() {
     enabled: !!sourceId,
     retry: false,
   });
-  const setup = interview?.setup ?? defaultSetup;
+  const setup = interview?.setup
+    ? practiceTopic
+      ? { ...interview.setup, mode: "Practice" as const, practiceTopic }
+      : interview.setup
+    : defaultSetup;
   const start = useMutation({
     mutationFn: async () => {
       const result =
@@ -69,6 +74,11 @@ function Ready() {
           {setup.role} · {setup.type} · {setup.level} · {setup.mode} mode · {setup.questionCount}{" "}
           questions
         </p>
+        {setup.practiceTopic && (
+          <p className="mt-2 font-medium" aria-label="Targeted practice topic">
+            Targeted Practice · {setup.practiceTopic}
+          </p>
+        )}
       </div>
       <div className="mx-auto mt-10 grid max-w-3xl gap-4 md:grid-cols-2">
         <div className="card-surface p-6">

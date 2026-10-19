@@ -710,6 +710,7 @@ components:
         input: {type: string, enum: [Voice, Text]}
         language: {type: string, enum: [English]}
         jobDescription: {type: string}
+        practiceTopic: {type: string, minLength: 1, maxLength: 120, pattern: '\S', nullable: true, description: Optional evidence-backed topic for Practice sessions; ignored when incompatible with role or type.}
     Message:
       type: object
       required: [id, interviewId, from, text, createdAt]

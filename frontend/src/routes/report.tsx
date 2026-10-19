@@ -51,6 +51,9 @@ function Report() {
     );
   const { interview, feedback } = data;
   const qs = feedback.questions;
+  const practiceSuggestions = [...new Set(qs
+    .filter((item) => item.score !== null && item.answer.trim() && item.miss.trim())
+    .map((item) => item.miss.trim().replace(/\s+/g, " ").slice(0, 120)))];
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-6">
@@ -68,7 +71,7 @@ function Report() {
             Retry
           </Link>
           <Link to="/setup" className="btn btn-primary">
-            Practice weak areas
+            Choose practice settings
           </Link>
         </div>
       </div>
@@ -166,6 +169,25 @@ function Report() {
           )}
         </div>
       </div>
+
+      {practiceSuggestions.length > 0 && (
+        <section className="card-surface mt-4 p-6" aria-label="Evidence-backed practice suggestions">
+          <h2 className="text-xl">Practice a documented weak area</h2>
+          <ul className="mt-3 flex flex-wrap gap-3">
+            {practiceSuggestions.map((topic) => (
+              <li key={topic}>
+                <Link
+                  to="/ready"
+                  search={{ retryId: interview.id, practiceTopic: topic }}
+                  className="btn btn-ghost"
+                >
+                  Practice: {topic}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </AppShell>
   );
 }

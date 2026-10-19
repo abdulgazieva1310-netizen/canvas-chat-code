@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 Role = Literal['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Java Developer',
                'Python Developer', 'C++ Developer', 'QA Engineer', 'Data Analyst', 'DevOps Engineer']
@@ -58,6 +58,19 @@ class InterviewSetup(BaseModel):
     input: Literal['Voice', 'Text']
     language: Literal['English']
     jobDescription: str = ""
+    practiceTopic: str | None = Field(default=None, min_length=1, max_length=120, pattern=r'\S',
+                                     exclude_if=lambda value: value is None)
+
+    @field_validator('practiceTopic')
+    @classmethod
+    def clean_practice_topic(cls, value):
+        return value.strip() if value is not None else None
+
+    @model_validator(mode='after')
+    def topic_requires_practice_mode(self):
+        if self.practiceTopic is not None and self.mode != 'Practice':
+            raise ValueError('practiceTopic is only available in Practice mode')
+        return self
 
     @field_validator('questionCount', mode='before')
     @classmethod

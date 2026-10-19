@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { Api } from "@/lib/api/client";
 import type { Interview } from "@/lib/api/types";
 import { AppShell } from "@/components/AppShell";
+import { DashboardSummary } from "@/components/DashboardSummary";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,13 +24,6 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const trend = [5.2, 5.8, 6.1, 5.9, 6.7, 7.0, 7.4];
-const categories = [
-  { name: "Accuracy", score: 7.6 },
-  { name: "Completeness", score: 6.4 },
-  { name: "Clarity", score: 8.1 },
-  { name: "Structure", score: 5.9 },
-];
 function Dashboard() {
   const client = useQueryClient();
   // Account identity and target come from saved profile settings, independently of sessions.
@@ -57,12 +51,9 @@ function Dashboard() {
       client.removeQueries({ queryKey: ["interview", id], exact: true });
       client.removeQueries({ queryKey: ["report", id], exact: true });
       await client.invalidateQueries({ queryKey: ["history"] });
+      await client.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
-  const max = 10;
-  const pts = trend
-    .map((v, i) => `${(i / (trend.length - 1)) * 100},${100 - (v / max) * 100}`)
-    .join(" ");
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-6">
@@ -83,78 +74,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-4 md:grid-cols-4">
-        {[
-          ["Interviews", "12"],
-          ["Avg. score", "6.8"],
-          ["This week", "3"],
-          ["Best streak", "5 days"],
-        ].map(([k, v]) => (
-          <div key={k} className="card-surface p-5">
-            <p className="eyebrow">{k}</p>
-            <p className="mt-2 font-display text-3xl">{v}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        <div className="card-surface p-6 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl">Score trend</h2>
-            <span className="text-xs text-muted-foreground">Frontend · Technical only</span>
-          </div>
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            className="mt-6 h-44 w-full overflow-visible"
-          >
-            <polyline
-              points={pts}
-              fill="none"
-              stroke="var(--color-primary)"
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-            />
-            {trend.map((v, i) => (
-              <circle
-                key={i}
-                cx={(i / (trend.length - 1)) * 100}
-                cy={100 - (v / max) * 100}
-                r="1.4"
-                fill="var(--color-accent)"
-              />
-            ))}
-          </svg>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Scores are AI coaching estimates, not measures of hiring readiness.
-          </p>
-        </div>
-        <div className="card-surface p-6">
-          <h2 className="text-xl">By category</h2>
-          <div className="mt-5 space-y-4">
-            {categories.map((c) => (
-              <div key={c.name}>
-                <div className="flex justify-between text-sm">
-                  <span>{c.name}</span>
-                  <span className="font-semibold">{c.score}</span>
-                </div>
-                <div className="mt-1.5 h-2 rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: `${c.score * 10}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 rounded-lg bg-secondary p-3 text-sm">
-            <p className="font-semibold">Suggested practice</p>
-            <p className="text-muted-foreground">
-              Structure answers with STAR — 5 behavioral questions.
-            </p>
-          </div>
-        </div>
-      </div>
+      <DashboardSummary />
 
       <div className="card-surface mt-4 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

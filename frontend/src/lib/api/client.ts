@@ -1,6 +1,7 @@
 import { getAuthorization, saveAuthorization } from "./session";
 import type {
   Interview,
+  DashboardSummary,
   InterviewReport,
   InterviewSetup,
   ProfileUpdate,
@@ -70,6 +71,7 @@ async function request<T>(
 const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 
 export const Api = {
+  getDashboardSummary: () => request<DashboardSummary>("/dashboard/summary"),
   getProfile: () => request<User>("/auth/me"),
   updateProfile: (data: ProfileUpdate) => request<User>("/auth/me", data, "PATCH"),
   logout: () => request<void>("/auth/logout", undefined, "POST"),

@@ -8,13 +8,17 @@ import {
   Outlet,
   RouterProvider,
 } from "@tanstack/react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Route as DashboardRoute } from "@/routes/index";
 import { Route as ReadyRoute } from "@/routes/ready";
 import { AppShell } from "@/components/AppShell";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { Interview, User } from "@/lib/api/types";
+
+beforeEach(() => {
+  vi.spyOn(Api, "getDashboardSummary").mockResolvedValue({ completedCount: 0, recentActivity: [], groups: [], strengths: [], weaknesses: [], suggestions: [] });
+});
 
 afterEach(() => {
   cleanup();

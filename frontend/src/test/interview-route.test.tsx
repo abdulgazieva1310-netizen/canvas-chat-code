@@ -166,7 +166,8 @@ it("shows a recovery link when the backend returns no interview", async () => {
 
 it("can retry loading after a recoverable fetch error", async () => {
   const active: Interview = { ...incompleteSession(), status: "active", endedAt: null };
-  const getInterview = vi.spyOn(Api, "getInterview")
+  const getInterview = vi
+    .spyOn(Api, "getInterview")
     .mockRejectedValueOnce(new Error("Network unavailable."))
     .mockResolvedValueOnce(active);
   const client = openInterview();
@@ -591,6 +592,68 @@ it("shows an actionable permission denial and sends only reviewed text", async (
       "question-2",
     ),
   );
+  client.clear();
+});
+
+it("starts camera preview only after opt-in and releases its track when the interview ends", async () => {
+  const track = { stop: vi.fn() };
+  const stream = { getTracks: () => [track] } as unknown as MediaStream;
+  const getUserMedia = vi.fn().mockResolvedValue(stream);
+  vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  vi.spyOn(Api, "endInterview").mockReturnValue(new Promise(() => {}));
+  const client = openInterview();
+  expect(await screen.findByText("Camera off")).toBeVisible();
+  expect(getUserMedia).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Enable camera" }));
+  expect(await screen.findByText("Camera on")).toBeVisible();
+  expect(getUserMedia).toHaveBeenCalledExactlyOnceWith({ audio: false, video: true });
+  expect(screen.getByLabelText("Your camera preview")).toHaveAttribute("autoplay");
+  fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+  expect(track.stop).toHaveBeenCalledOnce();
+  client.clear();
+});
+
+it("releases camera tracks when leaving the interview route", async () => {
+  const track = { stop: vi.fn() };
+  const stream = { getTracks: () => [track] } as unknown as MediaStream;
+  vi.stubGlobal("navigator", { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(stream) } });
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+  });
+  const client = openInterview();
+  fireEvent.click(await screen.findByRole("button", { name: "Enable camera" }));
+  expect(await screen.findByText("Camera on")).toBeVisible();
+  cleanup();
+  expect(track.stop).toHaveBeenCalledOnce();
+  client.clear();
+});
+
+it("keeps text interviewing available after camera permission is denied", async () => {
+  vi.stubGlobal("navigator", {
+    mediaDevices: {
+      getUserMedia: vi.fn().mockRejectedValue(new DOMException("Denied", "NotAllowedError")),
+    },
+  });
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, input: "Text" },
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const send = vi.spyOn(Api, "sendMessage").mockResolvedValue(active);
+  const client = openInterview();
+  fireEvent.click(await screen.findByRole("button", { name: "Enable camera" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Camera permission was denied");
+  const input = screen.getByRole("textbox", { name: "Your answer" });
+  expect(input).toBeEnabled();
+  fireEvent.change(input, { target: { value: "Typed fallback" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() => expect(send).toHaveBeenCalledOnce());
   client.clear();
 });
 

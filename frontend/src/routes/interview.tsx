@@ -2,12 +2,13 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import type { Interview as InterviewData } from "@/lib/api/types";
-import { useEffect, useState } from "react";
-import { Mic, MicOff } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, CameraOff, Mic, MicOff } from "lucide-react";
 import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpokenQuestion } from "@/hooks/use-spoken-question";
+import { useCameraPreview } from "@/hooks/use-camera-preview";
 
 const languageLabels: Record<CodingLanguage, string> = {
   python: "Python",
@@ -88,6 +89,8 @@ function Interview() {
   });
   const [text, setText] = useState("");
   const [sec, setSec] = useState(0);
+  const camera = useCameraPreview();
+  const cameraVideo = useRef<HTMLVideoElement>(null);
   const receive = async (updated: InterviewData) => {
     client.setQueryData(queryKey, updated);
     if (updated.status !== "active") await navigate({ to: "/report", search: { interviewId } });
@@ -104,7 +107,10 @@ function Interview() {
   });
   const end = useMutation({
     mutationFn: () => Api.endInterview(interviewId),
-    onSuccess: receive,
+    onSuccess: async (updated) => {
+      camera.stop();
+      await receive(updated);
+    },
   });
   const hint = useMutation({ mutationFn: () => Api.getHint(interviewId), onSuccess: receive });
   const busy = answer.isPending || end.isPending || hint.isPending;
@@ -116,6 +122,13 @@ function Interview() {
     "Full Stack Developer": "javascript",
   };
   const [selectedLanguage, setSelectedLanguage] = useState<CodingLanguage | null>(null);
+  useEffect(() => {
+    const video = cameraVideo.current;
+    if (video) video.srcObject = camera.stream;
+    return () => {
+      if (video) video.srcObject = null;
+    };
+  }, [camera.stream]);
   const defaultLanguage =
     interview?.setup?.type === "Technical" ? codingLanguages[interview.setup.role] : undefined;
   useEffect(() => {
@@ -165,11 +178,13 @@ function Interview() {
   if (error || !interview)
     return (
       <p role="alert">
-        {error?.message ?? "Interview unavailable."} {error && (
+        {error?.message ?? "Interview unavailable."}{" "}
+        {error && (
           <button type="button" className="btn btn-ghost ml-2" onClick={() => void refetch()}>
             Retry loading
           </button>
-        )} <Link to="/setup">New interview</Link>
+        )}{" "}
+        <Link to="/setup">New interview</Link>
       </p>
     );
   const setup = interview.setup;
@@ -206,6 +221,7 @@ function Interview() {
           <button
             disabled={busy || interview.status !== "active"}
             onClick={() => {
+              camera.stop();
               speech.cancel();
               spoken.stop();
               end.mutate();
@@ -294,87 +310,96 @@ function Interview() {
               {spoken.error}
             </p>
           )}
-          {interview.status === "active" ? <div
-            className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
-          >
-            {codingLanguage && (
-              <p className="text-sm font-medium">
-                {setup.role.replace(" Developer", "")} code · AI review (code is not executed)
-              </p>
-            )}
-            {voiceMode && (
-              <button
-                type="button"
-                disabled={!speech.supported || busy || interview.status !== "active"}
-                onClick={() => {
-                  spoken.stop();
-                  speech.listening ? speech.stop() : speech.start(text);
-                }}
-                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50 ${speech.listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
-                aria-label={speech.listening ? "Stop microphone" : "Start microphone"}
-                aria-pressed={speech.listening}
-              >
-                {speech.listening ? (
-                  <MicOff aria-hidden="true" size={20} />
-                ) : (
-                  <Mic aria-hidden="true" size={20} />
-                )}
-              </button>
-            )}
-            {codingLanguage ? (
-              <>
-                <label className="text-sm font-medium">
-                  Language
-                  <select
-                    aria-label="Coding language"
-                    value={codingLanguage}
-                    disabled={busy || interview.status !== "active"}
-                    onChange={(event) => setSelectedLanguage(event.target.value as CodingLanguage)}
-                    className="ml-3 rounded border border-input bg-background px-3 py-2"
-                  >
-                    {Object.entries(languageLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <CodeEditor
-                  key={`${interviewId}-${interview.answeredCount}`}
-                  language={codingLanguage}
-                  path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
-                  value={text}
-                  readOnly={busy || interview.status !== "active"}
-                  onChange={setText}
-                />
-              </>
-            ) : (
-              <input
-                disabled={busy || interview.status !== "active"}
-                value={text}
-                onChange={(e) => {
-                  speech.cancel();
-                  setText(e.target.value);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && send()}
-                placeholder={
-                  speech.listening ? "Listening… or type your answer" : "Type your answer"
-                }
-                aria-label="Your answer"
-                className="flex-1 bg-transparent px-2 text-sm outline-none"
-              />
-            )}
-            <button
-              disabled={busy || !text.trim() || interview.status !== "active"}
-              onClick={send}
-              className="btn btn-primary"
+          {interview.status === "active" ? (
+            <div
+              className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
             >
-              {answer.isPending ? "Sending…" : "Send"}
-            </button>
-          </div> : (
+              {codingLanguage && (
+                <p className="text-sm font-medium">
+                  {setup.role.replace(" Developer", "")} code · AI review (code is not executed)
+                </p>
+              )}
+              {voiceMode && (
+                <button
+                  type="button"
+                  disabled={!speech.supported || busy || interview.status !== "active"}
+                  onClick={() => {
+                    spoken.stop();
+                    if (speech.listening) speech.stop();
+                    else speech.start(text);
+                  }}
+                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50 ${speech.listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
+                  aria-label={speech.listening ? "Stop microphone" : "Start microphone"}
+                  aria-pressed={speech.listening}
+                >
+                  {speech.listening ? (
+                    <MicOff aria-hidden="true" size={20} />
+                  ) : (
+                    <Mic aria-hidden="true" size={20} />
+                  )}
+                </button>
+              )}
+              {codingLanguage ? (
+                <>
+                  <label className="text-sm font-medium">
+                    Language
+                    <select
+                      aria-label="Coding language"
+                      value={codingLanguage}
+                      disabled={busy || interview.status !== "active"}
+                      onChange={(event) =>
+                        setSelectedLanguage(event.target.value as CodingLanguage)
+                      }
+                      className="ml-3 rounded border border-input bg-background px-3 py-2"
+                    >
+                      {Object.entries(languageLabels).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <CodeEditor
+                    key={`${interviewId}-${interview.answeredCount}`}
+                    language={codingLanguage}
+                    path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
+                    value={text}
+                    readOnly={busy || interview.status !== "active"}
+                    onChange={setText}
+                  />
+                </>
+              ) : (
+                <input
+                  disabled={busy || interview.status !== "active"}
+                  value={text}
+                  onChange={(e) => {
+                    speech.cancel();
+                    setText(e.target.value);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && send()}
+                  placeholder={
+                    speech.listening ? "Listening… or type your answer" : "Type your answer"
+                  }
+                  aria-label="Your answer"
+                  className="flex-1 bg-transparent px-2 text-sm outline-none"
+                />
+              )}
+              <button
+                disabled={busy || !text.trim() || interview.status !== "active"}
+                onClick={send}
+                className="btn btn-primary"
+              >
+                {answer.isPending ? "Sending…" : "Send"}
+              </button>
+            </div>
+          ) : (
             <div role="status" className="card-surface mt-6 p-4">
               <p className="font-medium">This interview has ended.</p>
-              <Link className="btn btn-primary mt-3 inline-flex" to="/report" search={{ interviewId }}>
+              <Link
+                className="btn btn-primary mt-3 inline-flex"
+                to="/report"
+                search={{ interviewId }}
+              >
                 View results
               </Link>
             </div>
@@ -396,6 +421,66 @@ function Interview() {
           )}
         </section>
         <aside className="space-y-4">
+          <section className="card-surface space-y-3 p-5" aria-label="Camera controls">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg">Camera</h2>
+              <span aria-live="polite" className="text-sm">
+                {camera.stream
+                  ? "Camera on"
+                  : camera.pending
+                    ? "Waiting for permission…"
+                    : "Camera off"}
+              </span>
+            </div>
+            {camera.stream && (
+              <video
+                ref={cameraVideo}
+                autoPlay
+                muted
+                playsInline
+                aria-label="Your camera preview"
+                className="aspect-video w-full rounded-lg bg-muted object-cover"
+              />
+            )}
+            {camera.error && (
+              <p role="alert" className="text-sm">
+                {camera.error}
+              </p>
+            )}
+            {interview.status === "active" && (
+              <button
+                type="button"
+                className="btn btn-ghost w-full"
+                aria-label={
+                  camera.stream
+                    ? "Stop camera"
+                    : camera.pending
+                      ? "Cancel camera request"
+                      : "Enable camera"
+                }
+                aria-pressed={!!camera.stream}
+                onClick={() => {
+                  if (camera.stream || camera.pending) camera.stop();
+                  else void camera.start();
+                }}
+              >
+                {camera.stream ? (
+                  <CameraOff aria-hidden="true" size={18} />
+                ) : (
+                  <Camera aria-hidden="true" size={18} />
+                )}
+                {camera.stream
+                  ? "Stop camera"
+                  : camera.pending
+                    ? "Cancel camera request"
+                    : "Enable camera"}
+              </button>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Camera is optional. The preview stays on this device; video is not recorded, sent, or
+              analyzed.
+            </p>
+          </section>
           <div className="card-surface p-5">
             <p className="eyebrow">Interviewer</p>
             <div className="mt-4 flex items-center gap-3">

@@ -84,6 +84,11 @@ for (const width of [375, 1280]) {
       );
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(new RegExp(`${path}(\\?|$)`));
+      if (path === "/interview") {
+        await expect(page.getByRole("button", { name: "End interview" })).toBeVisible();
+        await page.goBack();
+        continue;
+      }
       await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveAttribute(
         "aria-current",
         "page",

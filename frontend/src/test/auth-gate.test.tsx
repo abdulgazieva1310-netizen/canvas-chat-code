@@ -191,3 +191,18 @@ it.each(["/history?role=QA", "/profile", "/report?interviewId=123"])(
   "preserves validated private destination %s",
   (redirect) => expect(validateAuthSearch({ redirect }).redirect).toBe(redirect),
 );
+
+it("disables registration while the request is pending", async () => {
+  let finish!: (response: Response) => void;
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise<Response>((resolve) => { finish = resolve; })));
+  const { client } = openApp("/register");
+  await screen.findByLabelText("Name");
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "New user" } });
+  enterCredentials();
+  fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+  expect(await screen.findByRole("button", { name: "Please wait…" })).toBeDisabled();
+  finish(new Response('{"message":"Email already registered."}', { status: 409 }));
+  await screen.findByRole("alert");
+  expect(screen.getByRole("button", { name: "Create account" })).toBeEnabled();
+  client.clear();
+});

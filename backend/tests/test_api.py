@@ -97,6 +97,9 @@ def test_complete_lifecycle(client, mode, monkeypatch):
         interview = response.json()
         assert interview['answeredCount'] == index + 1
         assert (interview['lastFeedback'] is None) == (mode == 'Real Interview')
+        assert (interview['lastAnswerFeedback'] is None) == (mode == 'Real Interview')
+        if mode == 'Real Interview':
+            assert 'Clear example.' not in response.text
     assert interview['status'] == 'complete' and interview['endedAt']
     assert len([m for m in interview['messages'] if m['from'] == 'ai']) == 5
     assert client.post(path + '/messages', json={'text': 'extra'}).status_code == 409

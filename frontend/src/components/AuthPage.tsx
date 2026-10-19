@@ -12,9 +12,10 @@ export function AuthPage({ register = false, redirect }: { register?: boolean; r
   const auth = useMutation({
     mutationFn: () =>
       register ? Api.register({ name, email, password }) : Api.login(email, password),
-    onSuccess: async () => {
+    onSuccess: async (user) => {
       await client.cancelQueries();
       client.clear();
+      client.setQueryData(["profile"], user);
       setPassword("");
       await navigate({ href: redirect, replace: true });
     },

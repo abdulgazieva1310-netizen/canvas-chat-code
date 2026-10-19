@@ -9,8 +9,8 @@ info:
     Successful JSON bodies match the mock's return values directly, without wrappers.
     All interview operations require a session and access only the current user's data.
     Login and registration establish that session. No token field is added to User.
-    Voice input currently submits text; audio upload, transcription, streaming,
-    logout, profile updates, and dashboard statistics have no client operations.
+    Voice input submits browser-transcribed text. Audio uploads, streaming, and
+    dashboard statistics have no client operations.
 servers:
   - url: /api
 security:
@@ -74,6 +74,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /auth/me:
+    get:
+      operationId: getProfile
+      summary: Get the authenticated user's profile
+      responses:
+        '200':
+          description: Current user (Cache-Control no-store)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      operationId: updateProfile
+      summary: Update the authenticated user's name and interview preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Saved user profile (Cache-Control no-store)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke supplied session tokens and clear the browser cookie
+      description: Idempotent, including when credentials have expired. Revokes both the bearer token and session cookie token when supplied. Other device sessions remain active.
+      security: []
+      responses:
+        '204':
+          description: Session revoked and session cookie expired at path /api; no response body
   /interviews:
     post:
       operationId: startInterview
@@ -318,6 +360,16 @@ components:
         level:
           $ref: '#/components/schemas/Level'
         preferredLanguage: {type: string, enum: [English]}
+    ProfileUpdate:
+      type: object
+      additionalProperties: false
+      required: [name, targetRole, level]
+      properties:
+        name: {type: string, minLength: 1, pattern: '\S'}
+        targetRole:
+          $ref: '#/components/schemas/Role'
+        level:
+          $ref: '#/components/schemas/Level'
     RegisterData:
       type: object
       required: [name, email, password]

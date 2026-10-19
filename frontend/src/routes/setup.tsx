@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
-import type { InterviewSetup } from "@/lib/api/types";
+import { targetRoles, type InterviewSetup } from "@/lib/api/types";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 
@@ -82,17 +82,7 @@ function Setup() {
           />
           <Choice
             label="Target role"
-            options={[
-              "Frontend Developer",
-              "Backend Developer",
-              "Full Stack Developer",
-              "Java Developer",
-              "Python Developer",
-              "C++ Developer",
-              "QA Engineer",
-              "Data Analyst",
-              "DevOps Engineer",
-            ]}
+            options={targetRoles}
             value={role}
             onChange={update("role")}
           />

@@ -121,3 +121,12 @@ input/output examples, constraints, and implementation/complexity requirements.
 Named language roles use Java, Python, or C++; Backend and Full Stack candidates
 may choose their language. The offline question fallback follows the same rule.
 Behavioral and Role-specific interviews keep their respective question prompts.
+
+The account menu loads the current user through `GET /api/auth/me`.
+`PATCH /api/auth/me` saves `name`, `targetRole`, and `level` for the authenticated
+user; all three fields are required, unknown fields are rejected, and name is
+trimmed. IDs, email, and password cannot be changed through this endpoint.
+Profile data is stored in the existing users table and survives restarts.
+`POST /api/auth/logout` revokes any supplied bearer and cookie tokens and expires
+the HttpOnly cookie. It also works for expired or absent credentials, so users
+can always clear stale sessions. Other device sessions are left active.

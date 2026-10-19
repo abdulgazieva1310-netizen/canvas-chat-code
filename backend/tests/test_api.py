@@ -535,3 +535,75 @@ def test_offline_coding_questions_do_not_mix_interview_types(role):
         assert 'Implement in' in technical and 'time and space complexity' in technical
         assert 'Implement in' not in question(InterviewSetup(**(SETUP | {
             'role': role, 'type': 'Behavioral'})), index)
+
+
+def test_profile_requires_authentication_and_persists(tmp_path):
+    url = f'sqlite:///{tmp_path / "profile.db"}'
+    values = {'name': '  Aigerim Murat  ', 'targetRole': 'Python Developer', 'level': 'Senior'}
+    with TestClient(create_app(database_url=url)) as client:
+        assert client.get('/api/auth/me').status_code == 401
+        assert client.patch('/api/auth/me', json=values).status_code == 401
+        authenticated = login(client)
+        original = authenticated.json()
+        token = authenticated.headers['authorization']
+        assert client.get('/api/auth/me').json() == original
+        response = client.patch('/api/auth/me', json=values)
+        assert response.status_code == 200
+        expected = original | values | {'name': 'Aigerim Murat'}
+        assert response.json() == expected
+        assert response.headers['cache-control'] == 'no-store'
+        client.cookies.clear()
+        assert client.get('/api/auth/me', headers={'Authorization': token}).json() == expected
+    with TestClient(create_app(database_url=url)) as restarted:
+        assert restarted.get('/api/auth/me', headers={'Authorization': token}).json() == expected
+        assert login(restarted).json() == expected
+
+
+@pytest.mark.parametrize('data', [
+    {}, {'name': '   ', 'targetRole': 'Backend Developer', 'level': 'Senior'},
+    {'name': 'New', 'targetRole': 'Invalid', 'level': 'Senior'},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Invalid'},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'id': 'another-user'},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'email': 'different@example.com'},
+])
+def test_profile_rejects_invalid_or_uneditable_fields(client, data):
+    original = login(client).json()
+    assert client.patch('/api/auth/me', json=data).status_code == 400
+    assert client.get('/api/auth/me').json() == original
+
+
+def test_profile_updates_only_authenticated_user(client):
+    owner = login(client)
+    token = owner.headers['authorization']
+    other = client.post('/api/auth/register', json={
+        'name': 'Other', 'email': 'other@example.com', 'password': 'secret'}).json()
+    update = {'name': 'Updated Other', 'targetRole': 'C++ Developer', 'level': 'Junior'}
+    response = client.patch('/api/auth/me', json=update)
+    assert response.json() == other | update
+    assert client.get('/api/auth/me', headers={'Authorization': token}).json() == owner.json()
+
+
+def test_logout_revokes_bearer_and_cookie_tokens_and_clears_cookie(client):
+    first = login(client).headers['authorization']
+    second = login(client).headers['authorization']  # Browser cookie now holds the second token.
+    third = login(client).headers['authorization']
+    # Explicitly hold the second token in the browser alongside the first bearer token.
+    client.cookies.set('session', second.split()[1], path='/api')
+    response = client.post('/api/auth/logout', headers={'Authorization': first})
+    assert response.status_code == 204 and response.content == b''
+    cookie = response.headers['set-cookie']
+    assert 'Max-Age=0' in cookie and 'Path=/api' in cookie and 'HttpOnly' in cookie
+    client.cookies.clear()
+    assert client.get('/api/auth/me', headers={'Authorization': first}).status_code == 401
+    assert client.get('/api/auth/me', headers={'Authorization': second}).status_code == 401
+    # A different device's token remains valid.
+    assert client.get('/api/auth/me', headers={'Authorization': third}).status_code == 200
+    assert client.get('/api/interviews').status_code == 401
+    assert client.post('/api/auth/logout').status_code == 204
+
+
+def test_logout_with_only_cookie_removes_session(client):
+    token = login(client).headers['authorization']
+    assert client.post('/api/auth/logout').status_code == 204
+    assert client.get('/api/auth/me').status_code == 401
+    assert client.get('/api/auth/me', headers={'Authorization': token}).status_code == 401

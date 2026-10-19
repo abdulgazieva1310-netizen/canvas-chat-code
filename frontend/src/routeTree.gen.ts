@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InterviewRouteImport } from './routes/interview'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReadyRouteImport } from './routes/ready'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ReportRouteImport } from './routes/report'
@@ -30,6 +31,11 @@ const InterviewRoute = InterviewRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReadyRoute = ReadyRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/interview': typeof InterviewRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/ready': typeof ReadyRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/interview': typeof InterviewRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/ready': typeof ReadyRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/interview': typeof InterviewRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/ready': typeof ReadyRoute
   '/register': typeof RegisterRoute
   '/report': typeof ReportRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/interview'
     | '/login'
+    | '/profile'
     | '/ready'
     | '/register'
     | '/report'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/interview'
     | '/login'
+    | '/profile'
     | '/ready'
     | '/register'
     | '/report'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/interview'
     | '/login'
+    | '/profile'
     | '/ready'
     | '/register'
     | '/report'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   InterviewRoute: typeof InterviewRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
   ReadyRoute: typeof ReadyRoute
   RegisterRoute: typeof RegisterRoute
   ReportRoute: typeof ReportRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ready': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InterviewRoute: InterviewRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
   ReadyRoute: ReadyRoute,
   RegisterRoute: RegisterRoute,
   ReportRoute: ReportRoute,

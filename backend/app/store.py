@@ -112,6 +112,17 @@ class Repository:
     def add_token(self, digest, user_id, expires_at):
         self.session.add(TokenRecord(digest=digest, user_id=user_id, expires_at=expires_at.timestamp()))
 
+    def revoke_tokens(self, digests):
+        if digests:
+            self.session.execute(delete(TokenRecord).where(TokenRecord.digest.in_(digests)))
+
+    def update_profile(self, user_id, data):
+        record = self.session.get(UserRecord, user_id)
+        user = User.model_validate(record.profile).model_copy(update={
+            'name': data.name.strip(), 'targetRole': data.targetRole, 'level': data.level})
+        record.profile = user.model_dump(mode='json')
+        return user
+
     def token_user(self, digest):
         token = self.session.get(TokenRecord, digest)
         if token is None or token.expires_at <= now().timestamp():

@@ -129,3 +129,24 @@ it("preserves deletion errors for the dashboard", async () => {
     status: 404, message: "Interview not found.",
   });
 });
+
+it("loads and updates the authenticated profile and logs out with credentials", async () => {
+  const profile = { id: 'user', name: 'Aigerim', email: 'a@example.com', targetRole: 'Python Developer', level: 'Senior', preferredLanguage: 'English' };
+  const values = { name: 'Aigerim', targetRole: 'Python Developer' as const, level: 'Senior' as const };
+  const fetch = vi.fn().mockImplementation(async (_url: string, options: RequestInit) =>
+    options.method === 'POST' ? new Response(null, { status: 204 }) : new Response(JSON.stringify(profile)));
+  sessionStorage.setItem('interview-mirror.authorization', 'Bearer token');
+  vi.stubGlobal('fetch', fetch);
+  expect(await Api.getProfile()).toEqual(profile);
+  expect(await Api.updateProfile(values)).toEqual(profile);
+  await Api.logout();
+  expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+    ['http://localhost:8000/api/auth/me', 'GET'], ['http://localhost:8000/api/auth/me', 'PATCH'],
+    ['http://localhost:8000/api/auth/logout', 'POST'],
+  ]);
+  expect(fetch.mock.calls[1]?.[1].body).toBe(JSON.stringify(values));
+  for (const [, options] of fetch.mock.calls) {
+    expect(options.credentials).toBe('include');
+    expect(options.headers.Authorization).toBe('Bearer token');
+  }
+});

@@ -1,3 +1,4 @@
+import { UserMenu } from "@/components/UserMenu";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Interview } from "@/lib/api/types";
@@ -84,9 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-semibold">
-            AK
-          </div>
+          <UserMenu />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>

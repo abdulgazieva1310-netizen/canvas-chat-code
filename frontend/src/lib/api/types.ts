@@ -19,6 +19,20 @@ export interface User {
   preferredLanguage: "English";
 }
 
+export type ProfileUpdate = Pick<User, "name" | "targetRole" | "level">;
+
+export const targetRoles: Role[] = [
+  "Frontend Developer",
+  "Backend Developer",
+  "Full Stack Developer",
+  "Java Developer",
+  "Python Developer",
+  "C++ Developer",
+  "QA Engineer",
+  "Data Analyst",
+  "DevOps Engineer",
+];
+
 export interface InterviewSetup {
   role: Role;
   level: Level;

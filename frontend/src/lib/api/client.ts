@@ -1,5 +1,5 @@
 import { getAuthorization, saveAuthorization } from "./session";
-import type { Interview, InterviewReport, InterviewSetup, RegisterData, User } from "./types";
+import type { Interview, InterviewReport, InterviewSetup, ProfileUpdate, RegisterData, User } from "./types";
 
 const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api").replace(
   /\/+$/,
@@ -62,6 +62,9 @@ async function request<T>(
 const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 
 export const Api = {
+  getProfile: () => request<User>("/auth/me"),
+  updateProfile: (data: ProfileUpdate) => request<User>("/auth/me", data, "PATCH"),
+  logout: () => request<void>("/auth/logout", undefined, "POST"),
   login: (email: string, password: string) => request<User>("/auth/login", { email, password }),
   register: (data: RegisterData) => request<User>("/auth/register", data),
   async startInterview(setup: InterviewSetup): Promise<Interview> {

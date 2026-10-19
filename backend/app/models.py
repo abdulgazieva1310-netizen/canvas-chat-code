@@ -31,6 +31,13 @@ class User(BaseModel):
     preferredLanguage: Literal['English'] = 'English'
 
 
+class ProfileUpdate(BaseModel):
+    model_config = {'extra': 'forbid'}
+    name: str = Field(min_length=1, pattern=r'\S')
+    targetRole: Role
+    level: Level
+
+
 class InterviewSetup(BaseModel):
     role: Role
     level: Level

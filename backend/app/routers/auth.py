@@ -4,10 +4,39 @@ from sqlalchemy.exc import IntegrityError
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from ..auth import DUMMY_HASH, establish_session, hasher
-from ..models import LoginData, RegisterData, User
+from ..auth import CurrentUser, DUMMY_HASH, establish_session, hasher, token_key
+from ..models import LoginData, ProfileUpdate, RegisterData, User
 
 router = APIRouter(prefix='/auth', tags=['auth'])
+
+
+@router.get('/me', response_model=User)
+def me(user: CurrentUser, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    return user
+
+
+@router.patch('/me', response_model=User)
+def update_me(data: ProfileUpdate, request: Request, response: Response, user: CurrentUser):
+    response.headers['Cache-Control'] = 'no-store'
+    with request.app.state.store.transaction() as store:
+        return store.update_profile(user.id, data)
+
+
+@router.post('/logout', status_code=204)
+def logout(request: Request):
+    # Idempotent even for expired sessions. Revoke both credentials if supplied,
+    # because a browser can hold a bearer token and a different session cookie.
+    tokens = [request.cookies.get('session')]
+    authorization = request.headers.get('authorization', '').split()
+    if len(authorization) == 2 and authorization[0].lower() == 'bearer':
+        tokens.append(authorization[1])
+    with request.app.state.store.transaction() as store:
+        store.revoke_tokens([token_key(token) for token in tokens if token])
+    response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
+    response.delete_cookie('session', path='/api', httponly=True,
+                           secure=request.app.state.secure_cookies, samesite='lax')
+    return response
 
 
 @router.post('/register', response_model=User, status_code=201)

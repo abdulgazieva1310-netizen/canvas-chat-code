@@ -65,3 +65,10 @@ browsers retain text input; permission, microphone, and network errors are shown
 with a typing fallback. The application sends only the resulting text to its
 backend, without recording or storing audio. The browser's recognition service
 may process audio remotely; see [MDN SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition).
+
+The avatar opens an accessible account menu with the signed-in user's name and
+email (loaded on opening the menu; cached after login). Profile Settings opens
+`/profile`, where name, target role, and level are saved to the backend. Logout
+revokes the server session and expires the cookie, clears the browser bearer token
+and React Query cache, then returns to login. Failed saves/logouts show an error
+and support retrying.

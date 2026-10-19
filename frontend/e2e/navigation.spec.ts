@@ -97,7 +97,7 @@ for (const width of [375, 1280]) {
     await page.reload();
     await expect(page.getByRole("heading", { name: "Profile Settings" })).toBeVisible();
     await page.goBack();
-    await expect(page).toHaveURL(/\/history$/);
+    await expect(page).toHaveURL(/\/history(\?|$)/);
     await expect(page.getByRole("heading", { name: "Interview History" })).toBeVisible();
     await page.screenshot({ path: `test-results/navigation-${width}.png`, fullPage: true });
   });

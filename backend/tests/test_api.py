@@ -281,8 +281,13 @@ def test_transaction_rollback_and_concurrent_updates(tmp_path):
                 current.answer(current.find('demo-user', interview.id), 'Committed')
             stale.answer(old, 'Stale update')
     assert error.value.status_code == 409
+    from app.database import AnswerEvaluationRecord
+    from sqlalchemy import select
     with store.transaction() as repository:
         assert repository.find('demo-user', interview.id).answeredCount == 1
+        rows = list(repository.session.scalars(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview.id)))
+        assert len(rows) == 1
     store.engine.dispose()
 
 
@@ -414,6 +419,29 @@ def test_report_averages_only_successful_evaluations(client, monkeypatch):
     assert feedback['scores'] == dict(accuracy=8, completeness=6, clarity=10, structure=4)
     assert [q['score'] for q in feedback['questions']] == [7, None]
     assert feedback['strengths'] == ['Clear explanation']
+
+
+def test_report_averages_each_nullable_category_independently(client, monkeypatch):
+    from app.models import AnswerEvaluation
+    from app.services import ai_service
+    evaluations = iter([
+        AnswerEvaluation(accuracy=8, completeness=None, clarity=6, structure=None,
+            went_well='Strong reasoning', missing='State assumptions', stronger_answer='Example one.'),
+        AnswerEvaluation(accuracy=None, completeness=10, clarity=None, structure=8,
+            went_well='Clear structure', missing='Discuss costs', stronger_answer='Example two.'),
+    ])
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: next(evaluations))
+    login(client)
+    path = '/api/interviews/' + start(client)['id']
+    client.post(path + '/messages', json={'text': 'First answer'})
+    client.post(path + '/messages', json={'text': 'Second answer'})
+    client.post(path + '/end')
+    feedback = client.get(path + '/report').json()['feedback']
+    assert feedback['scores'] == {'accuracy': 8, 'completeness': 10, 'clarity': 6, 'structure': 8}
+    assert feedback['overall'] == 8
+    assert [item['score'] for item in feedback['questions']] == [7, 9]
+    assert feedback['questions'][0]['scores'] == {
+        'accuracy': 8, 'completeness': None, 'clarity': 6, 'structure': None}
 
 
 @pytest.mark.parametrize('mode', ['Practice', 'Real Interview'])

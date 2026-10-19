@@ -103,6 +103,28 @@ def test_dashboard_summary_aggregates_owner_scoped_completed_scored_sessions(cli
     assert client.get('/api/dashboard/summary').json()['completedCount'] == 0
 
 
+def test_dashboard_summary_averages_only_available_categories(client, monkeypatch):
+    evaluations = iter([
+        AnswerEvaluation(accuracy=8, completeness=None, clarity=6, structure=None,
+            went_well='Useful reasoning', missing='State assumptions', stronger_answer='Example one.'),
+        AnswerEvaluation(accuracy=None, completeness=10, clarity=None, structure=8,
+            went_well='Useful reasoning', missing='State assumptions', stronger_answer='Example two.'),
+        None, None, None,
+    ])
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: next(evaluations))
+    login(client)
+    interview = client.post('/api/interviews', json={
+        'role': 'QA Engineer', 'level': 'Middle', 'mode': 'Practice', 'questionCount': 5,
+        'type': 'Behavioral', 'input': 'Text', 'language': 'English',
+    }).json()
+    for index in range(5):
+        client.post(f"/api/interviews/{interview['id']}/messages", json={'text': f'answer {index}'})
+    group = client.get('/api/dashboard/summary').json()['groups'][0]
+    assert group['scores'] == {'accuracy': 8, 'completeness': 10, 'clarity': 6, 'structure': 8}
+    assert group['overall'] == 8
+    assert group['scoredCount'] == 1
+
+
 def test_dashboard_summary_refreshes_after_deletion(client, monkeypatch):
     monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: None)
     login(client)

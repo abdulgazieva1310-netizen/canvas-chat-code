@@ -133,12 +133,11 @@ function Report() {
         {Object.entries(feedback.scores ?? {}).map(([k, v]) => (
           <div key={k} className="card-surface p-6">
             <p className="eyebrow">{k}</p>
-            <p className="mt-2 font-display text-3xl">{v}</p>
+            <p className="mt-2 font-display text-3xl">{v ?? "Not scored"}</p>
             <div className="mt-3 h-1.5 rounded-full bg-muted">
-              <div
-                className="h-1.5 rounded-full bg-primary"
-                style={{ width: `${Number(v) * 10}%` }}
-              />
+              {v !== null && (
+                <div className="h-1.5 rounded-full bg-primary" style={{ width: `${v * 10}%` }} />
+              )}
             </div>
           </div>
         ))}
@@ -216,7 +215,7 @@ function Report() {
                           {Object.entries(x.scores).map(([category, score]) => (
                             <div key={category}>
                               <dt className="capitalize text-muted-foreground">{category}</dt>
-                              <dd>{score} / 10</dd>
+                              <dd>{score === null ? "Not scored" : `${score} / 10`}</dd>
                             </div>
                           ))}
                         </dl>

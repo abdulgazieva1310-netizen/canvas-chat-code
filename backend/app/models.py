@@ -94,13 +94,14 @@ class Message(BaseModel):
 
 
 class Scores(BaseModel):
-    accuracy: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
-    completeness: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
-    clarity: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
-    structure: float = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    accuracy: float | None = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    completeness: float | None = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    clarity: float | None = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
+    structure: float | None = Field(ge=1, le=10, strict=True, allow_inf_nan=False)
 
 
 class AnswerEvaluation(Scores):
+    model_config = {'extra': 'forbid'}
     went_well: str = Field(min_length=1, pattern=r'\S', max_length=10000)
     missing: str = Field(min_length=1, pattern=r'\S', max_length=10000)
     stronger_answer: str = Field(min_length=1, pattern=r'\S', max_length=10000)

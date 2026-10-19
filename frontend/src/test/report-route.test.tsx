@@ -99,7 +99,7 @@ it("renders Markdown questions and coaching in the final report", async () => {
       answeredQuestions: 1,
       selectedQuestions: 5,
       overall: 7,
-      scores: null,
+      scores: { accuracy: 7, completeness: null, clarity: 8, structure: null },
       strengths: ["**Readable code**"],
       gaps: ["Handle `null`"],
       questions: [
@@ -109,7 +109,7 @@ it("renders Markdown questions and coaching in the final report", async () => {
           q: "## Two Sum\n\nReturn **indices**.",
           answer: "code\n  indented",
           score: 7,
-          scores: { accuracy: 7, completeness: 6, clarity: 8, structure: 7 },
+          scores: { accuracy: 7, completeness: 6, clarity: 8, structure: null },
           good: "Uses a **hash map**.",
           miss: "- Consider duplicates",
           better: "```python\ndef solve():\n    return []\n```",
@@ -142,6 +142,7 @@ it("renders Markdown questions and coaching in the final report", async () => {
   expect(
     screen.getByText("Approximate coaching feedback, not a measure of hiring readiness."),
   ).toBeVisible();
+  expect(screen.getAllByText("Not scored").length).toBeGreaterThan(0);
   expect(
     screen.getByText(
       "Static AI code review: submissions are reviewed without compiling or executing them.",

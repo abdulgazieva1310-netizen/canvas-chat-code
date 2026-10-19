@@ -391,7 +391,7 @@ function Interview() {
                 {Object.entries(interview.lastFeedback).map(([k, v]) => (
                   <div key={k} className="rounded-lg bg-secondary p-2">
                     <p className="text-xs text-muted-foreground">{k}</p>
-                    <p className="font-display text-xl">{v}</p>
+                    <p className="font-display text-xl">{v ?? "Not scored"}</p>
                   </div>
                 ))}
               </div>

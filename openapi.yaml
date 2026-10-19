@@ -728,10 +728,10 @@ components:
       type: object
       required: [accuracy, completeness, clarity, structure]
       properties:
-        accuracy: {type: number, minimum: 1, maximum: 10}
-        completeness: {type: number, minimum: 1, maximum: 10}
-        clarity: {type: number, minimum: 1, maximum: 10}
-        structure: {type: number, minimum: 1, maximum: 10}
+        accuracy: {type: number, minimum: 1, maximum: 10, nullable: true}
+        completeness: {type: number, minimum: 1, maximum: 10, nullable: true}
+        clarity: {type: number, minimum: 1, maximum: 10, nullable: true}
+        structure: {type: number, minimum: 1, maximum: 10, nullable: true}
     NullableScores:
       <<: *scoreSchema
       nullable: true
@@ -739,10 +739,10 @@ components:
       type: object
       required: [accuracy, completeness, clarity, structure, went_well, missing, stronger_answer]
       properties:
-        accuracy: {type: number, minimum: 1, maximum: 10}
-        completeness: {type: number, minimum: 1, maximum: 10}
-        clarity: {type: number, minimum: 1, maximum: 10}
-        structure: {type: number, minimum: 1, maximum: 10}
+        accuracy: {type: number, minimum: 1, maximum: 10, nullable: true}
+        completeness: {type: number, minimum: 1, maximum: 10, nullable: true}
+        clarity: {type: number, minimum: 1, maximum: 10, nullable: true}
+        structure: {type: number, minimum: 1, maximum: 10, nullable: true}
         went_well: {type: string}
         missing: {type: string}
         stronger_answer: {type: string}

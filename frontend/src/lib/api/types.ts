@@ -55,10 +55,10 @@ export interface Message {
 }
 
 export interface Scores {
-  accuracy: number;
-  completeness: number;
-  clarity: number;
-  structure: number;
+  accuracy: number | null;
+  completeness: number | null;
+  clarity: number | null;
+  structure: number | null;
 }
 
 export interface AnswerEvaluation extends Scores {

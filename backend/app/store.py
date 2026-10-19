@@ -75,16 +75,24 @@ def report(interview, evaluations=None):
     answers = [m for m in interview.messages if m.sender == 'you']
     questions = [m for m in interview.messages if m.sender == 'ai']
     evaluated = [evaluations[a.id] for a in answers if evaluations.get(a.id) is not None]
-    scores = Scores(**{name: round(sum(getattr(e, name) for e in evaluated) / len(evaluated), 1)
-                       for name in Scores.model_fields}) if evaluated else None
-    overall = round(sum(sum(getattr(e, name) for name in Scores.model_fields) / 4
-                        for e in evaluated) / len(evaluated), 1) if evaluated else None
+    category_values = {
+        name: [value for evaluation in evaluated if (value := getattr(evaluation, name)) is not None]
+        for name in Scores.model_fields
+    }
+    category_averages = {
+        name: round(sum(values) / len(values), 1) if values else None
+        for name, values in category_values.items()
+    }
+    available_averages = [value for value in category_averages.values() if value is not None]
+    scores = Scores(**category_averages) if available_averages else None
+    overall = round(sum(available_averages) / len(available_averages), 1) if available_averages else None
     feedback = []
     for q, a in zip(questions, answers):
         evaluation = evaluations.get(a.id)
+        answer_scores = [getattr(evaluation, name) for name in Scores.model_fields
+                         if evaluation and getattr(evaluation, name) is not None]
         feedback.append(QuestionFeedback(questionId=q.id, answerId=a.id, q=q.text, answer=a.text,
-            score=round(sum(getattr(evaluation, name) for name in Scores.model_fields) / 4, 1)
-                if evaluation else None,
+            score=round(sum(answer_scores) / len(answer_scores), 1) if answer_scores else None,
             scores=evaluation.category_scores() if evaluation else None,
             good=evaluation.went_well if evaluation else 'AI evaluation unavailable for this answer.',
             miss=evaluation.missing if evaluation else 'This answer has not been scored.',
@@ -191,15 +199,20 @@ class Repository:
             group = grouped.setdefault(key, {'sessions': [], 'categories': {name: [] for name in Scores.model_fields}})
             answer_ids = [m.id for m in interview.messages if m.sender == 'you']
             scored = [(answer_id, evaluations[answer_id][1]) for answer_id in answer_ids
-                      if answer_id in evaluations]
+                      if answer_id in evaluations and any(
+                          getattr(evaluations[answer_id][1], name) is not None
+                          for name in Scores.model_fields)]
             if scored:
-                category_scores = {name: round(sum(getattr(e, name) for _, e in scored) / len(scored), 1)
-                                   for name in Scores.model_fields}
-                overall = round(sum(sum(getattr(e, name) for name in Scores.model_fields) /
-                                    len(Scores.model_fields) for _, e in scored) / len(scored), 1)
+                category_scores = {}
+                for name in Scores.model_fields:
+                    values = [getattr(e, name) for _, e in scored if getattr(e, name) is not None]
+                    category_scores[name] = round(sum(values) / len(values), 1) if values else None
+                available_averages = [value for value in category_scores.values() if value is not None]
+                overall = round(sum(available_averages) / len(available_averages), 1)
                 group['sessions'].append((interview, overall))
                 for name, value in category_scores.items():
-                    group['categories'][name].append(value)
+                    if value is not None:
+                        group['categories'][name].append(value)
 
         # Partial ended sessions can contribute grounded observations, but never score trends.
         for interview in interviews:

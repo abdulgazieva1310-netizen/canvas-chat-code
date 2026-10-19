@@ -81,7 +81,7 @@ def test_complete_lifecycle(client, mode, monkeypatch):
     from app.models import AnswerEvaluation
     evaluation = AnswerEvaluation(accuracy=8, completeness=7, clarity=9, structure=6,
         went_well='Clear example.', missing='Discuss trade-offs.', stronger_answer='Explain the result and trade-offs.')
-    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args: evaluation)
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: evaluation)
     login(client)
     interview = start(client, mode=mode)
     path = '/api/interviews/' + interview['id']
@@ -104,7 +104,7 @@ def test_complete_lifecycle(client, mode, monkeypatch):
     assert client.post(path + '/end').json() == interview
     report = client.get(path + '/report').json()
     assert len(report['feedback']['questions']) == 5
-    assert report['feedback']['questions'][0]['answer'] == 'A concrete example'
+    assert report['feedback']['questions'][0]['answer'] == '  A concrete example  '
     assert report['feedback']['scores'] is not None
     assert interview in client.get('/api/interviews').json()
 
@@ -315,7 +315,7 @@ def test_ai_feedback_persisted_and_report_averaged(tmp_path, monkeypatch, mode):
               AnswerEvaluation(accuracy=8, completeness=10, clarity=8, structure=10,
                   went_well='Second strength', missing='Second gap', stronger_answer='Second improved answer')]
     calls = []
-    def evaluate(question, answer):
+    def evaluate(question, answer, **context):
         calls.append((question, answer))
         return values[len(calls) - 1]
     monkeypatch.setattr(ai_service, 'evaluate_answer', evaluate)
@@ -327,7 +327,7 @@ def test_ai_feedback_persisted_and_report_averaged(tmp_path, monkeypatch, mode):
         for index, evaluation in enumerate(values):
             question = interview['messages'][-1]['text']
             interview = client.post(path + '/messages', json={'text': f' Answer {index} '}).json()
-            assert calls[-1] == (question, f'Answer {index}')
+            assert calls[-1] == (question, f' Answer {index} ')
             assert interview['lastFeedback'] == (evaluation.category_scores().model_dump() if mode == 'Practice' else None)
             assert interview['lastAnswerFeedback'] == (evaluation.model_dump() if mode == 'Practice' else None)
             assert 'evaluations' not in interview
@@ -353,7 +353,7 @@ def test_ai_feedback_persisted_and_report_averaged(tmp_path, monkeypatch, mode):
 
 def test_unavailable_evaluation_saves_unscored_answer(client, monkeypatch):
     from app.services import ai_service
-    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args: None)
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: None)
     login(client)
     interview = start(client)
     path = '/api/interviews/' + interview['id']
@@ -373,7 +373,7 @@ def test_report_averages_only_successful_evaluations(client, monkeypatch):
     from app.models import AnswerEvaluation
     results = iter([AnswerEvaluation(accuracy=8, completeness=6, clarity=10, structure=4,
         went_well='Clear explanation', missing='Add examples', stronger_answer='Use a concrete example'), None])
-    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args: next(results))
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *args, **kwargs: next(results))
     login(client)
     path = '/api/interviews/' + start(client)['id']
     client.post(path + '/messages', json={'text': 'Scored answer'})
@@ -716,3 +716,37 @@ def test_coding_submissions_are_reviewed_and_saved_without_losing_whitespace(cli
     assert report['scores']['accuracy'] == 7
     with TestClient(create_app(database_url=str(client.app.state.store.engine.url))) as restarted:
         assert restarted.get(path + '/report', headers={'Authorization': token}).json()['feedback']['questions'][0]['answer'] == code
+
+
+@pytest.mark.parametrize('role, interview_type, selected, expected', [
+    ('Backend Developer', 'Technical', None, 'Python'),
+    ('Full Stack Developer', 'Technical', None, 'JavaScript'),
+    ('Java Developer', 'Technical', 'Python', 'Python'),
+    ('Backend Developer', 'Technical', 'TypeScript', 'TypeScript'),
+    ('Full Stack Developer', 'Technical', 'JavaScript', 'JavaScript'),
+    ('Python Developer', 'Behavioral', 'Java', None),
+    ('C++ Developer', 'Role-specific', 'C++', None),
+    ('Frontend Developer', 'Technical', 'JavaScript', None),
+])
+def test_selected_language_controls_only_technical_coding_evaluation(client, monkeypatch, role, interview_type, selected, expected):
+    from app.services import ai_service
+    calls = []
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda question, answer, **context: calls.append(context))
+    login(client)
+    interview = start(client, role=role, type=interview_type)
+    payload = {'text': '  source code\n'}
+    if selected:
+        payload['selectedLanguage'] = selected
+    response = client.post(f"/api/interviews/{interview['id']}/messages", json=payload)
+    assert response.status_code == 200
+    assert calls == ([{'language': expected}] if expected else [{}])
+    submitted = next(m['text'] for m in response.json()['messages'] if m['from'] == 'you')
+    assert submitted == (payload['text'] if expected else payload['text'].strip())
+
+
+def test_selected_language_rejects_unsupported_values(client):
+    login(client)
+    interview = start(client, role='Backend Developer')
+    response = client.post(f"/api/interviews/{interview['id']}/messages",
+                           json={'text': 'code', 'selectedLanguage': 'Ruby'})
+    assert response.status_code == 400

@@ -1,5 +1,12 @@
 import { getAuthorization, saveAuthorization } from "./session";
-import type { Interview, InterviewReport, InterviewSetup, ProfileUpdate, RegisterData, User } from "./types";
+import type {
+  Interview,
+  InterviewReport,
+  InterviewSetup,
+  ProfileUpdate,
+  RegisterData,
+  User,
+} from "./types";
 
 const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api").replace(
   /\/+$/,
@@ -78,9 +85,13 @@ export const Api = {
   },
   getInterview: (id: string) => request<Interview>(interviewPath(id)),
   deleteInterview: (id: string) => request<void>(interviewPath(id), undefined, "DELETE"),
-  resumeInterview: (id: string) => request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
-  sendMessage: (id: string, text: string) =>
-    request<Interview>(`${interviewPath(id)}/messages`, { text }),
+  resumeInterview: (id: string) =>
+    request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
+  sendMessage: (id: string, text: string, selectedLanguage?: string) =>
+    request<Interview>(`${interviewPath(id)}/messages`, {
+      text,
+      ...(selectedLanguage ? { selectedLanguage } : {}),
+    }),
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),

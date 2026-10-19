@@ -318,6 +318,8 @@ it("loads and displays the dynamic AI hint without advancing or clearing a draft
 it.each([
   ["Python Developer", "python", "\ndef two_sum(nums, target):\n    return [0, 1]\n"],
   ["Java Developer", "java", "class Solution {\n    int[] twoSum(int[] nums, int target) { return new int[]{0, 1}; }\n}\n"],
+  ["Backend Developer", "python", "def solution():\n    return []\n"],
+  ["Full Stack Developer", "javascript", "function solution() { return []; }"],
   ["C++ Developer", "cpp", "vector<int> twoSum(vector<int>& nums, int target) {\n    return {0, 1};\n}\n"],
 ] as const)("uses the %s editor and submits source code intact", async (role, language, code) => {
   const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
@@ -332,7 +334,7 @@ it.each([
   expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
   const template = (editor as HTMLTextAreaElement).value;
   expect(template).toContain("Write your code here");
-  expect(template).toContain(language === "python" ? "def solution():" : "class Solution");
+  expect(template).toContain(language === "python" ? "def solution():" : language === "javascript" ? "function solution()" : "class Solution");
   expect(template).not.toMatch(/two_?sum/i);
   expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   fireEvent.change(editor, { target: { value: "" } });
@@ -342,7 +344,7 @@ it.each([
   fireEvent.keyDown(editor, { key: "Enter" });
   expect(send).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
-  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code));
+  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code, { python: "Python", java: "Java", cpp: "C++", javascript: "JavaScript" }[language]));
   expect(editor).toBeDisabled();
   finish({ ...active, answeredCount: 2, messages: [...active.messages,
     { id: "submitted-code", interviewId: active.id, from: "you", text: code, createdAt: new Date().toISOString() },
@@ -354,12 +356,16 @@ it.each([
   client.clear();
 });
 
-it.each(["Behavioral", "Role-specific"] as const)("keeps text and voice input for Python %s interviews", async (type) => {
+it.each(
+  (["Java Developer", "Python Developer", "C++ Developer", "Backend Developer", "Full Stack Developer"] as const)
+    .flatMap((role) => (["Behavioral", "Role-specific"] as const).map((type) => [role, type] as const)),
+)("keeps text and voice input for %s %s interviews", async (role, type) => {
   vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
-    setup: { ...defaultSetup, role: "Python Developer", type } });
+    setup: { ...defaultSetup, role, type } });
   const client = openInterview();
   await screen.findByRole("textbox", { name: "Your answer" });
   expect(screen.queryByRole("textbox", { name: "Code answer" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Coding language" })).toBeNull();
   expect(screen.getByRole("button", { name: "Start microphone" })).toBeInTheDocument();
   client.clear();
 });
@@ -402,5 +408,42 @@ it("renders AI problem statements, hints, and feedback as Markdown while keeping
   expect(screen.getByText("Clear naming").tagName).toBe("STRONG");
   expect([...document.querySelectorAll("pre code")].some((item) => item.textContent === "def improved():\n    return []\n")).toBe(true);
   expect([...document.querySelectorAll("pre")].some((item) => item.textContent === code)).toBe(true);
+  client.clear();
+});
+
+it("switches Monaco language immediately and submits the selected language", async () => {
+  const active: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role: "Backend Developer", type: "Technical" },
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const send = vi.spyOn(Api, "sendMessage").mockReturnValue(new Promise(() => {}));
+  const client = openInterview();
+  const select = await screen.findByRole("combobox", { name: "Coding language" });
+  expect(select).toHaveValue("python");
+  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+    "Python",
+    "Java",
+    "C++",
+    "JavaScript",
+    "TypeScript",
+  ]);
+  for (const language of ["java", "cpp", "javascript", "typescript"]) {
+    fireEvent.change(select, { target: { value: language } });
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute(
+        "data-language",
+        language,
+      ),
+    );
+  }
+  const code = "function solution(): number { return 1; }";
+  fireEvent.change(screen.getByRole("textbox", { name: "Code answer" }), {
+    target: { value: code },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code, "TypeScript"));
   client.clear();
 });

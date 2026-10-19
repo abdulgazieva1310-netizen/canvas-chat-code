@@ -150,3 +150,13 @@ it("loads and updates the authenticated profile and logs out with credentials", 
     expect(options.headers.Authorization).toBe('Bearer token');
   }
 });
+
+it("includes the selected coding language in message requests", async () => {
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "session-123" })));
+  vi.stubGlobal("fetch", fetch);
+  await Api.sendMessage("session-123", "const answer = 42;", "JavaScript");
+  expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toEqual({
+    text: "const answer = 42;",
+    selectedLanguage: "JavaScript",
+  });
+});

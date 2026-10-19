@@ -76,10 +76,14 @@ and support retrying.
 The Dashboard reads the shared profile query for the greeting and target role/level,
 with `User` and `Not set` as missing-data fallbacks. Profile edits update this cache
 immediately. Successful starts from Setup or Lobby invalidate the profile query,
-so returning to the Dashboard fetches the newly saved interview target.
+so returning to the Dashboard refreshes the saved profile. Interview setup does not change profile settings.
 
-Technical interviews for Python Developer, Java Developer, and C++ Developer use
-Monaco Editor with the matching `python`, `java`, or `cpp` language. It is loaded
+Technical interviews for Python Developer, Java Developer, C++ Developer, Backend
+Developer, and Full Stack Developer use Monaco Editor. A language dropdown offers
+Python, Java, C++, JavaScript, and TypeScript. Named language roles default to that
+language; Backend defaults to Python and Full Stack defaults to JavaScript.
+Requests send `selectedLanguage` for AI code review. Changing language loads its
+generic template, and each new question resets the editor to that template. It is loaded
 only in the browser, and its editor, syntax grammars, and worker are bundled locally
 (no editor CDN request). Multiline answers preserve indentation, Enter inserts a
 newline, and Send submits the code for AI review. The editor becomes read-only

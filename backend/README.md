@@ -142,8 +142,11 @@ Missing keys or provider failures append an explicit temporary-unavailability
 notice instead of generic coaching. Hints never advance the question count and
 remain unavailable in Real Interview mode or ended sessions.
 
-Technical submissions for Python Developer, Java Developer, and C++ Developer are
-reviewed as source code in Python, Java, and C++, respectively. Code whitespace is
+Technical submissions for Python Developer, Java Developer, C++ Developer, Backend
+Developer, and Full Stack Developer are reviewed as code. Message requests accept
+optional `selectedLanguage`: Python, Java, C++, JavaScript, or TypeScript. Omitted
+values default to the named role language, Python for Backend, or JavaScript for
+Full Stack. Other roles and interview types ignore the coding language. Code whitespace is
 preserved in requests, stored transcripts, reports, and evaluation prompts. Groq
 reviews correctness, language semantics, edge cases, complexity, readability, and
 organization, and supplies an improved code example. This is static AI code review;

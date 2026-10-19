@@ -13,7 +13,7 @@ from .database import AnswerEvaluationRecord, Base, InterviewRecord, TokenRecord
 from fastapi import HTTPException
 
 from .auth import hasher
-from .models import CODING_LANGUAGES, CODING_ROLES, AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
+from .models import CODING_ROLES, AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
 
 
 def now():
@@ -25,7 +25,7 @@ def message(interview_id, sender, text):
 
 
 def answer_text(setup, text):
-    return text if setup.type == 'Technical' and setup.role in CODING_LANGUAGES else text.strip()
+    return text if setup.type == 'Technical' and setup.role in CODING_ROLES else text.strip()
 
 
 def question(setup, index):

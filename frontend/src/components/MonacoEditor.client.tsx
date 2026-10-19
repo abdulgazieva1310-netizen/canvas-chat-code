@@ -8,6 +8,8 @@ import "monaco-editor/features/wordOperations/register.js";
 import "monaco-editor/languages/definitions/python/register.js";
 import "monaco-editor/languages/definitions/java/register.js";
 import "monaco-editor/languages/definitions/cpp/register.js";
+import "monaco-editor/languages/definitions/javascript/register.js";
+import "monaco-editor/languages/definitions/typescript/register.js";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import type { CodeEditorProps } from "./CodeEditor";
 

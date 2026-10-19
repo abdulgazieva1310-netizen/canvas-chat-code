@@ -8,7 +8,23 @@ import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
+const languageLabels: Record<CodingLanguage, string> = {
+  python: "Python",
+  java: "Java",
+  cpp: "C++",
+  javascript: "JavaScript",
+  typescript: "TypeScript",
+};
+
 const codeTemplates: Record<CodingLanguage, string> = {
+  javascript: `function solution() {
+    // Write your code here
+}
+`,
+  typescript: `function solution(): void {
+    // Write your code here
+}
+`,
   java: `class Solution {
     // Write your code here
 }
@@ -75,7 +91,10 @@ function Interview() {
     if (updated.status !== "active") await navigate({ to: "/report", search: { interviewId } });
   };
   const answer = useMutation({
-    mutationFn: (value: string) => Api.sendMessage(interviewId, value),
+    mutationFn: (value: string) =>
+      codingLanguage
+        ? Api.sendMessage(interviewId, value, languageLabels[codingLanguage])
+        : Api.sendMessage(interviewId, value),
     onSuccess: async (updated) => {
       setText("");
       await receive(updated);
@@ -91,9 +110,16 @@ function Interview() {
     "Python Developer": "python",
     "Java Developer": "java",
     "C++ Developer": "cpp",
+    "Backend Developer": "python",
+    "Full Stack Developer": "javascript",
   };
-  const codingLanguage =
+  const [selectedLanguage, setSelectedLanguage] = useState<CodingLanguage | null>(null);
+  const defaultLanguage =
     interview?.setup?.type === "Technical" ? codingLanguages[interview.setup.role] : undefined;
+  useEffect(() => {
+    setSelectedLanguage(null);
+  }, [interviewId, defaultLanguage]);
+  const codingLanguage = defaultLanguage ? (selectedLanguage ?? defaultLanguage) : undefined;
   useEffect(() => {
     setText(codingLanguage ? codeTemplates[codingLanguage] : "");
   }, [interviewId, interview?.answeredCount, codingLanguage]);
@@ -234,14 +260,32 @@ function Interview() {
               </button>
             )}
             {codingLanguage ? (
-              <CodeEditor
-                key={`${interviewId}-${interview.answeredCount}`}
-                language={codingLanguage}
-                path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
-                value={text}
-                readOnly={busy || interview.status !== "active"}
-                onChange={setText}
-              />
+              <>
+                <label className="text-sm font-medium">
+                  Language
+                  <select
+                    aria-label="Coding language"
+                    value={codingLanguage}
+                    disabled={busy || interview.status !== "active"}
+                    onChange={(event) => setSelectedLanguage(event.target.value as CodingLanguage)}
+                    className="ml-3 rounded border border-input bg-background px-3 py-2"
+                  >
+                    {Object.entries(languageLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <CodeEditor
+                  key={`${interviewId}-${interview.answeredCount}`}
+                  language={codingLanguage}
+                  path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
+                  value={text}
+                  readOnly={busy || interview.status !== "active"}
+                  onChange={setText}
+                />
+              </>
             ) : (
               <input
                 disabled={busy || interview.status !== "active"}

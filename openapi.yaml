@@ -204,7 +204,7 @@ paths:
       operationId: sendMessage
       summary: Submit an answer and advance the interview
       description: |
-        Rejects empty answers. Preserves source whitespace for Python/Java/C++ Technical
+        Rejects empty answers. Preserves source whitespace for supported coding roles in Technical
         submissions and trims other answers. Reviews code in the selected language using
         static AI analysis without execution. Appends the user's message and increments
         answeredCount. Appends the next AI question unless questionCount is reached,
@@ -223,6 +223,10 @@ paths:
                   type: string
                   minLength: 1
                   pattern: '\S'
+                selectedLanguage:
+                  type: string
+                  enum: [Python, Java, C++, JavaScript, TypeScript]
+                  description: Language for technical code evaluation; omitted values use the role default.
       responses:
         '200':
           $ref: '#/components/responses/InterviewResult'

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..auth import CurrentUser
-from ..models import CODING_LANGUAGES, Answer, Interview, InterviewReport, InterviewSetup
+from ..models import CODING_LANGUAGES, CODING_ROLES, Answer, Interview, InterviewReport, InterviewSetup
 from ..store import answer_text, message, now
 from ..services import ai_service
 
@@ -55,7 +55,10 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             raise HTTPException(409, 'This interview has ended.')
         current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
         submitted = answer_text(interview.setup, data.text)
-        language = CODING_LANGUAGES.get(interview.setup.role) if interview.setup.type == 'Technical' else None
+        language = None
+        if interview.setup.type == 'Technical' and interview.setup.role in CODING_ROLES:
+            language = data.selectedLanguage or {**CODING_LANGUAGES,
+                'Backend Developer': 'Python', 'Full Stack Developer': 'JavaScript'}[interview.setup.role]
         evaluation = (ai_service.evaluate_answer(current_question, submitted, language=language)
                       if language else ai_service.evaluate_answer(current_question, submitted))
         next_question = None

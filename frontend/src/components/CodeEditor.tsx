@@ -3,7 +3,7 @@ import { createClientOnlyFn } from "@tanstack/react-start";
 
 const loadEditor = createClientOnlyFn(() => import("./MonacoEditor.client"));
 
-export type CodingLanguage = "python" | "java" | "cpp";
+export type CodingLanguage = "python" | "java" | "cpp" | "javascript" | "typescript";
 export interface CodeEditorProps {
   language: CodingLanguage;
   path: string;

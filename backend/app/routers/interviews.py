@@ -13,9 +13,53 @@ from ..models import (CODING_LANGUAGES, CODING_ROLES, Answer, CodeRunRequest,
 from ..store import answer_text, message, now
 from ..services.difficulty import transition as difficulty_transition
 from ..services import ai_service
+from ..services.question_bank import load_bank
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
 RUNNABLE_LANGUAGES = frozenset({'Python', 'Java', 'C++', 'JavaScript', 'TypeScript'})
+JUDGE_CASES = {
+    'balanced-brackets-v1': [
+        ('normal', '{}[]\n', 'true\n'),
+        ('normal', '{[}]\n', 'false\n'),
+        ('boundary', '\n', 'true\n'),
+        ('boundary', '(((())))\n', 'true\n'),
+        ('invalid-input', '(a)\n', 'false\n'),
+    ]
+}
+
+
+def judge_code(language, code, judge_key):
+    cases = JUDGE_CASES[judge_key]
+    url = os.getenv('CODING_RUNNER_URL', '').strip().rstrip('/')
+    token = os.getenv('CODING_RUNNER_TOKEN', '').strip()
+    if not url or not token:
+        return {'status': 'unavailable', 'passed': 0, 'total': len(cases),
+                'summary': 'Automated correctness checks are unavailable; AI coaching feedback is still provided.'}
+    passed = 0
+    for category, private_input, expected in cases:
+        try:
+            response = httpx.post(f'{url}/run', json={'language': language, 'code': code, 'stdin': private_input},
+                headers={'Authorization': f'Bearer {token}'}, timeout=httpx.Timeout(12.0, connect=2.0))
+            response.raise_for_status()
+            result = CodeRunResult.model_validate(response.json())
+        except (httpx.HTTPError, ValueError):
+            return {'status': 'unavailable', 'passed': passed, 'total': len(cases),
+                    'summary': 'Automated correctness checks are temporarily unavailable; AI coaching feedback is still provided.'}
+        if result.status == 'compile-error':
+            return {'status': 'compile-error', 'passed': 0, 'total': len(cases),
+                    'summary': 'The submitted solution could not be compiled.'}
+        if result.status == 'timeout':
+            return {'status': 'timeout', 'passed': passed, 'total': len(cases),
+                    'summary': 'The solution exceeded the execution time limit.'}
+        if result.status != 'success':
+            return {'status': 'runtime-error', 'passed': passed, 'total': len(cases),
+                    'summary': 'The solution stopped with a runtime error.'}
+        if result.stdout == expected:
+            passed += 1
+    status = 'passed' if passed == len(cases) else 'failed'
+    summary = ('All reviewed correctness checks passed.' if status == 'passed' else
+               f'{len(cases) - passed} reviewed correctness check(s) failed. Review bracket matching, empty input, and invalid characters.')
+    return {'status': status, 'passed': passed, 'total': len(cases), 'summary': summary}
 
 
 @router.post('/{interviewId}/run', response_model=CodeRunResult)
@@ -70,13 +114,20 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
             existing = previous(store)
             if existing is not None:
                 return existing
-    first_question = ai_service.generate_question(data.role, data.level, [],
-        interview_type=data.type, job_description=data.jobDescription,
-        practice_topic=data.practiceTopic)
+    judged_question = None
+    if (data.type == 'Technical' and data.role in CODING_ROLES and data.level == 'Junior'
+            and not data.practiceTopic):
+        judged_question = next((item for item in load_bank() if item.id == 'coding-junior-balanced'), None)
+    first_question = (judged_question.candidate_prompt(data.role) if judged_question else
+        ai_service.generate_question(data.role, data.level, [], interview_type=data.type,
+            job_description=data.jobDescription, practice_topic=data.practiceTopic))
     store = request.app.state.store
     try:
         with store.transaction() as repository:
             interview = repository.start(user.id, data, first_question=first_question)
+            if judged_question:
+                interview.messages[0].codingQuestionId = judged_question.id
+                repository.save(interview)
             if key:
                 repository.session.add(InterviewStartRecord(owner_id=user.id, key=key,
                     setup=data.model_dump(mode='json'), interview_id=interview.id))
@@ -144,6 +195,10 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         evaluation = (ai_service.evaluate_answer(current_question, submitted, language=language)
                       if language else ai_service.evaluate_answer(current_question, submitted))
         setup = interview.setup
+        coding_judge = None
+        if current_question_message.codingQuestionId:
+            coding_judge = judge_code(language or data.selectedLanguage or 'Python', data.text,
+                                      'balanced-brackets-v1')
         current_level = interview.effectiveLevel or setup.level
         is_main_answer = current_question_message.kind == 'main'
         already_adjusted = any(
@@ -163,6 +218,7 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
                     interview_type=setup.type, job_description=setup.jobDescription,
                     practice_topic=setup.practiceTopic, used_questions=used_questions)
         return store.answer(interview, data.text, next_question=follow_up or next_question,
+            coding_judge=coding_judge,
             evaluation=evaluation, follow_up_parent_id=main_question_id if follow_up else None).model_copy(deep=True)
 
 

@@ -646,6 +646,21 @@ function Interview() {
               </div>
             </div>
           )}
+          {practice && interview.lastCodingJudge && (
+            <div className="card-surface p-5 text-sm" role="status">
+              <p className="font-semibold">
+                Automated correctness checks: {interview.lastCodingJudge.status}
+              </p>
+              <p className="mt-1">{interview.lastCodingJudge.summary}</p>
+              {interview.lastCodingJudge.status === "passed" ||
+              interview.lastCodingJudge.status === "failed" ? (
+                <p className="mt-1">
+                  {interview.lastCodingJudge.passed} of {interview.lastCodingJudge.total} checks
+                  passed.
+                </p>
+              ) : null}
+            </div>
+          )}
           {practice && (
             <button
               disabled={busy || interview.status !== "active"}

@@ -22,6 +22,14 @@ role, level, type, and used IDs, and raises `BankError` on exhaustion. Callers m
 persist selected IDs for the session. The coverage validator accepts explicit
 session configurations so later content issues can expand the checked matrix.
 
+The Junior bracket matching question is currently the only automatically judged
+question. Its stable `judgeKey` maps to reviewed normal, empty/deep boundary, and
+invalid-character cases in `backend/app/routers/interviews.py`. Those test inputs
+and expected outputs stay in the backend; only a pass count and generic failure
+summary are saved with an answer. Submissions run through the private isolated
+runner with a bounded standard-input stream. Questions without a `judgeKey` keep
+the existing AI coaching review and are not automatically scored for correctness.
+
 Run `cd backend && uv run pytest tests/test_question_bank.py` to check all 15
 role/level configurations for complete, nonrepeating 15-question sequences,
 language rendering, schema validation, filtering, and exhaustion.

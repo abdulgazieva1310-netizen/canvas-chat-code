@@ -72,17 +72,19 @@ function Report() {
     ].includes(interview.setup.role);
   const qs = feedback.questions;
   const practiceSuggestions = [
-    ...new Map(qs.flatMap((item) => {
-      const topics = item.practiceTopics?.length
-        ? item.practiceTopics
-        : item.practiceTopic
-          ? [item.practiceTopic]
-          : [];
-      return topics.map((rawTopic) => {
-        const topic = rawTopic.trim().replace(/\s+/g, " ");
-        return [topic.toLocaleLowerCase(), [topic, item.answerId] as const] as const;
-      });
-    })).values(),
+    ...new Map(
+      qs.flatMap((item) => {
+        const topics = item.practiceTopics?.length
+          ? item.practiceTopics
+          : item.practiceTopic
+            ? [item.practiceTopic]
+            : [];
+        return topics.map((rawTopic) => {
+          const topic = rawTopic.trim().replace(/\s+/g, " ");
+          return [topic.toLocaleLowerCase(), [topic, item.answerId] as const] as const;
+        });
+      }),
+    ).values(),
   ].slice(0, 3);
   return (
     <AppShell>
@@ -241,6 +243,20 @@ function Report() {
                       <p className="eyebrow mb-1">Stronger answer</p>
                       <MarkdownContent>{x.better}</MarkdownContent>
                     </div>
+                    {x.codingJudge && (
+                      <div className="rounded-lg border p-3" role="status">
+                        <p className="font-semibold">
+                          Automated correctness checks: {x.codingJudge.status}
+                        </p>
+                        <p className="mt-1">{x.codingJudge.summary}</p>
+                        {(x.codingJudge.status === "passed" ||
+                          x.codingJudge.status === "failed") && (
+                          <p className="mt-1">
+                            {x.codingJudge.passed} of {x.codingJudge.total} checks passed.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -24,6 +24,7 @@ class BankQuestion(BaseModel):
     examples: list[str] = Field(default_factory=list)
     constraints: str = ''
     reviewerNotes: str = Field(min_length=1)
+    judgeKey: str | None = None
 
     @model_validator(mode='after')
     def coding_details(self):

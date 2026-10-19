@@ -16,7 +16,7 @@ from fastapi import HTTPException
 
 from .auth import hasher
 from .services.question_bank import BankError, load_bank
-from .models import (CODING_ROLES, AnswerEvaluation, DashboardGroup, DashboardSummary, DashboardTrend,
+from .models import (CODING_ROLES, AnswerEvaluation, CodingJudgeSummary, DashboardGroup, DashboardSummary, DashboardTrend,
                      DifficultyDecision,
                      EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
                      QuestionFeedback, Scores, User)
@@ -165,7 +165,8 @@ def report(interview, evaluations=None):
             good=positive_observation(evaluation.went_well) if evaluation else 'AI evaluation unavailable for this answer.',
             miss=evaluation.missing if evaluation else 'This answer has not been scored.',
             better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.',
-            practiceTopic=topics[0] if topics else None, practiceTopics=topics))
+            practiceTopic=topics[0] if topics else None, practiceTopics=topics,
+            codingJudge=a.codingJudge))
     answered_main = sum(answer.kind == 'main' for answer in answers)
     return Feedback(interviewId=interview.id, answeredQuestions=answered_main,
         selectedQuestions=interview.setup.questionCount, overall=overall, scores=scores,
@@ -398,7 +399,8 @@ class Repository:
         # The transcript (including all messages) lives in the interview payload.
         self.session.delete(self.loaded[ident])
 
-    def answer(self, interview, text, next_question=None, evaluation=None, follow_up_parent_id=None):
+    def answer(self, interview, text, next_question=None, evaluation=None, follow_up_parent_id=None,
+               coding_judge=None):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
@@ -406,6 +408,7 @@ class Repository:
         is_main_answer = question_message.kind == 'main'
         answer_message = message(interview.id, 'you', answer_text(interview.setup, text),
             kind=question_message.kind, main_question_id=main_question_id if not is_main_answer else None)
+        answer_message.codingJudge = CodingJudgeSummary.model_validate(coding_judge) if coding_judge else None
         interview.messages.append(answer_message)
         self.session.add(AnswerEvaluationRecord(answer_id=answer_message.id,
             interview_id=interview.id, question_id=question_message.id,
@@ -422,6 +425,7 @@ class Repository:
                 average=average, reason=reason))
         interview.lastFeedback = evaluation.category_scores() if evaluation and interview.setup.mode == 'Practice' else None
         interview.lastAnswerFeedback = evaluation if interview.setup.mode == 'Practice' else None
+        interview.lastCodingJudge = answer_message.codingJudge if interview.setup.mode == 'Practice' else None
         if follow_up_parent_id:
             interview.messages.append(message(interview.id, 'ai', next_question, kind='follow-up',
                 main_question_id=follow_up_parent_id))

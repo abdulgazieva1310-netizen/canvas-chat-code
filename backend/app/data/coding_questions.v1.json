@@ -69,6 +69,7 @@
     },
     {
       "id": "coding-junior-balanced",
+      "judgeKey": "balanced-brackets-v1",
       "version": 1,
       "roles": [
         "Java Developer",
@@ -82,9 +83,9 @@
       ],
       "type": "Technical",
       "topic": "stack",
-      "prompt": "Decide whether a string containing only (), [], and {} has correctly nested brackets. Implement the solution and analyze its time and auxiliary-space complexity.",
+      "prompt": "Read one line from standard input containing brackets and print exactly true or false. Return true when every bracket is correctly nested, otherwise false. Any non-bracket character makes the input invalid and must also print false. Empty input is valid and prints true. Implement this behavior and explain time and auxiliary-space complexity.",
       "examples": [
-        "([]) => true; ([)] => false"
+        "Input: ([]) => Output: true; Input: ([)] => Output: false"
       ],
       "constraints": "String length <= 100000.",
       "reviewerNotes": "Stack of opening brackets and exact closing matches."

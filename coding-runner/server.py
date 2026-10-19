@@ -31,10 +31,10 @@ def cleanup_container(name):
         pass
 
 
-def run_container(language, source):
+def run_container(language, source, stdin=""):
     name = f"interview-code-{uuid.uuid4().hex}"
     command = [
-        "docker", "run", "--name", name, "--rm", "--network=none",
+        "docker", "run", "-i", "--name", name, "--rm", "--network=none",
         "--memory=256m", "--memory-swap=256m", "--cpus=0.5", "--pids-limit=32",
         "--read-only", "--tmpfs", "/work:rw,exec,nosuid,nodev,size=32m,uid=65534,gid=65534,mode=0700",
         "--cap-drop=ALL", "--security-opt=no-new-privileges=true",
@@ -45,7 +45,7 @@ def run_container(language, source):
         IMAGE, "python3", "/runner/execute.py", language,
     ]
     try:
-        completed = subprocess.run(command, capture_output=True, timeout=9, check=False)
+        completed = subprocess.run(command, input=json.dumps({"stdin": stdin}).encode(), capture_output=True, timeout=9, check=False)
     except subprocess.TimeoutExpired:
         try:
             subprocess.run(["docker", "kill", name], capture_output=True, timeout=2, check=False)
@@ -111,13 +111,20 @@ class Handler(BaseHTTPRequestHandler):
             request = json.loads(self.rfile.read(length))
         except (json.JSONDecodeError, UnicodeDecodeError):
             return self.send_json(400, {"message": "Invalid JSON request."})
-        if not isinstance(request, dict) or set(request) != {"language", "code"}:
-            return self.send_json(400, {"message": "Request must contain only language and code."})
+        if not isinstance(request, dict) or set(request) - {"language", "code", "stdin"} or not {"language", "code"} <= set(request):
+            return self.send_json(400, {"message": "Request must contain language and code, with optional input."})
         language, code = request.get("language"), request.get("code")
+        stdin = request.get("stdin", "")
         if not isinstance(language, str) or not LANGUAGE_RE.fullmatch(language) or language not in LANGUAGES:
             return self.send_json(422, {"message": "Unsupported coding language."})
         if not isinstance(code, str) or not code.strip():
             return self.send_json(413, {"message": "Code submission must be non-empty and no larger than 50 KB."})
+        try:
+            stdin_size = len(stdin.encode("utf-8")) if isinstance(stdin, str) else MAX_SOURCE + 1
+        except UnicodeEncodeError:
+            return self.send_json(400, {"message": "Input must be valid UTF-8 text."})
+        if stdin_size > 4096:
+            return self.send_json(413, {"message": "Input exceeds the 4 KB limit."})
         try:
             source_size = len(code.encode("utf-8"))
         except UnicodeEncodeError:
@@ -135,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
                 source = Path(directory) / "source"
                 source.write_text(code, encoding="utf-8")
                 source.chmod(0o444)
-                execution = run_container(language, source)
+                execution = run_container(language, source, stdin)
             self.send_json(200, execution)
         except OSError:
             self.send_json(503, result("unavailable", stderr="The isolated runner could not prepare a temporary submission."))

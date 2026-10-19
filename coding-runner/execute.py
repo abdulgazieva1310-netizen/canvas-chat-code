@@ -12,15 +12,20 @@ MAX_OUTPUT = 12 * 1024
 COMMAND_TIMEOUT = 5.5
 
 
-def run(command):
+def run(command, stdin=b""):
     process = subprocess.Popen(
         command,
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         start_new_session=True,
     )
     selector = selectors.DefaultSelector()
+    try:
+        process.stdin.write(stdin)
+        process.stdin.close()
+    except BrokenPipeError:
+        pass
     buffers = {process.stdout: bytearray(), process.stderr: bytearray()}
     for stream in buffers:
         os.set_blocking(stream.fileno(), False)
@@ -55,7 +60,7 @@ def run(command):
     return "success" if process.returncode == 0 else "runtime-error", bytes(buffers[process.stdout]), bytes(buffers[process.stderr])
 
 
-def main(language):
+def main(language, stdin=b""):
     source = "/submission/source"
     work = "/work"
     os.makedirs(work, exist_ok=True)
@@ -91,7 +96,7 @@ def main(language):
                 "stdout": "",
                 "stderr": compile_stderr.decode("utf-8", "replace")[:MAX_OUTPUT],
             }
-    status, stdout, stderr = run(run_command)
+    status, stdout, stderr = run(run_command, stdin)
     return {
         "status": status,
         "stdout": stdout.decode("utf-8", "replace")[:MAX_OUTPUT],
@@ -100,5 +105,10 @@ def main(language):
 
 
 if __name__ == "__main__":
-    result = main(sys.argv[1] if len(sys.argv) == 2 else "")
+    try:
+        request = json.loads(sys.stdin.buffer.read(8192) or b"{}")
+        stdin = request.get("stdin", "").encode("utf-8")
+    except (json.JSONDecodeError, AttributeError, UnicodeEncodeError):
+        stdin = b""
+    result = main(sys.argv[1] if len(sys.argv) == 2 else "", stdin)
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))

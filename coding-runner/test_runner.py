@@ -49,6 +49,8 @@ def test_runner_limits_source_and_rejects_extra_fields(http_server):
     assert oversized.status_code in (413, 422)
     malformed = call(http_server, {"language": "Python", "code": "print(1)", "token": "secret"})
     assert malformed.status_code == 400
+    oversized_input = call(http_server, {"language": "Python", "code": "print(1)", "stdin": "x" * 4097})
+    assert oversized_input.status_code == 413
 
 
 def test_execution_uses_restricted_disposable_container(http_server):
@@ -60,7 +62,7 @@ def test_execution_uses_restricted_disposable_container(http_server):
     assert response.status_code == 200
     assert response.json()["stdout"] == "ok\n"
     command = docker_run.call_args_list[0].args[0]
-    for flag in ["--rm", "--network=none", "--read-only", "--cap-drop=ALL", "--memory=256m", "--cpus=0.5", "--pids-limit=32"]:
+    for flag in ["-i", "--rm", "--network=none", "--read-only", "--cap-drop=ALL", "--memory=256m", "--cpus=0.5", "--pids-limit=32"]:
         assert flag in command
     assert any(arg.startswith("type=bind,src=") and arg.endswith(",readonly") for arg in command)
     assert docker_run.call_args_list[0].kwargs["timeout"] == 9
@@ -80,13 +82,13 @@ def test_docker_isolation_and_resource_limits(tmp_path, monkeypatch):
     sentinel.write_text("private host content")
     monkeypatch.setenv("AI_API_KEY", "must-not-enter-container")
 
-    def execute(language, code):
+    def execute(language, code, stdin=""):
         directory = Path(tempfile.mkdtemp(dir=tmp_path))
         source = directory / "source"
         source.write_text(code)
         source.chmod(0o444)
         try:
-            return server.run_container(language, source)
+            return server.run_container(language, source, stdin)
         finally:
             import shutil
             shutil.rmtree(directory, ignore_errors=True)
@@ -104,6 +106,22 @@ def test_docker_isolation_and_resource_limits(tmp_path, monkeypatch):
             expected = "ok" if language in {"Python", "JavaScript"} else "42"
             assert outcome["status"] == "success", (language, outcome)
             assert expected in outcome["stdout"], (language, outcome)
+
+        bracket_solver = """text = input()
+stack = []
+pairs = {')': '(', ']': '[', '}': '{'}
+valid = True
+for char in text:
+    if char in '([{': stack.append(char)
+    elif char in pairs:
+        if not stack or stack.pop() != pairs[char]: valid = False
+    else: valid = False
+print(str(valid and not stack).lower())
+"""
+        for private_input, expected in [("{}[]\n", "true"), ("{[}]\n", "false"),
+                                        ("\n", "true"), ("(((())))\n", "true"), ("(a)\n", "false")]:
+            outcome = execute("Python", bracket_solver, private_input)
+            assert outcome["status"] == "success" and outcome["stdout"] == expected + "\n", outcome
 
         assert execute("Python", "this is not valid python !!!")["status"] == "compile-error"
         assert execute("JavaScript", "const = ;")["status"] == "compile-error"

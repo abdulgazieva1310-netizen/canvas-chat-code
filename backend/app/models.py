@@ -98,6 +98,13 @@ class CodeRunResult(BaseModel):
     stderr: str = Field(default='', max_length=32768)
 
 
+class CodingJudgeSummary(BaseModel):
+    status: Literal['passed', 'failed', 'compile-error', 'runtime-error', 'timeout', 'unavailable']
+    passed: int = Field(ge=0)
+    total: int = Field(gt=0)
+    summary: str = Field(min_length=1, max_length=500)
+
+
 class Message(BaseModel):
     id: str
     interviewId: str
@@ -106,6 +113,8 @@ class Message(BaseModel):
     createdAt: datetime
     kind: Literal['main', 'follow-up'] = 'main'
     mainQuestionId: str | None = None
+    codingQuestionId: str | None = None
+    codingJudge: CodingJudgeSummary | None = None
 
 
 class DifficultyDecision(BaseModel):
@@ -152,6 +161,7 @@ class Interview(BaseModel):
     messages: list[Message]
     lastFeedback: Scores | None = None
     lastAnswerFeedback: AnswerEvaluation | None = None
+    lastCodingJudge: CodingJudgeSummary | None = None
     effectiveLevel: Level | None = None
     difficultyDecisions: list[DifficultyDecision] = Field(default_factory=list)
 
@@ -168,6 +178,7 @@ class QuestionFeedback(BaseModel):
     better: str
     practiceTopic: str | None = None
     practiceTopics: list[str] = Field(default_factory=list)
+    codingJudge: CodingJudgeSummary | None = None
 
 
 class Feedback(BaseModel):

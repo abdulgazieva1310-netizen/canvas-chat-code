@@ -68,6 +68,15 @@ export interface Message {
   createdAt: string;
   kind?: "main" | "follow-up";
   mainQuestionId?: string | null;
+  codingQuestionId?: string | null;
+  codingJudge?: CodingJudgeSummary | null;
+}
+
+export interface CodingJudgeSummary {
+  status: "passed" | "failed" | "compile-error" | "runtime-error" | "timeout" | "unavailable";
+  passed: number;
+  total: number;
+  summary: string;
 }
 
 export interface DifficultyDecision {
@@ -113,6 +122,7 @@ export interface Feedback {
     better: string;
     practiceTopic?: string | null;
     practiceTopics?: string[];
+    codingJudge?: CodingJudgeSummary | null;
   }[];
 }
 
@@ -126,6 +136,7 @@ export interface Interview {
   messages: Message[];
   lastFeedback: Scores | null;
   lastAnswerFeedback?: AnswerEvaluation | null;
+  lastCodingJudge?: CodingJudgeSummary | null;
   effectiveLevel?: Level | null;
   difficultyDecisions?: DifficultyDecision[];
 }

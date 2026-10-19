@@ -9,12 +9,18 @@ info:
     Successful JSON bodies match the mock's return values directly, without wrappers.
     All interview operations require a session and access only the current user's data.
     Login and registration establish that session. No token field is added to User.
-    Voice input submits browser-transcribed text. Audio uploads, streaming, and
-    dashboard statistics have no client operations.
+    Voice input submits browser-transcribed text. No raw audio is stored.
+    Operations marked x-implementation-status: planned are handoff contracts,
+    not currently served endpoints. Existing history returns an array until #40
+    migrates all consumers to the documented x-planned-contract envelope.
+    Nullable category scores in PlannedScores represent unavailable or inapplicable
+    categories and are excluded from averages; an empty average is null. All scores
+    are approximate AI coaching estimates. Missing and inaccessible IDs both return 404.
 servers:
   - url: /api
 security:
   - sessionCookie: []
+  - bearerAuth: []
 paths:
   /auth/password-reset/request:
     post:
@@ -41,7 +47,7 @@ paths:
                 properties:
                   message: {type: string}
         '400':
-          description: Invalid email input
+          $ref: '#/components/responses/BadRequest'
   /auth/password-reset/confirm:
     post:
       operationId: confirmPasswordReset
@@ -62,6 +68,10 @@ paths:
           description: Password replaced; all existing sessions and recovery links revoked
         '400':
           description: Invalid input or invalid, expired, or previously consumed link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /auth/login:
     post:
       operationId: login
@@ -166,7 +176,14 @@ paths:
     post:
       operationId: startInterview
       summary: Start an interview
-      description: Returns an active interview with its first AI question, zero answers, and null endedAt and lastFeedback. Saves the selected role and level as the authenticated user's profile preferences in the same transaction.
+      description: Creates an active interview with its first question without changing saved profile preferences. Retrying with the same owner-scoped Idempotency-Key and configuration returns the existing interview's current state. Different configuration or a deleted interview under the same key returns 409.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          x-implementation-status: planned
+          required: false
+          schema: {type: string, minLength: 1, maxLength: 128}
+          description: Reuse for retries of one start attempt; use a new key for a new interview.
       requestBody:
         required: true
         content:
@@ -176,6 +193,12 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/InterviewResult'
+        '409':
+          description: Start key reused with different configuration or after interview deletion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -184,6 +207,15 @@ paths:
       operationId: getHistory
       summary: Get saved interview history
       description: Returns complete and incomplete interviews only, newest startedAt first. Returns an empty array when none exist. No request body or query parameters.
+      x-planned-contract:
+        issue: 40
+        description: Replace the array with HistoryPage and migrate every consumer together. All filters combine with AND and all counts are owner-scoped. Order by startedAt descending then ID ascending. Dates are inclusive UTC calendar days. Search is case-insensitive substring over role and jobDescription. Unscored interviews remain unless score bounds are supplied. Invalid ranges return 400.
+        querySchema:
+          $ref: '#/components/schemas/HistoryQuery'
+        responseSchema:
+          $ref: '#/components/schemas/HistoryPage'
+        errorSchema:
+          $ref: '#/components/schemas/Error'
       responses:
         '200':
           description: Current user's ended interviews
@@ -273,6 +305,11 @@ paths:
                   type: string
                   enum: [Python, Java, C++, JavaScript, TypeScript]
                   description: Language for technical code evaluation; omitted values use the role default.
+            examples:
+              text:
+                $ref: '#/components/examples/TextAnswer'
+              code:
+                $ref: '#/components/examples/CodeAnswer'
       responses:
         '200':
           $ref: '#/components/responses/InterviewResult'
@@ -335,14 +372,102 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InterviewReport'
+              examples:
+                earlyEnded:
+                  $ref: '#/components/examples/EarlyEndedReport'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/InvalidState'
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      x-implementation-status: planned
+      summary: Get the current user's dashboard summary (planned for issue 32)
+      description: Owner-scoped. Counts include all completed interviews; averages and trends include only completed scored sessions grouped by role, type, mode, and starting level. Recent activity includes labeled incomplete sessions. Null averages and empty trends represent insufficient data. Recurring claims require multiple source answers; suggestions carry those references. New completions and deletions appear on the next read. Order activity by startedAt descending then ID; trend points by date then interviewId.
+      responses:
+        '200':
+          description: Personal summary with compatible comparison groups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
+  examples:
+    TextAnswer:
+      x-schema: AnswerSubmission
+      value:
+        text: I would first reproduce the incident, inspect logs, and verify a fix against the original failure.
+    CodeAnswer:
+      x-schema: AnswerSubmission
+      value:
+        text: "def two_sum(nums, target):\n    seen = {}\n    for i, value in enumerate(nums):\n        if target - value in seen:\n            return [seen[target - value], i]\n        seen[value] = i\n"
+        selectedLanguage: Python
+    FollowUp:
+      x-schema: PlannedMessage
+      value:
+        id: follow-up-1
+        interviewId: partial-1
+        from: ai
+        text: How would you verify that the fix addressed the original failure?
+        createdAt: '2026-10-19T10:02:00Z'
+        kind: follow-up
+        mainQuestionId: main-1
+        mainQuestionNumber: 1
+    EarlyEndedReport:
+      x-schema: InterviewReport
+      value:
+        interview:
+          id: partial-1
+          setup:
+            role: QA Engineer
+            level: Junior
+            mode: Real Interview
+            questionCount: 5
+            type: Role-specific
+            input: Text
+            language: English
+            jobDescription: ''
+          status: incomplete
+          startedAt: '2026-10-19T10:00:00Z'
+          endedAt: '2026-10-19T10:03:00Z'
+          answeredCount: 1
+          messages:
+            - id: main-1
+              interviewId: partial-1
+              from: ai
+              text: How would you investigate a reported defect?
+              createdAt: '2026-10-19T10:00:00Z'
+            - id: answer-1
+              interviewId: partial-1
+              from: you
+              text: I would reproduce the defect and inspect the logs.
+              createdAt: '2026-10-19T10:01:00Z'
+          lastFeedback: null
+          lastAnswerFeedback: null
+        feedback:
+          interviewId: partial-1
+          overall: null
+          scores: null
+          strengths: []
+          gaps: []
+          questions:
+            - q: How would you investigate a reported defect?
+              answer: I would reproduce the defect and inspect the logs.
+              score: null
+              scores: null
+              good: Evaluation unavailable.
+              miss: No reliable evaluation is available for this answer.
+              better: Try again later for coaching.
   securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Opaque expiring server-validated token returned in the Authorization response header. Only token digests are stored. An invalid explicit Authorization header takes precedence over cookies.
     sessionCookie:
       type: apiKey
       in: cookie
@@ -394,6 +519,139 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    AnswerSubmission:
+      type: object
+      required: [text]
+      properties:
+        text: {type: string, minLength: 1, pattern: '\S'}
+        selectedLanguage: {type: string, enum: [Python, Java, C++, JavaScript, TypeScript]}
+    PlannedMessage:
+      x-implementation-status: planned
+      description: Follow-up metadata planned for issue 18. At most one follow-up per mainQuestionId; only main questions advance progress. Hints and answers retain their sender values.
+      allOf:
+        - $ref: '#/components/schemas/Message'
+        - type: object
+          required: [kind, mainQuestionId, mainQuestionNumber]
+          properties:
+            kind: {type: string, enum: [main, follow-up, answer, hint]}
+            mainQuestionId: {type: string}
+            mainQuestionNumber: {type: integer, minimum: 1, maximum: 15}
+    HistoryQuery:
+      x-implementation-status: planned
+      type: object
+      additionalProperties: false
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+        type: {type: string, enum: [Technical, Behavioral, Role-specific]}
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        minScore: {type: number, minimum: 1, maximum: 10}
+        maxScore: {type: number, minimum: 1, maximum: 10}
+        search: {type: string}
+        page: {type: integer, minimum: 1, default: 1}
+        pageSize: {type: integer, minimum: 1, maximum: 100, default: 20}
+    HistoryPage:
+      x-implementation-status: planned
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Interview'
+        total: {type: integer, minimum: 0}
+        page: {type: integer, minimum: 1}
+        pageSize: {type: integer, minimum: 1, maximum: 100}
+    PlannedScores:
+      x-implementation-status: planned
+      description: Each unavailable or inapplicable category is null and excluded from averages. All-null categories produce no overall estimate.
+      type: object
+      required: [accuracy, completeness, clarity, structure]
+      properties:
+        accuracy: {type: number, minimum: 1, maximum: 10, nullable: true}
+        completeness: {type: number, minimum: 1, maximum: 10, nullable: true}
+        clarity: {type: number, minimum: 1, maximum: 10, nullable: true}
+        structure: {type: number, minimum: 1, maximum: 10, nullable: true}
+    EvidenceReference:
+      type: object
+      required: [interviewId, answerId]
+      properties:
+        interviewId: {type: string}
+        answerId: {type: string}
+    EvidenceClaim:
+      type: object
+      required: [text, sources]
+      properties:
+        text: {type: string}
+        sources:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/EvidenceReference'
+    PracticeSuggestion:
+      type: object
+      required: [topic, setup, sources]
+      properties:
+        topic: {type: string, minLength: 1}
+        setup:
+          $ref: '#/components/schemas/InterviewSetup'
+        sources:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/EvidenceReference'
+    DashboardGroup:
+      type: object
+      required: [role, type, mode, level, scoredCount, overall, scores, trends]
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+        type: {type: string, enum: [Technical, Behavioral, Role-specific]}
+        mode: {type: string, enum: [Practice, Real Interview]}
+        level:
+          $ref: '#/components/schemas/Level'
+        scoredCount: {type: integer, minimum: 0}
+        overall: {type: number, minimum: 1, maximum: 10, nullable: true}
+        scores:
+          $ref: '#/components/schemas/PlannedScores'
+        trends:
+          type: array
+          items:
+            type: object
+            required: [interviewId, date, overall]
+            properties:
+              interviewId: {type: string}
+              date: {type: string, format: date-time}
+              overall: {type: number, minimum: 1, maximum: 10}
+    DashboardSummary:
+      x-implementation-status: planned
+      type: object
+      required: [completedCount, recentActivity, groups, strengths, weaknesses, suggestions]
+      properties:
+        completedCount: {type: integer, minimum: 0}
+        recentActivity:
+          type: array
+          items:
+            $ref: '#/components/schemas/Interview'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardGroup'
+        strengths:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceClaim'
+        weaknesses:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceClaim'
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PracticeSuggestion'
     Role:
       type: string
       enum: [Frontend Developer, Backend Developer, Full Stack Developer, Java Developer, Python Developer, C++ Developer, QA Engineer, Data Analyst, DevOps Engineer]
@@ -461,7 +719,7 @@ components:
         from: {type: string, enum: [ai, you, hint]}
         text: {type: string}
         createdAt: {type: string, format: date-time}
-    Scores:
+    Scores: &scoreSchema
       type: object
       required: [accuracy, completeness, clarity, structure]
       properties:
@@ -469,15 +727,23 @@ components:
         completeness: {type: number, minimum: 1, maximum: 10}
         clarity: {type: number, minimum: 1, maximum: 10}
         structure: {type: number, minimum: 1, maximum: 10}
-    AnswerEvaluation:
-      allOf:
-        - $ref: '#/components/schemas/Scores'
-        - type: object
-          required: [went_well, missing, stronger_answer]
-          properties:
-            went_well: {type: string}
-            missing: {type: string}
-            stronger_answer: {type: string}
+    NullableScores:
+      <<: *scoreSchema
+      nullable: true
+    AnswerEvaluation: &evaluationSchema
+      type: object
+      required: [accuracy, completeness, clarity, structure, went_well, missing, stronger_answer]
+      properties:
+        accuracy: {type: number, minimum: 1, maximum: 10}
+        completeness: {type: number, minimum: 1, maximum: 10}
+        clarity: {type: number, minimum: 1, maximum: 10}
+        structure: {type: number, minimum: 1, maximum: 10}
+        went_well: {type: string}
+        missing: {type: string}
+        stronger_answer: {type: string}
+    NullableAnswerEvaluation:
+      <<: *evaluationSchema
+      nullable: true
     Interview:
       type: object
       required: [id, setup, status, startedAt, endedAt, answeredCount, messages, lastFeedback]
@@ -494,26 +760,17 @@ components:
           items:
             $ref: '#/components/schemas/Message'
         lastFeedback:
-          type: object
-          nullable: true
-          allOf:
-            - $ref: '#/components/schemas/Scores'
+          $ref: '#/components/schemas/NullableScores'
         lastAnswerFeedback:
-          type: object
-          nullable: true
-          allOf:
-            - $ref: '#/components/schemas/AnswerEvaluation'
+          $ref: '#/components/schemas/NullableAnswerEvaluation'
     Feedback:
       type: object
       required: [interviewId, overall, scores, strengths, gaps, questions]
       properties:
         interviewId: {type: string}
-        overall: {type: number, nullable: true}
+        overall: {type: number, minimum: 1, maximum: 10, nullable: true}
         scores:
-          type: object
-          nullable: true
-          allOf:
-            - $ref: '#/components/schemas/Scores'
+          $ref: '#/components/schemas/NullableScores'
         strengths:
           type: array
           items: {type: string}
@@ -530,12 +787,9 @@ components:
       properties:
         q: {type: string}
         answer: {type: string}
-        score: {type: number, nullable: true}
+        score: {type: number, minimum: 1, maximum: 10, nullable: true}
         scores:
-          type: object
-          nullable: true
-          allOf:
-            - $ref: '#/components/schemas/Scores'
+          $ref: '#/components/schemas/NullableScores'
         good: {type: string}
         miss: {type: string}
         better: {type: string}

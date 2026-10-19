@@ -107,3 +107,75 @@ export interface RegisterData {
   targetRole?: Role;
   level?: Level;
 }
+
+export interface AnswerSubmission {
+  text: string;
+  selectedLanguage?: "Python" | "Java" | "C++" | "JavaScript" | "TypeScript";
+}
+
+/** Planned follow-up metadata for issue #18; current Message is unchanged. */
+export interface PlannedMessage extends Message {
+  kind: "main" | "follow-up" | "answer" | "hint";
+  mainQuestionId: string;
+  mainQuestionNumber: number;
+}
+
+/** Planned history contract for #40; migrate all array consumers together. */
+export interface HistoryQuery {
+  role?: Role;
+  type?: InterviewSetup["type"];
+  startDate?: string;
+  endDate?: string;
+  minScore?: number;
+  maxScore?: number;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface HistoryPage {
+  items: Interview[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Planned nullable categories; null means unavailable or inapplicable. */
+export type PlannedScores = { [Category in keyof Scores]: number | null };
+
+export interface EvidenceReference {
+  interviewId: string;
+  answerId: string;
+}
+
+export interface EvidenceClaim {
+  text: string;
+  sources: EvidenceReference[];
+}
+
+export interface PracticeSuggestion {
+  topic: string;
+  setup: InterviewSetup;
+  sources: EvidenceReference[];
+}
+
+export interface DashboardGroup {
+  role: Role;
+  type: InterviewSetup["type"];
+  mode: InterviewSetup["mode"];
+  level: Level;
+  scoredCount: number;
+  overall: number | null;
+  scores: PlannedScores;
+  trends: { interviewId: string; date: string; overall: number }[];
+}
+
+/** Planned GET /dashboard/summary, issue #32. */
+export interface DashboardSummary {
+  completedCount: number;
+  recentActivity: Interview[];
+  groups: DashboardGroup[];
+  strengths: EvidenceClaim[];
+  weaknesses: EvidenceClaim[];
+  suggestions: PracticeSuggestion[];
+}

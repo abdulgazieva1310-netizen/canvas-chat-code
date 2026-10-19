@@ -77,3 +77,14 @@ The Dashboard reads the shared profile query for the greeting and target role/le
 with `User` and `Not set` as missing-data fallbacks. Profile edits update this cache
 immediately. Successful starts from Setup or Lobby invalidate the profile query,
 so returning to the Dashboard fetches the newly saved interview target.
+
+Technical interviews for Python Developer, Java Developer, and C++ Developer use
+Monaco Editor with the matching `python`, `java`, or `cpp` language. It is loaded
+only in the browser, and its editor, syntax grammars, and worker are bundled locally
+(no editor CDN request). Multiline answers preserve indentation, Enter inserts a
+newline, and Send submits the code for AI review. The editor becomes read-only
+while a request is pending; failures retain the draft and successful answers clear
+it for the next question. A plain code textarea remains usable while loading or
+if the editor assets fail to load. Coding mode takes precedence over Voice for
+these Technical interviews; other role/type combinations keep text/voice input.
+Code is reviewed by AI without executing or compiling it.

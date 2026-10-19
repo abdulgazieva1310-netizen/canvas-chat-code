@@ -4,6 +4,7 @@ import { Api } from "@/lib/api/client";
 import type { Interview as InterviewData } from "@/lib/api/types";
 import { useEffect, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
+import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 export const Route = createFileRoute("/interview")({
@@ -67,7 +68,14 @@ function Interview() {
   });
   const hint = useMutation({ mutationFn: () => Api.getHint(interviewId), onSuccess: receive });
   const busy = answer.isPending || end.isPending || hint.isPending;
-  const voiceMode = interview?.setup?.input === "Voice";
+  const codingLanguages: Record<string, CodingLanguage> = {
+    "Python Developer": "python",
+    "Java Developer": "java",
+    "C++ Developer": "cpp",
+  };
+  const codingLanguage =
+    interview?.setup?.type === "Technical" ? codingLanguages[interview.setup.role] : undefined;
+  const voiceMode = interview?.setup?.input === "Voice" && !codingLanguage;
   const speech = useSpeechRecognition(
     voiceMode && interview?.status === "active" && !busy && !error,
     interviewId,
@@ -91,7 +99,7 @@ function Interview() {
   const send = () => {
     if (text.trim() && !busy && interview?.status === "active") {
       speech.cancel();
-      answer.mutate(text.trim());
+      answer.mutate(codingLanguage ? text : text.trim());
     }
   };
   if (isPending) return <p role="status">Loading interview…</p>;
@@ -167,13 +175,24 @@ function Interview() {
                   <div
                     className={`max-w-[80%] rounded-2xl px-5 py-3 ${m.from === "ai" ? "card-surface font-display text-lg" : "bg-primary text-primary-foreground"}`}
                   >
-                    {m.text}
+                    {m.from === "you" && codingLanguage ? (
+                      <pre className="whitespace-pre-wrap font-mono text-sm">{m.text}</pre>
+                    ) : (
+                      <span className="whitespace-pre-wrap">{m.text}</span>
+                    )}
                   </div>
                 </div>
               ),
             )}
           </div>
-          <div className="card-surface mt-6 flex items-center gap-3 p-3">
+          <div
+            className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
+          >
+            {codingLanguage && (
+              <p className="text-sm font-medium">
+                {setup.role.replace(" Developer", "")} code · AI review (code is not executed)
+              </p>
+            )}
             {voiceMode && (
               <button
                 type="button"
@@ -190,18 +209,31 @@ function Interview() {
                 )}
               </button>
             )}
-            <input
-              disabled={busy || interview.status !== "active"}
-              value={text}
-              onChange={(e) => {
-                speech.cancel();
-                setText(e.target.value);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder={speech.listening ? "Listening… or type your answer" : "Type your answer"}
-              aria-label="Your answer"
-              className="flex-1 bg-transparent px-2 text-sm outline-none"
-            />
+            {codingLanguage ? (
+              <CodeEditor
+                key={`${interviewId}-${interview.answeredCount}`}
+                language={codingLanguage}
+                path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
+                value={text}
+                readOnly={busy || interview.status !== "active"}
+                onChange={setText}
+              />
+            ) : (
+              <input
+                disabled={busy || interview.status !== "active"}
+                value={text}
+                onChange={(e) => {
+                  speech.cancel();
+                  setText(e.target.value);
+                }}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder={
+                  speech.listening ? "Listening… or type your answer" : "Type your answer"
+                }
+                aria-label="Your answer"
+                className="flex-1 bg-transparent px-2 text-sm outline-none"
+              />
+            )}
             <button
               disabled={busy || !text.trim() || interview.status !== "active"}
               onClick={send}
@@ -265,7 +297,7 @@ function Interview() {
               <p>
                 <b>What was missing:</b> {interview.lastAnswerFeedback.missing}
               </p>
-              <p>
+              <p className="whitespace-pre-wrap">
                 <b>Stronger answer:</b> {interview.lastAnswerFeedback.stronger_answer}
               </p>
             </div>

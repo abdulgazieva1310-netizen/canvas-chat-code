@@ -131,7 +131,7 @@ function Report() {
                       <span className="font-semibold text-destructive">Missing · </span>
                       {x.miss}
                     </p>
-                    <div className="rounded-lg bg-secondary p-3">
+                    <div className="whitespace-pre-wrap rounded-lg bg-secondary p-3">
                       <p className="eyebrow mb-1">Stronger answer</p>
                       {x.better}
                     </div>
@@ -147,7 +147,7 @@ function Report() {
           {transcriptOpen && (
             <div className="mt-4 space-y-3">
               {interview.messages.map((message) => (
-                <p key={message.id}>
+                <p key={message.id} className="whitespace-pre-wrap font-mono text-sm">
                   <b>{message.from}:</b> {message.text}
                 </p>
               ))}

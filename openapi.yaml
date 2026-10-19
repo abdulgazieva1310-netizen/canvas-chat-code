@@ -204,7 +204,9 @@ paths:
       operationId: sendMessage
       summary: Submit an answer and advance the interview
       description: |
-        Trims text and rejects empty answers. Appends the user's message and increments
+        Rejects empty answers. Preserves source whitespace for Python/Java/C++ Technical
+        submissions and trims other answers. Reviews code in the selected language using
+        static AI analysis without execution. Appends the user's message and increments
         answeredCount. Appends the next AI question unless questionCount is reached,
         when status becomes complete and endedAt is set. Practice mode returns live
         lastFeedback scores and lastAnswerFeedback text when evaluation succeeds;

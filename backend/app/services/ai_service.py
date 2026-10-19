@@ -65,6 +65,8 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
             'using data structures such as arrays, strings, hash maps, trees, graphs, or dynamic programming. '
             'Give a concrete problem statement, input/output requirements, constraints, and a small example. '
             f'Ask for an implementation in {language} and time/space complexity analysis. '
+            f'The candidate must submit source code in {language}, not a prose-only explanation. '
+            'Include an appropriate function or method signature in the problem statement. '
             'Adapt problem difficulty to the selected level. Never give the solution. '
             'Do NOT ask system design, architecture, databases, frameworks, language trivia, '
             'general technical concept quizzes, or behavioral questions. '
@@ -95,7 +97,8 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
             print(f'Groq AI_API_KEY={masked_key}; dotenv path={ENV_PATH}; exists={ENV_PATH.is_file()}', flush=True)
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
                 'model': os.getenv('AI_MODEL', 'llama-3.3-70b-versatile'),
-                'messages': messages, 'temperature': 0.7, 'max_completion_tokens': 256,
+                'messages': messages, 'temperature': 0.7,
+                'max_completion_tokens': 512 if interview_type == 'Technical' and role in CODING_ROLES else 256,
             })
             response.raise_for_status()
             choice = response.json()['choices'][0]
@@ -118,13 +121,25 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
         return None
 
 
-def evaluate_answer(question: str, user_answer: str) -> AnswerEvaluation | None:
+def evaluate_answer(question: str, user_answer: str, *, language: str | None = None) -> AnswerEvaluation | None:
     """Validate structured Groq feedback; unavailable evaluations are never invented."""
     raw_key = os.getenv('AI_API_KEY')
     key = (raw_key or '').strip()
     if not key or key == 'your_api_key_here':
         return None
     response = None
+    code_rules = (
+        f'This is a coding submission in {language}. Expect source code in {language}, not just a prose answer. '
+        'Review the exact code including indentation and newlines. Assess algorithm correctness, '
+        'language syntax and semantics, edge cases, data structures, time/space complexity, '
+        'and whether it satisfies the problem constraints. Accuracy measures code correctness; '
+        'completeness measures coverage and missing cases; clarity measures naming and readability; '
+        'structure measures decomposition and code organization. Identify concrete bugs and explain fixes. '
+        f'Provide an improved code example in {language} in stronger_answer. '
+        'Do not penalize a valid function or method solely for lacking a standalone main program '
+        'unless the problem requires one. Distinguish demonstrated bugs from uncertainty. '
+        'This is static AI code review: do not claim to execute or compile code or to have run tests. '
+    ) if language else ''
     try:
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
@@ -134,6 +149,7 @@ def evaluate_answer(question: str, user_answer: str) -> AnswerEvaluation | None:
                 'messages': [
                     {'role': 'system', 'content': (
                         'Act as an evidence-based job interviewer and evaluate the candidate answer. '
+                        f'{code_rules}'
                         'Return ONLY a JSON object with exactly these required fields: '
                         'accuracy, completeness, clarity, structure (numbers from 1 to 10), '
                         'went_well, missing, stronger_answer (nonempty English strings). '

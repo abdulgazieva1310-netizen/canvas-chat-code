@@ -8,6 +8,7 @@ Role = Literal['Frontend Developer', 'Backend Developer', 'Full Stack Developer'
                'Python Developer', 'C++ Developer', 'QA Engineer', 'Data Analyst', 'DevOps Engineer']
 CODING_ROLES = frozenset({'Java Developer', 'Python Developer', 'C++ Developer',
                           'Backend Developer', 'Full Stack Developer'})
+CODING_LANGUAGES = {'Java Developer': 'Java', 'Python Developer': 'Python', 'C++ Developer': 'C++'}
 Level = Literal['Junior', 'Middle', 'Senior']
 
 

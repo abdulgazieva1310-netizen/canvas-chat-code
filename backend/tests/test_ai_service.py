@@ -296,3 +296,24 @@ def test_missing_key_skips_hint_network(monkeypatch):
         pytest.fail('No API request expected')
     monkeypatch.setattr(ai_service.httpx, 'Client', unexpected)
     assert ai_service.generate_hint('Question?', [], role='Backend Developer', level='Middle', interview_type='Technical') is None
+
+
+@pytest.mark.parametrize('language, code', [
+    ('Python', '\ndef solve(nums):\n    return nums[0]\n'),
+    ('Java', 'class Solution {\n    int solve(int[] nums) { return nums[0]; }\n}\n'),
+    ('C++', 'int solve(vector<int>& nums) {\n    return nums[0];\n}\n'),
+])
+def test_code_evaluation_receives_exact_source_and_language(monkeypatch, language, code):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    def handler(request):
+        payload = json.loads(request.content)
+        prompt = payload['messages'][0]['content']
+        assert f'coding submission in {language}' in prompt
+        assert f'improved code example in {language}' in prompt
+        assert 'language syntax and semantics, edge cases' in prompt
+        assert 'do not claim to execute or compile code' in prompt
+        assert json.loads(payload['messages'][1]['content'])['user_answer'] == code
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': json.dumps(evaluation_payload())}}]})
+    mock_provider(monkeypatch, handler)
+    assert ai_service.evaluate_answer('Find two sum indices.', code, language=language).model_dump() == evaluation_payload()

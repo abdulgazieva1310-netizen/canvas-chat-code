@@ -142,3 +142,11 @@ solution. The returned hint is saved in the transcript and displayed by the room
 Missing keys or provider failures append an explicit temporary-unavailability
 notice instead of generic coaching. Hints never advance the question count and
 remain unavailable in Real Interview mode or ended sessions.
+
+Technical submissions for Python Developer, Java Developer, and C++ Developer are
+reviewed as source code in Python, Java, and C++, respectively. Code whitespace is
+preserved in requests, stored transcripts, reports, and evaluation prompts. Groq
+reviews correctness, language semantics, edge cases, complexity, readability, and
+organization, and supplies an improved code example. This is static AI code review;
+there is no code execution, compilation, or automated test runner. Other interview
+types keep their existing answer evaluation.

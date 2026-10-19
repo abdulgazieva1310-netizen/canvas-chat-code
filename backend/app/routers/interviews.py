@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..auth import CurrentUser
-from ..models import Answer, Interview, InterviewReport, InterviewSetup
-from ..store import message, now
+from ..models import CODING_LANGUAGES, Answer, Interview, InterviewReport, InterviewSetup
+from ..store import answer_text, message, now
 from ..services import ai_service
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
@@ -55,11 +55,14 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
-        evaluation = ai_service.evaluate_answer(current_question, data.text.strip())
+        submitted = answer_text(interview.setup, data.text)
+        language = CODING_LANGUAGES.get(interview.setup.role) if interview.setup.type == 'Technical' else None
+        evaluation = (ai_service.evaluate_answer(current_question, submitted, language=language)
+                      if language else ai_service.evaluate_answer(current_question, submitted))
         next_question = None
         if interview.answeredCount + 1 < interview.setup.questionCount:
             setup = interview.setup
-            conversation = [*interview.messages, message(interviewId, 'you', data.text.strip())]
+            conversation = [*interview.messages, message(interviewId, 'you', submitted)]
             next_question = ai_service.generate_question(setup.role, setup.level, conversation,
                 interview_type=setup.type, job_description=setup.jobDescription)
         return store.answer(interview, data.text, next_question=next_question, evaluation=evaluation).model_copy(deep=True)

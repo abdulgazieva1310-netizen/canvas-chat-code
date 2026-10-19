@@ -15,6 +15,15 @@ import { defaultSetup } from "@/lib/api/default-setup";
 import type { Interview } from "@/lib/api/types";
 import type { BrowserSpeechRecognition } from "@/hooks/use-speech-recognition";
 
+// Monaco's browser rendering is covered by the production build; exercise the
+// real controlled editor wrapper and interview flow with a lightweight view.
+vi.mock("@/components/MonacoEditor.client", () => ({
+  default: (props: import("@/components/CodeEditor").CodeEditorProps) => (
+    <textarea aria-label="Code answer" data-language={props.language} disabled={props.readOnly}
+      value={props.value} onChange={(event) => props.onChange(event.target.value)} />
+  ),
+}));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -303,5 +312,60 @@ it("loads and displays the dynamic AI hint without advancing or clearing a draft
   expect(input).toHaveValue("My draft approach");
   expect(screen.getByRole("button", { name: "Ask for a hint" })).toBeEnabled();
   expect(client.getQueryData(["interview", active.id])).toEqual(updated);
+  client.clear();
+});
+
+it.each([
+  ["Python Developer", "python", "\ndef two_sum(nums, target):\n    return [0, 1]\n"],
+  ["Java Developer", "java", "class Solution {\n    int[] twoSum(int[] nums, int target) { return new int[]{0, 1}; }\n}\n"],
+  ["C++ Developer", "cpp", "vector<int> twoSum(vector<int>& nums, int target) {\n    return {0, 1};\n}\n"],
+] as const)("uses the %s editor and submits source code intact", async (role, language, code) => {
+  const active: Interview = { ...incompleteSession(), status: "active", endedAt: null,
+    setup: { ...defaultSetup, role, type: "Technical", input: "Voice" } };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  let finish!: (value: Interview) => void;
+  const send = vi.spyOn(Api, "sendMessage").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  const client = openInterview();
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute("data-language", language));
+  const editor = screen.getByRole("textbox", { name: "Code answer" });
+  expect(screen.queryByRole("textbox", { name: "Your answer" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+  fireEvent.change(editor, { target: { value: code } });
+  fireEvent.keyDown(editor, { key: "Enter" });
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code));
+  expect(editor).toBeDisabled();
+  finish({ ...active, answeredCount: 2, messages: [...active.messages,
+    { id: "submitted-code", interviewId: active.id, from: "you", text: code, createdAt: new Date().toISOString() }] });
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(""));
+  const displayed = document.querySelector("pre");
+  expect(displayed?.textContent).toBe(code);
+  client.clear();
+});
+
+it.each(["Behavioral", "Role-specific"] as const)("keeps text and voice input for Python %s interviews", async (type) => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer", type } });
+  const client = openInterview();
+  await screen.findByRole("textbox", { name: "Your answer" });
+  expect(screen.queryByRole("textbox", { name: "Code answer" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Start microphone" })).toBeInTheDocument();
+  client.clear();
+});
+
+it("retains the code draft when AI review fails", async () => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({ ...incompleteSession(), status: "active", endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer" } });
+  vi.spyOn(Api, "sendMessage").mockRejectedValue(new Error("Review unavailable"));
+  const client = openInterview();
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveAttribute("data-language", "python"));
+  const code = "def solve():\n    return 42\n";
+  fireEvent.change(screen.getByRole("textbox", { name: "Code answer" }), { target: { value: code } });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await screen.findByRole("alert");
+  expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(code);
+  expect(screen.getByRole("textbox", { name: "Code answer" })).toBeEnabled();
   client.clear();
 });

@@ -33,7 +33,7 @@ The product should teach users *why* an answer was strong or weak, not merely as
 | Interviewer appearance (vision) | 3D avatar | Post-MVP |
 | Avatar selection (vision) | Multiple avatars | Post-MVP |
 | Languages (vision) | Multilingual | English first for MVP |
-| Coding interview capability (vision) | Verbal questions, code editor, interactive coding | Verbal technical interviews in MVP; editor and interactive coding later |
+| Coding interview capability (vision) | Verbal questions, code editor, interactive coding | Monaco code answers for Python/Java/C++ Technical interviews; code execution later |
 | Feedback timing | Mode-based | Immediate in Practice Mode; at end in Real Interview Mode |
 | Post-interview options | Review, retry, suggested practice | Included in product experience |
 | MVP breadth | Simple MVP | Keep advanced interaction features for later |
@@ -78,7 +78,7 @@ The product should teach users *why* an answer was strong or weak, not merely as
 - Session ends after the chosen number of main questions, or when the user ends it early.
 - Display elapsed time without a hard time cutoff.
 - Voice mode: AI asks aloud, user responds by microphone, and a transcript is available.
-- Text mode: users type answers.
+- Text mode: users type answers. Python/Java/C++ Technical interviews use Monaco with the selected language and submit code for static AI review; execution/compilation is not included.
 
 ### 3.4 Two interview modes
 
@@ -225,8 +225,8 @@ The product should teach users *why* an answer was strong or weak, not merely as
 | 3D interviewer | Complex rendering, lip sync and real-time animation |
 | Multiple selectable avatars | Depends on avatar system |
 | Video interviews | Additional recording and privacy challenges |
-| Built-in coding editor | Separate substantial feature |
-| Interactive AI coding interviews | Depends on coding editor and reliable evaluation |
+| Sandboxed code execution and automated tests | Code editing and static AI review are supported; running submissions is later |
+| Automated coding judges | Requires sandboxed execution and reliable test cases |
 | Full multilingual interviews | Additional speech, feedback, and quality testing |
 | Advanced AI learning plans | Requires enough performance history to be useful |
 | Playback of stored raw audio/video | Storage, consent, and privacy considerations |
@@ -253,4 +253,4 @@ The product should teach users *why* an answer was strong or weak, not merely as
 
 **Do not expand the MVP further until the core interview → feedback → improvement experience works reliably.**
 
-The first version is intentionally **text and voice, not video/3D**. The long-term vision remains a flexible, multilingual, avatar-powered interview preparation experience with coding interviews and deeper analytics.
+The first version is intentionally **text and voice, not video/3D**. The long-term vision remains a flexible, multilingual, avatar-powered interview preparation experience with executable coding interviews and deeper analytics.

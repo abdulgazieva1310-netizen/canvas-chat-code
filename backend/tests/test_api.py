@@ -687,3 +687,33 @@ def test_unavailable_hint_shows_notice_without_static_advice(client, monkeypatch
     assert response.status_code == 200
     assert 'temporarily unavailable' in response.json()['messages'][-1]['text']
     assert 'Use a concrete example' not in response.text
+
+
+@pytest.mark.parametrize('role, language, code', [
+    ('Python Developer', 'Python', '\ndef two_sum(nums, target):\n    return [0, 1]\n'),
+    ('Java Developer', 'Java', 'class Solution {\n    int[] solve() { return new int[]{0, 1}; }\n}\n'),
+    ('C++ Developer', 'C++', 'vector<int> solve() {\n    return {0, 1};\n}\n'),
+])
+def test_coding_submissions_are_reviewed_and_saved_without_losing_whitespace(client, monkeypatch, role, language, code):
+    from app.services import ai_service
+    from app.models import AnswerEvaluation
+    calls = []
+    def evaluate(question, answer, **context):
+        calls.append((question, answer, context))
+        return AnswerEvaluation(accuracy=7, completeness=6, clarity=9, structure=8,
+            went_well='Readable implementation.', missing='Handle other inputs.',
+            stronger_answer='Review input constraints and compute the result rather than hardcoding it.')
+    monkeypatch.setattr(ai_service, 'evaluate_answer', evaluate)
+    token = login(client).headers['authorization']
+    interview = start(client, role=role)
+    path = '/api/interviews/' + interview['id']
+    response = client.post(path + '/messages', json={'text': code})
+    assert response.status_code == 200
+    assert calls == [(interview['messages'][-1]['text'], code, {'language': language})]
+    assert [m['text'] for m in response.json()['messages'] if m['from'] == 'you'] == [code]
+    client.post(path + '/end')
+    report = client.get(path + '/report').json()['feedback']
+    assert report['questions'][0]['answer'] == code
+    assert report['scores']['accuracy'] == 7
+    with TestClient(create_app(database_url=str(client.app.state.store.engine.url))) as restarted:
+        assert restarted.get(path + '/report', headers={'Authorization': token}).json()['feedback']['questions'][0]['answer'] == code

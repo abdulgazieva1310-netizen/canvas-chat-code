@@ -13,7 +13,7 @@ from .database import AnswerEvaluationRecord, Base, InterviewRecord, TokenRecord
 from fastapi import HTTPException
 
 from .auth import hasher
-from .models import CODING_ROLES, AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
+from .models import CODING_LANGUAGES, CODING_ROLES, AnswerEvaluation, Feedback, Interview, InterviewSetup, Message, QuestionFeedback, Scores, User
 
 
 def now():
@@ -22,6 +22,10 @@ def now():
 
 def message(interview_id, sender, text):
     return Message(id=str(uuid4()), interviewId=interview_id, **{'from': sender}, text=text, createdAt=now())
+
+
+def answer_text(setup, text):
+    return text if setup.type == 'Technical' and setup.role in CODING_LANGUAGES else text.strip()
 
 
 def question(setup, index):
@@ -183,7 +187,7 @@ class Repository:
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
-        answer_message = message(interview.id, 'you', text.strip())
+        answer_message = message(interview.id, 'you', answer_text(interview.setup, text))
         interview.messages.append(answer_message)
         self.session.add(AnswerEvaluationRecord(answer_id=answer_message.id,
             interview_id=interview.id, question_id=question_message.id,

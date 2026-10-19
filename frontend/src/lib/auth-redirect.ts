@@ -5,7 +5,7 @@ export function validateAuthSearch(search: Record<string, unknown>) {
   return {
     redirect:
       typeof redirect === "string" &&
-      ["/", "/setup", "/ready", "/interview", "/report"].includes(path ?? "")
+      ["/", "/setup", "/ready", "/interview", "/report", "/history", "/profile"].includes(path ?? "")
         ? redirect
         : "/",
   };

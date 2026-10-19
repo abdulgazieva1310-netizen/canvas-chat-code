@@ -186,3 +186,8 @@ it("shows registration errors without leaving the registration page", async () =
   expect(router.state.location.pathname).toBe("/register");
   client.clear();
 });
+
+it.each(["/history?role=QA", "/profile", "/report?interviewId=123"])(
+  "preserves validated private destination %s",
+  (redirect) => expect(validateAuthSearch({ redirect }).redirect).toBe(redirect),
+);

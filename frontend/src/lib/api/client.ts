@@ -4,6 +4,8 @@ import type {
   DashboardSummary,
   InterviewReport,
   InterviewSetup,
+  HistoryPage,
+  HistoryQuery,
   ProfileUpdate,
   RegisterData,
   User,
@@ -104,5 +106,15 @@ export const Api = {
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),
+  getHistoryPage: (query: HistoryQuery) => {
+    const params = new URLSearchParams();
+    for (const key of ["role", "type", "startDate", "endDate", "minScore", "maxScore", "search", "page", "pageSize"] as const) {
+      const value = query[key];
+      if (value !== undefined && value !== "") params.set(key, String(value));
+    }
+    const encoded = params.toString();
+    const suffix = encoded ? `?${encoded}` : "";
+    return request<HistoryPage>(`/interviews${suffix}`);
+  },
   getHistory: () => request<Interview[]>("/interviews"),
 };

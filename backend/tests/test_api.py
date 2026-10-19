@@ -159,6 +159,17 @@ def test_invalid_setup(client, body):
     assert set(response.json()) == {'message'}
 
 
+@pytest.mark.parametrize(('field', 'value'), [
+    ('role', 'Product Manager'), ('level', 'Expert'), ('mode', 'Interview'),
+    ('questionCount', 7), ('type', 'Culture fit'), ('input', 'Video'), ('language', 'Russian'),
+])
+def test_setup_rejects_every_unsupported_enum_and_question_count(client, field, value):
+    login(client)
+    response = client.post('/api/interviews', json=SETUP | {field: value})
+    assert response.status_code == 400
+    assert set(response.json()) == {'message'}
+
+
 def test_validation_and_missing(client):
     login(client)
     path = '/api/interviews/' + start(client)['id']

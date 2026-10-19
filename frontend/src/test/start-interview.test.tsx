@@ -15,6 +15,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { Route as InterviewRoute } from "@/routes/interview";
 import type { Interview } from "@/lib/api/types";
 import { defaultSetup } from "@/lib/api/default-setup";
+import { targetRoles, type InterviewSetup } from "@/lib/api/types";
 
 afterEach(() => {
   cleanup();
@@ -93,6 +94,62 @@ it.each(["/setup", "/ready"] as const)(
     client.clear();
   },
 );
+
+it("offers every supported option and submits the complete custom configuration", async () => {
+  const customSetup: InterviewSetup = {
+    role: "QA Engineer",
+    level: "Senior",
+    mode: "Real Interview",
+    questionCount: 15,
+    type: "Role-specific",
+    input: "Text",
+    language: "English",
+    jobDescription: "Quality strategy for a distributed data platform.",
+  };
+  const fetch = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ id: "custom-session", setup: customSetup }), { status: 201 }),
+  );
+  vi.stubGlobal("fetch", fetch);
+  const { client, router } = openStartPage("/setup");
+  await screen.findByRole("heading", { name: "Shape your interview." });
+  const group = (name: string) =>
+    within(screen.getAllByText(name).find((element) => element.tagName === "P")!.parentElement!);
+  expect(group("Interview type").getAllByRole("button").map((button) => button.textContent)).toEqual([
+    "Technical", "Behavioral", "Role-specific",
+  ]);
+  expect(group("Target role").getAllByRole("button").map((button) => button.textContent)).toEqual(targetRoles);
+  expect(group("Starting level").getAllByRole("button").map((button) => button.textContent)).toEqual([
+    "Junior", "Middle", "Senior",
+  ]);
+  expect(group("Mode").getAllByRole("button").map((button) => button.textContent)).toEqual([
+    "Practice", "Real Interview",
+  ]);
+  expect(group("Answer by").getAllByRole("button").map((button) => button.textContent)).toEqual([
+    "Voice", "Text",
+  ]);
+  expect(group("Main questions").getAllByRole("button").map((button) => button.textContent)).toEqual([
+    "5", "10", "15",
+  ]);
+  for (const button of screen.getAllByRole("button")) {
+    expect(button.tagName).toBe("BUTTON");
+    expect(button.tabIndex).toBeGreaterThanOrEqual(0);
+  }
+
+  fireEvent.click(group("Interview type").getByRole("button", { name: "Role-specific" }));
+  fireEvent.click(group("Target role").getByRole("button", { name: "QA Engineer" }));
+  fireEvent.click(group("Starting level").getByRole("button", { name: "Senior" }));
+  fireEvent.click(group("Mode").getByRole("button", { name: "Real Interview" }));
+  fireEvent.click(group("Answer by").getByRole("button", { name: "Text" }));
+  fireEvent.click(group("Main questions").getByRole("button", { name: "15" }));
+  fireEvent.change(screen.getByPlaceholderText("Paste a job posting to tailor questions…"), {
+    target: { value: customSetup.jobDescription },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
+  await screen.findByText("Live interview");
+  expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toEqual(customSetup);
+  expect(router.state.location.href).toBe("/interview?interviewId=custom-session");
+  client.clear();
+});
 
 it.each(["/setup", "/ready"] as const)(
   "stays on %s with an error when the response has no ID",

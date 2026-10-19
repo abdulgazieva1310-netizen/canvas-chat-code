@@ -45,10 +45,10 @@ def test_topic_reaches_ai_and_matching_curated_questions(client, monkeypatch):
 def test_topic_mismatch_falls_back_transparently_to_role_compatible_question(client, monkeypatch):
     monkeypatch.setattr(ai_service, 'generate_question', lambda *args, **kwargs: None)
     response = client.post('/api/interviews', json=setup(
-        role='QA Engineer', type='Behavioral', practiceTopic='conflict resolution'))
+        role='QA Engineer', type='Behavioral', practiceTopic='unmapped specialty topic'))
     assert response.status_code == 201
     interview = response.json()
-    assert interview['setup']['practiceTopic'] == 'conflict resolution'
+    assert interview['setup']['practiceTopic'] == 'unmapped specialty topic'
     assert 'No matching curated questions' in interview['messages'][0]['text']
     assert 'role-compatible behavioral practice question' in interview['messages'][0]['text']
 
@@ -79,3 +79,13 @@ def test_retry_preserves_source_and_idempotency_includes_the_selected_topic(clie
                        headers=headers).status_code == 409
     assert client.get(f"/api/interviews/{original['id']}").json() == before
     assert client.get(f"/api/interviews/{original['id']}/report").json() == report
+
+
+def test_conflict_topic_uses_new_behavioral_bank(client, monkeypatch):
+    monkeypatch.setattr(ai_service, 'generate_question', lambda *args, **kwargs: None)
+    response = client.post('/api/interviews', json=setup(
+        role='QA Engineer', type='Behavioral', practiceTopic='conflict resolution'))
+    assert response.status_code == 201
+    prompt = response.json()['messages'][0]['text']
+    assert 'unmet commitment' in prompt
+    assert 'No matching curated questions' not in prompt

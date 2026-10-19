@@ -114,9 +114,17 @@ class Scores(BaseModel):
 
 class AnswerEvaluation(Scores):
     model_config = {'extra': 'forbid'}
-    went_well: str = Field(min_length=1, pattern=r'\S', max_length=10000)
+    went_well: str = Field(max_length=10000)
     missing: str = Field(min_length=1, pattern=r'\S', max_length=10000)
     stronger_answer: str = Field(min_length=1, pattern=r'\S', max_length=10000)
+    practice_topic: str | None = Field(default=None, min_length=1, max_length=120, pattern=r'\S')
+
+    @field_validator('went_well')
+    @classmethod
+    def allow_empty_but_not_whitespace(cls, value):
+        if value and not value.strip():
+            raise ValueError('went_well must be empty or contain text')
+        return value
 
     def category_scores(self):
         return Scores(**{name: getattr(self, name) for name in Scores.model_fields})
@@ -146,6 +154,8 @@ class QuestionFeedback(BaseModel):
     good: str
     miss: str
     better: str
+    practiceTopic: str | None = None
+    practiceTopics: list[str] = Field(default_factory=list)
 
 
 class Feedback(BaseModel):
@@ -191,6 +201,7 @@ class DashboardGroup(BaseModel):
     type: Literal['Technical', 'Behavioral', 'Role-specific']
     mode: Literal['Practice', 'Real Interview']
     level: Level
+    latestInterviewId: str
     scoredCount: int
     overall: float | None
     scores: dict[str, float | None]

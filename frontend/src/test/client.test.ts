@@ -97,6 +97,7 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
   expect(fetch.mock.calls[6]?.[1]).not.toHaveProperty("body");
   expect(fetch.mock.calls[9]?.[1]).not.toHaveProperty("body");
 });
+
 it("encodes every history filter and pagination parameter in stable order", async () => {
   const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 2, pageSize: 20 })));
   vi.stubGlobal("fetch", fetch);
@@ -115,6 +116,7 @@ it("encodes every history filter and pagination parameter in stable order", asyn
     "http://localhost:8000/api/interviews?role=C%2B%2B+Developer&type=Role-specific&startDate=2026-10-01&endDate=2026-10-19&minScore=7.5&maxScore=9&search=API+%26+databases&page=2&pageSize=20",
     expect.objectContaining({ method: "GET", credentials: "include" }),
   );
+});
 
 it("preserves backend errors and signals expired sessions", async () => {
   vi.stubGlobal(

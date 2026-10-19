@@ -1,6 +1,7 @@
 """Transactional database repository and deterministic interview fixtures."""
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+import re
 from uuid import uuid4
 
 from sqlalchemy import delete, select
@@ -18,7 +19,7 @@ from .services.question_bank import BankError, load_bank
 from .models import (CODING_ROLES, AnswerEvaluation, DashboardGroup, DashboardSummary, DashboardTrend,
                      DifficultyDecision,
                      EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
-                     PracticeSuggestion, QuestionFeedback, Scores, User)
+                     QuestionFeedback, Scores, User)
 from .services.difficulty import transition as difficulty_transition
 
 
@@ -33,6 +34,66 @@ def message(interview_id, sender, text, *, kind='main', main_question_id=None):
 
 def answer_text(setup, text):
     return text if setup.type == 'Technical' and setup.role in CODING_ROLES else text.strip()
+
+
+def positive_observation(text):
+    value = ' '.join(text.split()).strip()
+    if not value:
+        return ''
+    if value.casefold() in {'none', 'null', '[]', 'no specific strengths identified'}:
+        return ''
+    if re.search(
+        r'\b(no relevant information|not relevant|irrelevant|does not|doesn.t|did not|didn.t|'
+        r'fails? to|failed to|contains no relevant|lacks?|missing|omits?|omitted|insufficient|'
+        r'inadequate|attempted to answer|albeit|unrelated|random (?:letters?|token|text)|gibberish|'
+        r'nonsensical|single unrelated token|(?:too|extremely|overly) brief)\b',
+        value, re.IGNORECASE,
+    ):
+        return ''
+    return value
+
+
+def practice_topics(missing, suggested=None):
+    if re.search(r'\b(?:no relevant information|no answer was provided|not answered)\b', missing, re.I):
+        return []
+    candidates = [suggested] if suggested else []
+    for part in re.split(r'[\n;•]+', missing):
+        value = re.sub(r'^\s*[-*\d.)]+\s*', '', part).strip()
+        value = re.sub(r'^(?:the (?:candidate|response|answer|user)|your answer|you)\s+', '', value, flags=re.I)
+        value = re.sub(r'^(?:missed|lacks?|omitted|is missing)\s+', '', value, flags=re.I)
+        value = re.sub(
+            r"^(?:(?:does not|doesn't|did not|didn't|fails to|failed to|needs to|should|must|omits|lacks|missed|forgot to|is missing)\s+)?"
+            r"(?:(?:adequately|clearly|sufficiently)\s+)?(?:address|answer|explain|describe|discuss|include|mention|identify|provide|show|cover|improve|practice|strengthen|learn|apply|use)\s+",
+            '', value, flags=re.I,
+        )
+        value = re.sub(
+            r'^(?:an?\s+)?(?:clear\s+)?(?:description|explanation|discussion|understanding|coverage|treatment)\s+of\s+',
+            '', value, flags=re.I,
+        )
+        value = re.sub(
+            r'^(?:not enough detail|insufficient detail|limited detail|lack of detail|insufficient discussion)\s+(?:about|of)\s+',
+            '', value, flags=re.I,
+        )
+        candidates.extend(re.split(r'\s*(?:,|\band\b|\bor\b|&)\s*', value, flags=re.I))
+
+    result = []
+    seen = set()
+    for topic in candidates:
+        value = re.sub(r'^[\s:–—-]+|[\s.,;:!?–—-]+$', '', topic or '').strip()
+        value = re.sub(r"['\"“”`]", '', value).strip()
+        value = re.sub(r'\s+(?:for example|such as|including|that includes|etc\.?|and so on)\b.*$', '', value, flags=re.I)
+        key = ' '.join(value.split()).casefold()
+        if (len(value) < 3 or len(value) > 80 or not re.search(r'[a-zA-Z]', value)
+                or re.match(r'^(?:no specific|not applicable|nothing|a description|an explanation|the answer|the candidate)\b', value, re.I)
+                or re.search(r'\b(?:unrelated|irrelevant|gibberish|random token|single token|the question|the response|the answer|was provided|consisted of)\b', value, re.I)
+                or re.search(r'\b(?:is|are|was|were|contains|consists|consisted)\s+(?:not|no|unrelated|irrelevant|a|an)\b', value, re.I)
+                or key in seen):
+            continue
+        seen.add(key)
+        result.append(value)
+        if len(result) == 3:
+            break
+    return result
 
 
 def question(setup, index, effective_level=None):
@@ -90,21 +151,24 @@ def report(interview, evaluations=None):
     available_averages = [value for value in category_averages.values() if value is not None]
     scores = Scores(**category_averages) if available_averages else None
     overall = round(sum(available_averages) / len(available_averages), 1) if available_averages else None
+    strengths = list(dict.fromkeys(filter(None, (positive_observation(e.went_well) for e in evaluated))))
     feedback = []
     for q, a in zip(questions, answers):
         evaluation = evaluations.get(a.id)
+        topics = practice_topics(evaluation.missing, evaluation.practice_topic) if evaluation else []
         answer_scores = [getattr(evaluation, name) for name in Scores.model_fields
                          if evaluation and getattr(evaluation, name) is not None]
         feedback.append(QuestionFeedback(questionId=q.id, answerId=a.id, q=q.text, answer=a.text,
             score=round(sum(answer_scores) / len(answer_scores), 1) if answer_scores else None,
             scores=evaluation.category_scores() if evaluation else None,
-            good=evaluation.went_well if evaluation else 'AI evaluation unavailable for this answer.',
+            good=positive_observation(evaluation.went_well) if evaluation else 'AI evaluation unavailable for this answer.',
             miss=evaluation.missing if evaluation else 'This answer has not been scored.',
-            better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.'))
+            better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.',
+            practiceTopic=topics[0] if topics else None, practiceTopics=topics))
     answered_main = sum(answer.kind == 'main' for answer in answers)
     return Feedback(interviewId=interview.id, answeredQuestions=answered_main,
         selectedQuestions=interview.setup.questionCount, overall=overall, scores=scores,
-        strengths=list(dict.fromkeys(e.went_well for e in evaluated)),
+        strengths=strengths,
         gaps=list(dict.fromkeys(e.missing for e in evaluated)), questions=feedback)
 
 
@@ -187,7 +251,6 @@ class Repository:
         ).order_by(InterviewRecord.started_at.desc(), InterviewRecord.id)))
         interviews = [Interview.model_validate(record.payload) for record in records]
         completed = {i.id: i for i in interviews if i.status == 'complete'}
-        interviews_by_id = {i.id: i for i in interviews}
         evaluation_rows = list(self.session.scalars(select(AnswerEvaluationRecord).where(
             AnswerEvaluationRecord.interview_id.in_([i.id for i in interviews])
         ))) if interviews else []
@@ -201,7 +264,9 @@ class Repository:
         for interview in completed.values():
             setup = interview.setup
             key = (setup.role, setup.type, setup.mode, setup.level)
-            group = grouped.setdefault(key, {'sessions': [], 'categories': {name: [] for name in Scores.model_fields}})
+            group = grouped.setdefault(key, {'sessions': [], 'interviews': [],
+                                              'categories': {name: [] for name in Scores.model_fields}})
+            group['interviews'].append(interview)
             answer_ids = [m.id for m in interview.messages if m.sender == 'you']
             scored = [(answer_id, evaluations[answer_id][1]) for answer_id in answer_ids
                       if answer_id in evaluations and any(
@@ -228,6 +293,10 @@ class Repository:
                 _, evaluation = entry
                 for field, label in (('went_well', 'strengths'), ('missing', 'weaknesses')):
                     text = getattr(evaluation, field).strip()
+                    if field == 'went_well':
+                        text = positive_observation(text)
+                        if not text:
+                            continue
                     claim_sources[label].setdefault(text, []).append(
                         EvidenceReference(interviewId=interview.id, answerId=answer.id))
 
@@ -239,22 +308,28 @@ class Repository:
             scored_count = len(sessions)
             groups.append(DashboardGroup(
                 role=role, type=interview_type, mode=mode, level=level, scoredCount=scored_count,
+                latestInterviewId=max(values['interviews'], key=lambda item: (item.startedAt, item.id)).id,
                 overall=round(sum(score for _, score in sessions) / scored_count, 1) if scored_count else None,
                 scores={name: round(sum(vals) / len(vals), 1) if vals else None
                         for name, vals in values['categories'].items()}, trends=trends))
 
-        def repeated_claims(kind):
-            return [EvidenceClaim(text=text, sources=sources)
-                    for text, sources in sorted(claim_sources[kind].items()) if len(sources) >= 2]
+        def common_claims(kind):
+            # Model wording can vary in whitespace or capitalization. Group those variants
+            # together while keeping the first grounded wording for display.
+            grouped_claims = {}
+            for text, sources in claim_sources[kind].items():
+                normalized = ' '.join(text.split()).casefold()
+                if not normalized:
+                    continue
+                if normalized not in grouped_claims:
+                    grouped_claims[normalized] = [text.strip(), []]
+                grouped_claims[normalized][1].extend(sources)
+            ranked = sorted(grouped_claims.values(), key=lambda item: (-len(item[1]), item[0].casefold()))
+            return [EvidenceClaim(text=text, sources=sources) for text, sources in ranked[:3]]
 
-        weaknesses = repeated_claims('weaknesses')
-        suggestions = []
-        for claim in weaknesses:
-            source_interview = interviews_by_id[claim.sources[0].interviewId]
-            setup = source_interview.setup.model_copy(update={'mode': 'Practice'})
-            suggestions.append(PracticeSuggestion(topic=claim.text, setup=setup, sources=claim.sources))
+        weaknesses = common_claims('weaknesses')
         return DashboardSummary(completedCount=len(completed), recentActivity=interviews[:10], groups=groups,
-            strengths=repeated_claims('strengths'), weaknesses=weaknesses, suggestions=suggestions)
+            strengths=common_claims('strengths'), weaknesses=weaknesses, suggestions=[])
 
     def start(self, user_id, setup, first_question=None):
         ident = str(uuid4())

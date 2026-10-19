@@ -148,16 +148,6 @@ export const Api = {
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),
-  getHistoryPage: (query: HistoryQuery) => {
-    const params = new URLSearchParams();
-    for (const key of ["role", "type", "startDate", "endDate", "minScore", "maxScore", "search", "page", "pageSize"] as const) {
-      const value = query[key];
-      if (value !== undefined && value !== "") params.set(key, String(value));
-    }
-    const encoded = params.toString();
-    const suffix = encoded ? `?${encoded}` : "";
-    return request<HistoryPage>(`/interviews${suffix}`);
-  },
   async getHistory(): Promise<Interview[]> {
     // Existing dashboard/session consumers still need the complete saved history.
     const first = await request<HistoryPage>("/interviews");
@@ -168,5 +158,15 @@ export const Api = {
       items.push(...next.items);
     }
     return items;
+  },
+  getHistoryPage: (query: HistoryQuery) => {
+    const params = new URLSearchParams();
+    for (const key of ["role", "type", "startDate", "endDate", "minScore", "maxScore", "search", "page", "pageSize"] as const) {
+      const value = query[key];
+      if (value !== undefined && value !== "") params.set(key, String(value));
+    }
+    const encoded = params.toString();
+    const suffix = encoded ? `?${encoded}` : "";
+    return request<HistoryPage>(`/interviews${suffix}`);
   },
 };

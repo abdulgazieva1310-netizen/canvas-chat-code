@@ -3,6 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Api } from "@/lib/api/client";
 
+function uniqueFeedback(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function DashboardSummary() {
   const summary = useQuery({
     queryKey: ["dashboard-summary"],
@@ -10,6 +20,15 @@ export function DashboardSummary() {
     retry: false,
   });
   const [selected, setSelected] = useState(0);
+  const dashboardData = summary.data;
+  const group = dashboardData?.groups[selected] ?? dashboardData?.groups[0];
+  const latestInterviewId = group?.latestInterviewId;
+  const latestReport = useQuery({
+    queryKey: ["dashboard-latest-report", latestInterviewId],
+    queryFn: () => Api.getReport(latestInterviewId!),
+    enabled: !!latestInterviewId,
+    retry: false,
+  });
   if (summary.isPending)
     return (
       <p role="status" className="mt-8">
@@ -25,8 +44,39 @@ export function DashboardSummary() {
         </button>
       </section>
     );
-  const data = summary.data;
-  const group = data.groups[selected] ?? data.groups[0];
+  const data = dashboardData!;
+  const report =
+    latestReport.data?.feedback.interviewId === latestInterviewId ? latestReport.data : undefined;
+  const strengths = uniqueFeedback(report?.feedback.strengths ?? []);
+  const weaknesses = uniqueFeedback(report?.feedback.gaps ?? []);
+  const seenTopics = new Set<string>();
+  const practiceTopics = (report?.feedback.questions ?? [])
+    .flatMap((question) => {
+      const topics = question.practiceTopics?.length
+        ? question.practiceTopics
+        : question.practiceTopic
+          ? [question.practiceTopic]
+          : [];
+      const hasWeakness =
+        question.miss.trim() && !/^(none|no supported|nothing was missed)\b/i.test(question.miss.trim());
+      if (!hasWeakness) return [];
+      return topics
+        .map((topic) => topic.trim().replace(/\s+/g, " "))
+        .filter(
+          (topic) =>
+            topic.length > 0 &&
+            topic.length <= 120 &&
+            !/^(a description of|an explanation of|expected answer|rubric|generic topic)\b/i.test(topic) &&
+            !/[.!?]\s/.test(topic),
+        );
+    })
+    .filter((topic) => {
+      const key = topic.replace(/\s+/g, " ").toLocaleLowerCase();
+      if (!key || seenTopics.has(key)) return false;
+      seenTopics.add(key);
+      return true;
+    })
+    .slice(0, 3);
   const label = group ? `${group.role} · ${group.type} · ${group.mode} · ${group.level}` : "";
   const points = group?.trends ?? [];
   const positions = points.map(
@@ -143,37 +193,62 @@ export function DashboardSummary() {
         </div>
       )}
       <p className="text-sm">Scores are AI coaching estimates, not measures of hiring readiness.</p>
-      {(["strengths", "weaknesses"] as const).map((kind) => (
-        <div key={kind} className="card-surface p-5">
-          <h2 className="text-xl capitalize">{kind}</h2>
-          {data[kind].filter((claim) => claim.sources.length > 0).length === 0 ? (
+      {([
+        [strengths, "Strengths"],
+        [weaknesses, "Weaknesses"],
+      ] as const).map(([kind, title]) => (
+        <div key={title} className="card-surface p-5">
+          <h2 className="text-xl">{title}</h2>
+          {latestReport.isPending && latestInterviewId ? (
+            <p>Loading feedback…</p>
+          ) : latestReport.error ? (
+            <p role="alert">Could not load this interview’s feedback.</p>
+          ) : kind.length === 0 ? (
             <p>No supported observations yet.</p>
           ) : (
             <ul>
-              {data[kind]
-                .filter((claim) => claim.sources.length > 0)
-                .map((claim, i) => (
-                  <li key={i}>
-                    {claim.text}{" "}
-                    <Link to="/report" search={{ interviewId: claim.sources[0].interviewId }}>
-                      Review evidence
+              {kind.map((text) => (
+                <li key={text}>
+                  {text}{" "}
+                  {latestInterviewId && (
+                    <Link to="/report" search={{ interviewId: latestInterviewId }}>
+                      Review report
                     </Link>
-                  </li>
-                ))}
+                  )}
+                </li>
+              ))}
             </ul>
           )}
         </div>
       ))}
       <div className="card-surface p-5">
         <h2 className="text-xl">Suggested practice</h2>
-        {data.suggestions
-          .filter((s) => s.sources.length > 0)
-          .map((suggestion, i) => (
-            <p key={i}>
-              {suggestion.topic} <Link to="/setup">Configure practice</Link>
-            </p>
-          ))}
-        <Link to="/setup">Choose your next practice</Link>
+        {latestReport.isPending && latestInterviewId ? (
+          <p>Loading practice topics…</p>
+        ) : latestReport.error ? (
+          <p role="alert">Could not load practice topics for this interview.</p>
+        ) : practiceTopics.length === 0 ? (
+          <p>No specific practice topics were identified in this interview’s feedback.</p>
+        ) : (
+          <ul className="mt-3 flex flex-wrap gap-3">
+            {practiceTopics.map((topic) => (
+              <li key={topic}>
+                <Link
+                  to="/setup"
+                  search={{
+                    practiceTopic: topic,
+                    role: report?.interview.setup.role,
+                    interviewType: report?.interview.setup.type,
+                    level: report?.interview.setup.level,
+                  }}
+                  className="btn btn-ghost"
+                >
+                  Practice: {topic}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="card-surface p-5">
         <h2 className="text-xl">Recent activity</h2>

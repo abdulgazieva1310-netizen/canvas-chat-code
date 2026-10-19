@@ -76,6 +76,7 @@ export interface AnswerEvaluation extends Scores {
   went_well: string;
   missing: string;
   stronger_answer: string;
+  practice_topic?: string | null;
 }
 
 export interface Feedback {
@@ -96,6 +97,8 @@ export interface Feedback {
     good: string;
     miss: string;
     better: string;
+    practiceTopic?: string | null;
+    practiceTopics?: string[];
   }[];
 }
 
@@ -182,6 +185,7 @@ export interface DashboardGroup {
   type: InterviewSetup["type"];
   mode: InterviewSetup["mode"];
   level: Level;
+  latestInterviewId: string;
   scoredCount: number;
   overall: number | null;
   scores: PlannedScores;

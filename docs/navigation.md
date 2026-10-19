@@ -15,11 +15,17 @@ After `cd frontend && npm ci`, run:
 
 ```sh
 npm test
-npx playwright install chromium
+npx playwright install --with-deps chromium
 npx playwright test e2e/navigation.spec.ts
 ```
 
 The browser test starts Vite automatically on port 4173 and intercepts API calls
+with deterministic fixtures. Browser installation requires registry/CDN access;
+`--with-deps` also installs Chromium's required system libraries and may need
+administrator privileges on Linux. Once installed, tests need no live AI/email
+credentials.
+
+The browser test intercepts API calls
 with deterministic fixtures; no backend credentials are needed. It traverses the
 actual links using keyboard Tab/Shift+Tab/Enter at 375px and 1280px, checks visible
 focus, selected navigation, direct refresh, back navigation, and page overflow.

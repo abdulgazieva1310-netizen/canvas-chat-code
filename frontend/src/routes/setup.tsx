@@ -7,6 +7,23 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/setup")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    practiceTopic: typeof search["practiceTopic"] === "string" ? search["practiceTopic"].trim() : "",
+    role:
+      typeof search["role"] === "string" && targetRoles.includes(search["role"] as (typeof targetRoles)[number])
+        ? (search["role"] as (typeof targetRoles)[number])
+        : undefined,
+    interviewType:
+      search["interviewType"] === "Technical" ||
+      search["interviewType"] === "Behavioral" ||
+      search["interviewType"] === "Role-specific"
+        ? search["interviewType"]
+        : undefined,
+    level:
+      search["level"] === "Junior" || search["level"] === "Middle" || search["level"] === "Senior"
+        ? search["level"]
+        : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "New interview — Interview Mirror" },
@@ -53,9 +70,16 @@ function Choice<T extends string>({
 }
 
 function Setup() {
+  const { practiceTopic, role: targetedRole, interviewType, level: targetedLevel } = Route.useSearch();
   const navigate = useNavigate();
   const client = useQueryClient();
-  const [setup, setSetup] = useState<InterviewSetup>(defaultSetup);
+  const [setup, setSetup] = useState<InterviewSetup>(() => ({
+    ...defaultSetup,
+    ...(targetedRole ? { role: targetedRole } : {}),
+    ...(interviewType ? { type: interviewType } : {}),
+    ...(targetedLevel ? { level: targetedLevel } : {}),
+    ...(practiceTopic ? { mode: "Practice" as const, practiceTopic } : {}),
+  }));
   const { type, role, level, mode, input, questionCount: count } = setup;
   const update =
     <K extends keyof InterviewSetup>(key: K) =>
@@ -97,8 +121,29 @@ function Setup() {
             label="Mode"
             options={["Practice", "Real Interview"]}
             value={mode}
-            onChange={update("mode")}
+            onChange={(value) =>
+              setSetup((current) => ({
+                ...current,
+                mode: value,
+                ...(value === "Practice" ? {} : { practiceTopic: undefined }),
+              }))
+            }
           />
+          {mode === "Practice" && (
+            <div>
+              <label htmlFor="practice-topic" className="eyebrow mb-3 block">
+                Targeted practice topic (optional)
+              </label>
+              <input
+                id="practice-topic"
+                value={setup.practiceTopic ?? ""}
+                onChange={(event) => update("practiceTopic")(event.target.value || undefined)}
+                maxLength={120}
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm"
+                placeholder="For example, sliding window algorithm"
+              />
+            </div>
+          )}
           <Choice
             label="Answer by"
             options={["Voice", "Text"]}

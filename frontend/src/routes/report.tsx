@@ -72,14 +72,18 @@ function Report() {
     ].includes(interview.setup.role);
   const qs = feedback.questions;
   const practiceSuggestions = [
-    ...new Map(
-      qs
-        .filter((item) => item.score !== null && item.answer.trim() && item.miss.trim())
-        .map(
-          (item) => [item.miss.trim().replace(/\s+/g, " ").slice(0, 120), item.answerId] as const,
-        ),
-    ),
-  ];
+    ...new Map(qs.flatMap((item) => {
+      const topics = item.practiceTopics?.length
+        ? item.practiceTopics
+        : item.practiceTopic
+          ? [item.practiceTopic]
+          : [];
+      return topics.map((rawTopic) => {
+        const topic = rawTopic.trim().replace(/\s+/g, " ");
+        return [topic.toLocaleLowerCase(), [topic, item.answerId] as const] as const;
+      });
+    })).values(),
+  ].slice(0, 3);
   return (
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-6">
@@ -163,7 +167,7 @@ function Report() {
           {feedback.strengths.length === 0 && (
             <p className="mt-2 text-sm">No supported strengths to report yet.</p>
           )}
-          <h2 className="mt-6 text-xl">Recurring gaps</h2>
+          <h2 className="mt-6 text-xl">Weaknesses</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {feedback.gaps.map((text) => (
               <li key={text} className="flex gap-2">

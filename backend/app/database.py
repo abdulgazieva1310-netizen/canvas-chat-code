@@ -27,6 +27,13 @@ class TokenRecord(Base):
     expires_at: Mapped[float] = mapped_column(Float)
 
 
+class PasswordResetRecord(Base):
+    __tablename__ = 'password_resets'
+    digest: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    expires_at: Mapped[float] = mapped_column(Float)
+
+
 class InterviewRecord(Base):
     __tablename__ = 'interviews'
     id: Mapped[str] = mapped_column(String(36), primary_key=True)

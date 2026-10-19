@@ -10,7 +10,7 @@ def test_empty_database_migrates_and_matches_models(tmp_path):
     engine = database_engine(f'sqlite:///{tmp_path / "fresh.db"}')
     upgrade_database(engine)
     with engine.connect() as connection:
-        assert connection.scalar(text('select version_num from alembic_version')) == '0001'
+        assert connection.scalar(text('select version_num from alembic_version')) == '0002'
         assert compare_metadata(MigrationContext.configure(connection), Base.metadata) == []
     upgrade_database(engine)
     engine.dispose()
@@ -19,7 +19,8 @@ def test_empty_database_migrates_and_matches_models(tmp_path):
 def test_existing_records_survive_adoption_and_reopening(tmp_path):
     url = f'sqlite:///{tmp_path / "existing.db"}'
     engine = database_engine(url)
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine, tables=[table for table in Base.metadata.sorted_tables
+                                             if table.name != 'password_resets'])
     with engine.begin() as connection:
         connection.execute(Base.metadata.tables['users'].insert(), {
             'id': 'owner', 'email': 'owner@example.com', 'password_hash': 'stored-hash',
@@ -43,7 +44,7 @@ def test_existing_records_survive_adoption_and_reopening(tmp_path):
     upgrade_database(reopened)
     with reopened.connect() as connection:
         for table in Base.metadata.sorted_tables:
-            assert len(connection.execute(table.select()).all()) == 1
+            assert len(connection.execute(table.select()).all()) == (0 if table.name == 'password_resets' else 1)
         assert connection.execute(Base.metadata.tables['interviews'].select()).one().payload == {
             'messages': [{'text': 'Saved answer'}]}
     reopened.dispose()

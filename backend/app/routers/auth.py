@@ -1,13 +1,63 @@
 from uuid import uuid4
+from datetime import datetime, timedelta, timezone
+import logging
+import secrets
+from urllib.parse import urlencode
 
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..auth import CurrentUser, DUMMY_HASH, establish_session, hasher, token_key
-from ..models import LoginData, ProfileUpdate, RegisterData, User
+from ..models import LoginData, ProfileUpdate, RegisterData, ResetPassword, ResetRequest, User
+from ..database import PasswordResetRecord, TokenRecord, UserRecord
 
 router = APIRouter(prefix='/auth', tags=['auth'])
+
+
+@router.post('/password-reset/request', status_code=202)
+def request_reset(data: ResetRequest, request: Request, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    token = secrets.token_urlsafe(32)
+    with request.app.state.store.transaction() as store:
+        user = store.user_by_email(str(data.email).lower())
+        if user is not None:
+            reset = PasswordResetRecord(digest=token_key(token), user_id=user.id,
+                expires_at=(datetime.now(timezone.utc) + timedelta(minutes=30)).timestamp())
+            store.session.add(reset)
+            link = request.app.state.reset_url + '?' + urlencode({'token': token})
+            try:
+                request.app.state.mailer.send_reset(user.email, link)
+            except Exception:
+                # Do not expose account existence, provider errors, or reset credentials.
+                store.session.expunge(reset)
+                logging.getLogger(__name__).warning('Password recovery email delivery failed')
+    return {'message': 'If this account exists, a password reset link will be sent.'}
+
+
+@router.post('/password-reset/confirm', status_code=204)
+def confirm_reset(data: ResetPassword, request: Request):
+    password_hash = hasher.hash(data.password)
+    with request.app.state.store.transaction() as store:
+        record = store.session.scalar(select(PasswordResetRecord).where(
+            PasswordResetRecord.digest == token_key(data.token)))
+        if record is None:
+            raise HTTPException(400, 'Invalid or expired password reset link.')
+        user_id = record.user_id
+        # Conditional deletion is the single-use claim, including concurrent requests.
+        claimed = store.session.execute(delete(PasswordResetRecord).where(
+            PasswordResetRecord.digest == token_key(data.token),
+            PasswordResetRecord.expires_at > datetime.now(timezone.utc).timestamp()))
+        if claimed.rowcount != 1:
+            raise HTTPException(400, 'Invalid or expired password reset link.')
+        store.session.execute(update(UserRecord).where(UserRecord.id == user_id).values(password_hash=password_hash))
+        store.session.execute(delete(TokenRecord).where(TokenRecord.user_id == user_id))
+        store.session.execute(delete(PasswordResetRecord).where(PasswordResetRecord.user_id == user_id))
+    response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
+    response.delete_cookie('session', path='/api', httponly=True,
+                           secure=request.app.state.secure_cookies, samesite='lax')
+    return response
 
 
 @router.get('/me', response_model=User)

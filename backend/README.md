@@ -110,6 +110,24 @@ columns. Sessions commit on success and roll back on failure, following the
 The frontend uses this HTTP backend with cookie authentication; see
 `../frontend/README.md` for connection settings.
 
+Password recovery uses `POST /api/auth/password-reset/request` with `{email}`
+and `POST /api/auth/password-reset/confirm` with `{token, password}`. Links expire
+after 30 minutes, are single-use, and only SHA-256 token digests enter the database.
+A successful replacement revokes all login sessions and outstanding recovery links
+for that account. Password requirements match registration. Request responses are
+always the same 202 message for known and unknown accounts, including delivery
+failures; failures emit a server warning without credentials or provider details.
+
+`EMAIL_ADAPTER=local` (default) provides an in-memory development mailbox at
+`app.state.mailer.messages`, containing `{to, link}` records. Tests can inject
+`create_app(mailer=LocalMailbox(), ...)`; there is no public mailbox endpoint.
+Local messages disappear on restart. Production must use `EMAIL_ADAPTER=smtp`,
+`SMTP_HOST`, `SMTP_PORT` (587 by default), `SMTP_FROM`, and optional
+`SMTP_USERNAME`/`SMTP_PASSWORD`. Delivery uses STARTTLS and a 10-second socket
+timeout. Set `PASSWORD_RESET_URL` to the trusted HTTPS frontend reset-page URL;
+it is configured by the server, never taken from the request Host header.
+The recovery pages are tracked separately in backlog item 9.
+
 Opening an incomplete interview in the room calls `POST /api/interviews/{id}/resume`
 before enabling input. Resume restores active status and clears `endedAt` while
 preserving the existing transcript, pending question, answer count, and evaluations.

@@ -23,6 +23,15 @@ class RegisterData(LoginData):
     level: Level = 'Middle'
 
 
+class ResetRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPassword(BaseModel):
+    token: str = Field(min_length=1, max_length=256)
+    password: str = Field(min_length=1)
+
+
 class User(BaseModel):
     id: str
     name: str

@@ -33,6 +33,8 @@ Goal: Keep each user's interview data private.
 Description: Protect private frontend routes and backend interview, report, profile, and dashboard operations, returning users to their intended page after login. Verify with two accounts that neither can read, modify, or delete the other's interviews and that unauthenticated requests fail consistently.
 
 ## 8. Implement password reset token handling
+Status: Complete. Added hashed, expiring single-use tokens, session revocation, local mailbox and SMTP adapters, migration `0002`, and recovery API contract. Verified in `backend/tests/test_password_reset.py`.
+
 Goal: Support secure account recovery on the backend.
 Description: Add reset requests and password replacement using expiring, single-use tokens stored securely, with a configurable email delivery adapter and local test mailbox. Verify token expiry, reuse rejection, invalidation of existing login sessions after reset, and indistinguishable reset-request responses for known and unknown emails.
 

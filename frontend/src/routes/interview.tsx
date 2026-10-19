@@ -121,12 +121,137 @@ function Interview() {
     enabled: !!interviewId,
     retry: false,
   });
+  const camera = useCameraPreview();
+  const cameraVideo = useRef<HTMLVideoElement>(null);
   const [text, setText] = useState("");
   const [sec, setSec] = useState(0);
   const [show3D, setShow3D] = useState(false);
   const [renderFailed, setRenderFailed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [avatarId, setAvatarId] = useState<InterviewerAvatarId>("classic");
+  const [recordingMode, setRecordingMode] = useState<"audio" | "video">("audio");
+  const [recordingConsent, setRecordingConsent] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingStarting, setRecordingStarting] = useState(false);
+  const [recordingUpload, setRecordingUpload] = useState(false);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingUploadRef = useRef<Promise<void>>(Promise.resolve());
+  const discardRecordingRef = useRef(false);
+  const recordingMountedRef = useRef(false);
+  useEffect(() => {
+    setRecordingConsent(false);
+    setRecording(false);
+    setRecordingError(null);
+  }, [interviewId]);
+  const stopRecording = useCallback(async () => {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      const stopped = new Promise<void>((resolve) =>
+        recorder.addEventListener("stop", () => resolve(), { once: true }),
+      );
+      recorder.stop();
+      await stopped;
+    }
+    await recordingUploadRef.current;
+  }, []);
+  const startRecording = useCallback(async () => {
+    if (recordingStarting) return;
+    setRecordingError(null);
+    if (!recordingConsent) {
+      setRecordingError("Review and accept the recording notice before starting.");
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setRecordingError(
+        "Recording is unavailable in this browser. Your interview transcript is still saved.",
+      );
+      return;
+    }
+    setRecordingStarting(true);
+    try {
+      await Api.setMediaConsent(interviewId, true);
+      if (!recordingMountedRef.current) return;
+      camera.stop();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: recordingMode === "video",
+      });
+      if (!recordingMountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      const preferredType = recordingMode === "video" ? "video/webm" : "audio/webm";
+      const fallbackType = recordingMode === "video" ? "video/mp4" : "audio/mp4";
+      const mimeType = MediaRecorder.isTypeSupported(preferredType)
+        ? preferredType
+        : MediaRecorder.isTypeSupported(fallbackType)
+          ? fallbackType
+          : "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      recordingStreamRef.current = stream;
+      recorderRef.current = recorder;
+      recordingChunksRef.current = [];
+      discardRecordingRef.current = false;
+      recorder.ondataavailable = (event) => {
+        if (discardRecordingRef.current) return;
+        if (!event.data.size) return;
+        const size = recordingChunksRef.current.reduce((total, chunk) => total + chunk.size, 0);
+        if (size + event.data.size > 100 * 1024 * 1024) {
+          discardRecordingRef.current = true;
+          setRecording(false);
+          setRecordingError(
+            "The recording reached the 100 MB limit and was discarded. You can continue with your transcript.",
+          );
+          recorder.stop();
+          return;
+        }
+        recordingChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+        recorderRef.current = null;
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || mimeType });
+        recordingChunksRef.current = [];
+        if (!discardRecordingRef.current && blob.size) {
+          setRecordingUpload(true);
+          recordingUploadRef.current = Api.uploadInterviewMedia(interviewId, blob)
+            .then(() => undefined)
+            .catch(() => {
+              setRecordingError(
+                "The recording could not be saved. Your interview transcript and report are still available.",
+              );
+            })
+            .finally(() => setRecordingUpload(false));
+        }
+        if (recordingMountedRef.current) setRecording(false);
+      };
+      recorder.start(1000);
+      setRecording(true);
+    } catch {
+      if (recordingMountedRef.current) {
+        setRecordingError(
+          "Recording could not start or be saved. Your interview remains available through its transcript.",
+        );
+      }
+    } finally {
+      if (recordingMountedRef.current) setRecordingStarting(false);
+    }
+  }, [camera, interviewId, recordingConsent, recordingMode, recordingStarting]);
+  useEffect(() => {
+    recordingMountedRef.current = true;
+    return () => {
+      recordingMountedRef.current = false;
+      discardRecordingRef.current = true;
+      recorderRef.current?.stop();
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
   const fail3D = useCallback(() => {
     setRenderFailed(true);
     setShow3D(false);
@@ -139,11 +264,12 @@ function Interview() {
     preference.addEventListener("change", update);
     return () => preference.removeEventListener("change", update);
   }, []);
-  const camera = useCameraPreview();
-  const cameraVideo = useRef<HTMLVideoElement>(null);
   const receive = async (updated: InterviewData) => {
     client.setQueryData(queryKey, updated);
-    if (updated.status !== "active") await navigate({ to: "/report", search: { interviewId } });
+    if (updated.status !== "active") {
+      await stopRecording();
+      await navigate({ to: "/report", search: { interviewId } });
+    }
   };
   const answer = useMutation({
     mutationFn: (value: string) =>
@@ -283,7 +409,7 @@ function Interview() {
               camera.stop();
               speech.cancel();
               spoken.stop();
-              end.mutate();
+              void stopRecording().finally(() => end.mutate());
             }}
             className="btn btn-ghost py-1.5"
           >
@@ -557,6 +683,84 @@ function Interview() {
               analyzed.
             </p>
           </section>
+          {interview.status === "active" && (
+            <section className="card-surface space-y-3 p-5" aria-label="Recording controls">
+              <h2 className="text-lg">Save a recording</h2>
+              <p className="text-sm text-muted-foreground">
+                Optional. With your consent, this device records the selected audio or audio and
+                video, then uploads it for private playback. Recordings are deleted after 30 days.
+                Your transcript and report remain available if recording or upload fails.
+              </p>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={recordingConsent}
+                  disabled={recording || recordingStarting || recordingUpload}
+                  onChange={(event) => {
+                    const checked = event.currentTarget.checked;
+                    setRecordingConsent(checked);
+                    if (!checked) {
+                      void Api.setMediaConsent(interviewId, false).catch(() =>
+                        setRecordingError(
+                          "We could not remove the saved recording. Try again from the report.",
+                        ),
+                      );
+                    }
+                  }}
+                />
+                <span>
+                  I consent to storing my recording for up to 30 days for private playback.
+                </span>
+              </label>
+              <label className="block text-sm">
+                Recording type
+                <select
+                  className="input mt-1 w-full"
+                  value={recordingMode}
+                  disabled={recording || recordingStarting || recordingUpload}
+                  onChange={(event) =>
+                    setRecordingMode(event.currentTarget.value as "audio" | "video")
+                  }
+                >
+                  <option value="audio">Audio only</option>
+                  <option value="video">Audio and video</option>
+                </select>
+              </label>
+              {interview.status === "active" && (
+                <button
+                  type="button"
+                  className="btn btn-ghost w-full"
+                  disabled={
+                    busy ||
+                    recordingStarting ||
+                    recordingUpload ||
+                    (!recording && !recordingConsent)
+                  }
+                  onClick={() => (recording ? void stopRecording() : void startRecording())}
+                >
+                  {recording
+                    ? "Stop and save recording"
+                    : recordingStarting
+                      ? "Preparing recording…"
+                      : recordingUpload
+                        ? "Saving recording…"
+                        : "Start recording"}
+                </button>
+              )}
+              <p className="text-xs" aria-live="polite">
+                {recording
+                  ? "Recording on this device. Stop to save it securely."
+                  : recordingUpload
+                    ? "Uploading private recording…"
+                    : "Not recording"}
+              </p>
+              {recordingError && (
+                <p role="alert" className="text-sm">
+                  {recordingError}
+                </p>
+              )}
+            </section>
+          )}
           <div className="card-surface p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="eyebrow">Interviewer</p>

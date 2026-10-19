@@ -30,6 +30,13 @@ function Report() {
   const [open, setOpen] = useState(0);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [highlightedAnswerId, setHighlightedAnswerId] = useState<string | null>(null);
+  const [playingMedia, setPlayingMedia] = useState<{
+    id: string;
+    url: string;
+    type: string;
+  } | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [mediaPending, setMediaPending] = useState(false);
   const { interviewId } = Route.useSearch();
   const { data, error, isPending, refetch } = useQuery({
     queryKey: ["report", interviewId],
@@ -37,6 +44,42 @@ function Report() {
     enabled: !!interviewId.trim(),
     retry: false,
   });
+  const mediaQuery = useQuery({
+    queryKey: ["interview-media", interviewId],
+    queryFn: () => Api.listInterviewMedia(interviewId),
+    enabled: !!interviewId.trim(),
+    retry: false,
+  });
+  useEffect(
+    () => () => {
+      if (playingMedia) URL.revokeObjectURL(playingMedia.url);
+    },
+    [playingMedia],
+  );
+  const playMedia = async (mediaId: string) => {
+    setMediaPending(true);
+    setMediaError(null);
+    try {
+      const blob = await Api.downloadInterviewMedia(interviewId, mediaId);
+      setPlayingMedia({ id: mediaId, url: URL.createObjectURL(blob), type: blob.type });
+    } catch {
+      setMediaError(
+        "Recording playback is unavailable. Your transcript and report are still available.",
+      );
+    } finally {
+      setMediaPending(false);
+    }
+  };
+  const deleteMedia = async (mediaId: string) => {
+    setMediaError(null);
+    try {
+      await Api.deleteInterviewMedia(interviewId, mediaId);
+      await mediaQuery.refetch();
+      if (playingMedia?.id === mediaId) setPlayingMedia(null);
+    } catch {
+      setMediaError("The recording could not be deleted. Please try again.");
+    }
+  };
   useEffect(() => {
     if (!transcriptOpen || !highlightedAnswerId) return;
     const target = document.getElementById(`transcript-${highlightedAnswerId}`);
@@ -114,6 +157,66 @@ function Report() {
           questions answered. Feedback covers only submitted answers.
         </p>
       )}
+      <section className="card-surface mt-4 space-y-3 p-5" aria-label="Saved recordings">
+        <h2 className="text-xl">Saved recordings</h2>
+        <p className="text-sm text-muted-foreground">
+          Recordings are private to your account and expire after{" "}
+          {mediaQuery.data?.retentionDays ?? 30} days. Deleting a recording does not remove your
+          transcript or report.
+        </p>
+        {mediaQuery.isPending && <p role="status">Checking for saved recordings…</p>}
+        {mediaQuery.isError && (
+          <p role="status">
+            Saved recordings could not be loaded; your transcript and report are unaffected.
+          </p>
+        )}
+        {mediaQuery.data?.media.map((media) => (
+          <div key={media.id} className="rounded-lg border p-3">
+            <p className="text-sm">
+              {media.mediaType.startsWith("video/") ? "Video" : "Audio"} · expires{" "}
+              {new Date(media.expiresAt).toLocaleDateString()}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={mediaPending}
+                onClick={() => void playMedia(media.id)}
+              >
+                {mediaPending ? "Loading…" : "Play recording"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => void deleteMedia(media.id)}
+              >
+                Delete recording
+              </button>
+            </div>
+            {playingMedia?.id === media.id &&
+              (media.mediaType.startsWith("video/") ? (
+                <video
+                  className="mt-3 max-h-96 w-full rounded-lg bg-black"
+                  controls
+                  playsInline
+                  src={playingMedia.url}
+                />
+              ) : (
+                <audio className="mt-3 w-full" controls src={playingMedia.url} />
+              ))}
+          </div>
+        ))}
+        {!mediaQuery.isPending && mediaQuery.data?.media.length === 0 && (
+          <p className="text-sm">
+            No saved recordings. You can still review the complete transcript above.
+          </p>
+        )}
+        {mediaError && (
+          <p role="alert" className="text-sm">
+            {mediaError}
+          </p>
+        )}
+      </section>
       {staticCodeReview && (
         <p role="note" className="card-surface mt-4 p-4">
           Static AI code review: submissions are reviewed without compiling or executing them.

@@ -1,15 +1,24 @@
 import os
+import time
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi.responses import FileResponse
 from typing import Annotated
+from sqlalchemy import select
 from ..history import HistoryPage, HistoryQuery, history_page
 from sqlalchemy.exc import IntegrityError
 from ..database import InterviewStartRecord
 
 from ..auth import CurrentUser
+from ..database import InterviewMediaConsentRecord, InterviewMediaRecord
 from ..models import (CODING_LANGUAGES, CODING_ROLES, Answer, CodeRunRequest,
-                      CodeRunResult, Interview, InterviewReport, InterviewSetup)
+                      CodeRunResult, Interview, InterviewMediaInfo, InterviewMediaList,
+                      InterviewReport, InterviewSetup, MediaConsentRequest)
+from ..media_storage import (ALLOWED_MEDIA_TYPES, MAX_MEDIA_BYTES, RETENTION_DAYS,
+                             ensure_media_root, media_path, remove_media_file)
 from ..store import answer_text, message, now
 from ..services.difficulty import transition as difficulty_transition
 from ..services import ai_service
@@ -60,6 +69,151 @@ def judge_code(language, code, judge_key):
     summary = ('All reviewed correctness checks passed.' if status == 'passed' else
                f'{len(cases) - passed} reviewed correctness check(s) failed. Review bracket matching, empty input, and invalid characters.')
     return {'status': status, 'passed': passed, 'total': len(cases), 'summary': summary}
+
+
+def purge_expired_media(repository, *, now_timestamp=None):
+    current = time.time() if now_timestamp is None else now_timestamp
+    expired = repository.session.scalars(select(InterviewMediaRecord).where(
+        InterviewMediaRecord.expires_at <= current)).all()
+    for item in expired:
+        try:
+            remove_media_file(item.storage_key)
+        except OSError:
+            continue
+        repository.session.delete(item)
+    return len(expired)
+
+
+def media_info(record):
+    return InterviewMediaInfo(id=record.id, mediaType=record.media_type,
+        sizeBytes=record.size_bytes,
+        createdAt=datetime.fromtimestamp(record.created_at, timezone.utc),
+        expiresAt=datetime.fromtimestamp(record.expires_at, timezone.utc))
+
+
+@router.post('/{interviewId}/media/consent', status_code=204)
+def set_media_consent(interviewId: str, data: MediaConsentRequest, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        interview = store.find(user.id, interviewId)
+        if interview.status != 'active':
+            raise HTTPException(409, 'Recording consent can only be changed during an active interview.')
+        existing = store.session.get(InterviewMediaConsentRecord, interviewId)
+        if not data.consented:
+            records = store.session.scalars(select(InterviewMediaRecord).where(
+                InterviewMediaRecord.interview_id == interviewId,
+                InterviewMediaRecord.owner_id == user.id)).all()
+            for item in records:
+                remove_media_file(item.storage_key)
+                store.session.delete(item)
+            if existing:
+                store.session.delete(existing)
+            return Response(status_code=204)
+        if existing is None:
+            store.session.add(InterviewMediaConsentRecord(interview_id=interviewId,
+                owner_id=user.id, consented_at=time.time()))
+    return Response(status_code=204)
+
+
+@router.post('/{interviewId}/media', response_model=InterviewMediaInfo, status_code=201)
+async def upload_interview_media(interviewId: str, request: Request, user: CurrentUser):
+    media_type = request.headers.get('content-type', '').split(';', 1)[0].strip().lower()
+    if media_type not in ALLOWED_MEDIA_TYPES:
+        raise HTTPException(415, 'Use a supported WebM or MP4 audio/video recording.')
+    content_length = request.headers.get('content-length')
+    if content_length:
+        try:
+            if int(content_length) > MAX_MEDIA_BYTES:
+                raise HTTPException(413, 'Recording exceeds the 100 MB limit.')
+        except ValueError as exc:
+            raise HTTPException(400, 'Invalid upload size.') from exc
+    with request.app.state.store.transaction() as store:
+        store.find(user.id, interviewId)
+        consent = store.session.get(InterviewMediaConsentRecord, interviewId)
+        if consent is None or consent.owner_id != user.id:
+            raise HTTPException(409, 'Give recording consent before uploading media.')
+    chunks = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > MAX_MEDIA_BYTES:
+            raise HTTPException(413, 'Recording exceeds the 100 MB limit.')
+        chunks.append(chunk)
+    payload = b''.join(chunks)
+    if not payload:
+        raise HTTPException(413, 'Recording must be non-empty and no larger than 100 MB.')
+    ident = str(uuid4())
+    path = media_path(ident)
+    try:
+        with path.open('xb') as media_file:
+            os.chmod(path, 0o600)
+            media_file.write(payload)
+        with request.app.state.store.transaction() as store:
+            interview = store.find(user.id, interviewId)
+            consent = store.session.get(InterviewMediaConsentRecord, interviewId)
+            if consent is None or consent.owner_id != user.id:
+                raise HTTPException(409, 'Give recording consent before uploading media.')
+            purge_expired_media(store)
+            existing = store.session.scalars(select(InterviewMediaRecord).where(
+                InterviewMediaRecord.interview_id == interviewId,
+                InterviewMediaRecord.owner_id == user.id)).all()
+            if len(existing) >= 3:
+                raise HTTPException(409, 'This interview already has the maximum of three recordings.')
+            created = time.time()
+            record = InterviewMediaRecord(id=ident, interview_id=interviewId,
+                owner_id=user.id, storage_key=ident, media_type=media_type,
+                size_bytes=len(payload), created_at=created,
+                expires_at=created + RETENTION_DAYS * 86400)
+            store.session.add(record)
+            response = media_info(record)
+        return response
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+
+
+@router.get('/{interviewId}/media', response_model=InterviewMediaList)
+def list_interview_media(interviewId: str, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        store.find(user.id, interviewId)
+        purge_expired_media(store)
+        records = store.session.scalars(select(InterviewMediaRecord).where(
+            InterviewMediaRecord.interview_id == interviewId,
+            InterviewMediaRecord.owner_id == user.id).order_by(InterviewMediaRecord.created_at)).all()
+        return InterviewMediaList(retentionDays=RETENTION_DAYS,
+            media=[media_info(record) for record in records])
+
+
+@router.get('/{interviewId}/media/{mediaId}')
+def play_interview_media(interviewId: str, mediaId: str, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        store.find(user.id, interviewId)
+        purge_expired_media(store)
+        record = store.session.scalar(select(InterviewMediaRecord).where(
+            InterviewMediaRecord.id == mediaId,
+            InterviewMediaRecord.interview_id == interviewId,
+            InterviewMediaRecord.owner_id == user.id))
+        if record is None:
+            raise HTTPException(404, 'Recording not found.')
+        path = media_path(record.storage_key)
+        if not path.is_file():
+            raise HTTPException(404, 'Recording is no longer available.')
+        return FileResponse(path, media_type=record.media_type,
+            headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'})
+
+
+@router.delete('/{interviewId}/media/{mediaId}', status_code=204)
+def delete_interview_media(interviewId: str, mediaId: str, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        store.find(user.id, interviewId)
+        record = store.session.scalar(select(InterviewMediaRecord).where(
+            InterviewMediaRecord.id == mediaId,
+            InterviewMediaRecord.interview_id == interviewId,
+            InterviewMediaRecord.owner_id == user.id))
+        if record is None:
+            raise HTTPException(404, 'Recording not found.')
+        remove_media_file(record.storage_key)
+        store.session.delete(record)
+    return Response(status_code=204)
 
 
 @router.post('/{interviewId}/run', response_model=CodeRunResult)

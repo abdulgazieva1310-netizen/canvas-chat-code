@@ -720,6 +720,69 @@ it("starts camera preview only after opt-in and releases its track when the inte
   client.clear();
 });
 
+it("requires explicit retention consent before capturing and saves the recording after stop", async () => {
+  const order: string[] = [];
+  const track = { stop: vi.fn() };
+  const stream = { getTracks: () => [track] } as unknown as MediaStream;
+  const getUserMedia = vi.fn(async () => {
+    order.push("capture");
+    return stream;
+  });
+  vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+  class RecorderMock extends EventTarget {
+    static isTypeSupported = vi.fn(() => true);
+    state: RecordingState = "inactive";
+    mimeType: string;
+    ondataavailable: ((event: { data: Blob }) => void) | null = null;
+    onstop: (() => void) | null = null;
+    constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
+      super();
+      this.mimeType = options?.mimeType ?? "audio/webm";
+    }
+    start() {
+      this.state = "recording";
+      this.ondataavailable?.({ data: new Blob(["recorded audio"], { type: this.mimeType }) });
+    }
+    stop() {
+      this.state = "inactive";
+      this.onstop?.();
+      this.dispatchEvent(new Event("stop"));
+    }
+  }
+  vi.stubGlobal("MediaRecorder", RecorderMock);
+  const consent = vi.spyOn(Api, "setMediaConsent").mockImplementation(async () => {
+    order.push("consent");
+  });
+  const upload = vi.spyOn(Api, "uploadInterviewMedia").mockResolvedValue({
+    id: "recording-1",
+    mediaType: "audio/webm",
+    sizeBytes: 14,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+  });
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, input: "Text" },
+  });
+  openInterview();
+  const consentBox = await screen.findByRole("checkbox", {
+    name: /I consent to storing my recording/,
+  });
+  expect(screen.getByRole("button", { name: "Start recording" })).toBeDisabled();
+  fireEvent.click(consentBox);
+  fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+  await waitFor(() => expect(getUserMedia).toHaveBeenCalledWith({ audio: true, video: false }));
+  expect(order).toEqual(["consent", "capture"]);
+  fireEvent.click(await screen.findByRole("button", { name: "Stop and save recording" }));
+  await waitFor(() => expect(upload).toHaveBeenCalledOnce());
+  expect(upload.mock.calls[0][0]).toBe("session-123");
+  expect(upload.mock.calls[0][1].type).toBe("audio/webm");
+  expect(track.stop).toHaveBeenCalledOnce();
+  expect(consent).toHaveBeenCalledWith("session-123", true);
+});
+
 it("releases camera tracks when leaving the interview route", async () => {
   const track = { stop: vi.fn() };
   const stream = { getTracks: () => [track] } as unknown as MediaStream;
@@ -1110,13 +1173,9 @@ it("switches Monaco language immediately and submits the selected language", asy
   const client = openInterview();
   const select = await screen.findByRole("combobox", { name: "Coding language" });
   expect(select).toHaveValue("python");
-  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
-    "Python",
-    "Java",
-    "C++",
-    "JavaScript",
-    "TypeScript",
-  ]);
+  expect(Array.from(select.querySelectorAll("option")).map((option) => option.textContent)).toEqual(
+    ["Python", "Java", "C++", "JavaScript", "TypeScript"],
+  );
   for (const language of ["java", "cpp", "javascript", "typescript"]) {
     fireEvent.change(select, { target: { value: language } });
     await waitFor(() =>

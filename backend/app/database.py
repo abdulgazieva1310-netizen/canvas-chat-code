@@ -61,6 +61,25 @@ class AnswerEvaluationRecord(Base):
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
+class InterviewMediaConsentRecord(Base):
+    __tablename__ = 'interview_media_consents'
+    interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    consented_at: Mapped[float] = mapped_column(Float)
+
+
+class InterviewMediaRecord(Base):
+    __tablename__ = 'interview_media'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), index=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    storage_key: Mapped[str] = mapped_column(String(64), unique=True)
+    media_type: Mapped[str] = mapped_column(String(80))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[float] = mapped_column(Float)
+    expires_at: Mapped[float] = mapped_column(Float, index=True)
+
+
 def database_engine(url=None):
     default = 'sqlite:///' + str(Path(__file__).resolve().parents[1] / 'interview.db')
     url = make_url(url if url is not None else os.getenv('DATABASE_URL', default))

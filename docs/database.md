@@ -37,3 +37,8 @@ The adoption test compares every stored field: password hashes, profile JSON,
 session digests and expiry, version numbers, formatted transcripts, and evaluation
 JSON. The existing API persistence test verifies login and interview reads after
 restarting the application.
+
+Interview media uses separate consent and metadata tables. Raw files live in the
+private `INTERVIEW_MEDIA_DIR`, never in the transcript payload or public frontend
+tree. See [deployment.md](deployment.md) for directory permissions, 30-day
+retention, and deletion behavior.

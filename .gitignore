@@ -7,6 +7,9 @@
 # Local environment secrets
 .env
 
+# Private interview media (never commit recordings)
+backend/media-storage/
+
 # Python bytecode
 __pycache__/
 *.py[cod]

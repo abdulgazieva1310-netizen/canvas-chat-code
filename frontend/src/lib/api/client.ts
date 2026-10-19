@@ -3,6 +3,8 @@ import type {
   Interview,
   DashboardSummary,
   InterviewReport,
+  InterviewMediaList,
+  InterviewMediaInfo,
   InterviewSetup,
   CodeRunRequest,
   CodeRunResult,
@@ -149,6 +151,43 @@ export const Api = {
     }),
   runCode: (id: string, data: CodeRunRequest) =>
     request<CodeRunResult>(`${interviewPath(id)}/run`, data),
+  setMediaConsent: (id: string, consented: boolean) =>
+    request<void>(`${interviewPath(id)}/media/consent`, { consented }),
+  listInterviewMedia: (id: string) => request<InterviewMediaList>(`${interviewPath(id)}/media`),
+  async uploadInterviewMedia(id: string, blob: Blob): Promise<InterviewMediaInfo> {
+    const authorization = getAuthorization();
+    const response = await fetch(`${baseUrl}${interviewPath(id)}/media`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": blob.type,
+        ...(authorization ? { Authorization: authorization } : {}),
+      },
+      body: blob,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      throw new ApiError(
+        response.status,
+        typeof error?.message === "string" ? error.message : "Recording upload failed.",
+      );
+    }
+    return (await response.json()) as InterviewMediaInfo;
+  },
+  async downloadInterviewMedia(id: string, mediaId: string): Promise<Blob> {
+    const authorization = getAuthorization();
+    const response = await fetch(
+      `${baseUrl}${interviewPath(id)}/media/${encodeURIComponent(mediaId)}`,
+      {
+        credentials: "include",
+        headers: authorization ? { Authorization: authorization } : {},
+      },
+    );
+    if (!response.ok) throw new ApiError(response.status, "Recording playback is unavailable.");
+    return response.blob();
+  },
+  deleteInterviewMedia: (id: string, mediaId: string) =>
+    request<void>(`${interviewPath(id)}/media/${encodeURIComponent(mediaId)}`, undefined, "DELETE"),
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),

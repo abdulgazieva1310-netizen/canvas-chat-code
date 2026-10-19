@@ -98,6 +98,24 @@ class CodeRunResult(BaseModel):
     stderr: str = Field(default='', max_length=32768)
 
 
+class MediaConsentRequest(BaseModel):
+    model_config = {'extra': 'forbid'}
+    consented: bool
+
+
+class InterviewMediaInfo(BaseModel):
+    id: str
+    mediaType: str
+    sizeBytes: int
+    createdAt: datetime
+    expiresAt: datetime
+
+
+class InterviewMediaList(BaseModel):
+    retentionDays: int
+    media: list[InterviewMediaInfo]
+
+
 class CodingJudgeSummary(BaseModel):
     status: Literal['passed', 'failed', 'compile-error', 'runtime-error', 'timeout', 'unavailable']
     passed: int = Field(ge=0)

@@ -8,6 +8,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 import os
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -23,10 +24,24 @@ from .services.email_service import email_delivery, password_reset_url
 def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None):
     store = Store(seed=seed, database_url=database_url)
 
+    async def media_reaper():
+        while True:
+            await asyncio.sleep(3600)
+            with store.transaction() as repository:
+                interviews.purge_expired_media(repository)
+
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        store.engine.dispose()
+        reaper = asyncio.create_task(media_reaper())
+        try:
+            yield
+        finally:
+            reaper.cancel()
+            try:
+                await reaper
+            except asyncio.CancelledError:
+                pass
+            store.engine.dispose()
 
     app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
     @app.get('/api/health', tags=['health'])

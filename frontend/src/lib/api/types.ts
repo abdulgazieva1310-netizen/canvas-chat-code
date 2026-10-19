@@ -79,6 +79,19 @@ export interface CodingJudgeSummary {
   summary: string;
 }
 
+export interface InterviewMediaInfo {
+  id: string;
+  mediaType: string;
+  sizeBytes: number;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface InterviewMediaList {
+  retentionDays: number;
+  media: InterviewMediaInfo[];
+}
+
 export interface DifficultyDecision {
   questionId: string;
   answerId: string;

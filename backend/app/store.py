@@ -9,7 +9,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import StaleDataError
 
-from .database import AnswerEvaluationRecord, InterviewRecord, TokenRecord, UserRecord, database_engine
+from .database import (AnswerEvaluationRecord, InterviewMediaConsentRecord, InterviewMediaRecord,
+                       InterviewRecord, TokenRecord, UserRecord, database_engine)
 from .migrate import upgrade_database
 
 from fastapi import HTTPException
@@ -21,6 +22,7 @@ from .models import (CODING_ROLES, AnswerEvaluation, CodingJudgeSummary, Dashboa
                      EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
                      QuestionFeedback, Scores, User)
 from .services.difficulty import transition as difficulty_transition
+from .media_storage import remove_media_file
 
 
 def now():
@@ -396,6 +398,14 @@ class Repository:
         self.find(user_id, ident)  # Ownership check and row lock before deleting children.
         self.session.execute(delete(AnswerEvaluationRecord).where(
             AnswerEvaluationRecord.interview_id == ident))
+        recordings = self.session.scalars(select(InterviewMediaRecord).where(
+            InterviewMediaRecord.interview_id == ident)).all()
+        for recording in recordings:
+            remove_media_file(recording.storage_key)
+            self.session.delete(recording)
+        consent = self.session.get(InterviewMediaConsentRecord, ident)
+        if consent:
+            self.session.delete(consent)
         # The transcript (including all messages) lives in the interview payload.
         self.session.delete(self.loaded[ident])
 

@@ -20,6 +20,9 @@ afterEach(() => {
 });
 
 function openReport(url: string) {
+  if (!vi.isMockFunction(Api.listInterviewMedia)) {
+    vi.spyOn(Api, "listInterviewMedia").mockResolvedValue({ retentionDays: 30, media: [] });
+  }
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
   const dashboard = createRoute({
@@ -46,6 +49,77 @@ function openReport(url: string) {
   );
   return { router, client };
 }
+
+it("plays and deletes only the owner's saved recording without replacing the report", async () => {
+  const data: InterviewReport = {
+    interview: {
+      id: "session-media",
+      setup: { ...defaultSetup },
+      status: "complete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 0,
+      lastFeedback: null,
+      messages: [],
+    },
+    feedback: {
+      interviewId: "session-media",
+      answeredQuestions: 0,
+      selectedQuestions: 5,
+      overall: null,
+      scores: null,
+      strengths: [],
+      gaps: [],
+      questions: [],
+    },
+  };
+  vi.spyOn(Api, "getReport").mockResolvedValue(data);
+  const media = vi.spyOn(Api, "listInterviewMedia").mockResolvedValue({
+    retentionDays: 30,
+    media: [
+      {
+        id: "media-1",
+        mediaType: "audio/webm",
+        sizeBytes: 123,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+    ],
+  });
+  vi.spyOn(Api, "downloadInterviewMedia").mockResolvedValue(
+    new Blob(["audio"], { type: "audio/webm" }),
+  );
+  const deleteMedia = vi.spyOn(Api, "deleteInterviewMedia").mockResolvedValue(undefined);
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:recording");
+  vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+  media
+    .mockResolvedValueOnce({
+      retentionDays: 30,
+      media: [
+        {
+          id: "media-1",
+          mediaType: "audio/webm",
+          sizeBytes: 123,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ],
+    })
+    .mockResolvedValueOnce({ retentionDays: 30, media: [] });
+  const { client } = openReport("/report?interviewId=session-media");
+  fireEvent.click(await screen.findByRole("button", { name: "Play recording" }));
+  await waitFor(() =>
+    expect(screen.getByLabelText("Saved recordings").querySelector("audio")).toHaveAttribute(
+      "src",
+      "blob:recording",
+    ),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Delete recording" }));
+  await waitFor(() => expect(deleteMedia).toHaveBeenCalledWith("session-media", "media-1"));
+  await waitFor(() => expect(screen.getByText(/No saved recordings/)).toBeInTheDocument());
+  expect(screen.getByRole("heading", { name: /Frontend Developer/ })).toBeInTheDocument();
+  client.clear();
+});
 
 it.each([
   "/report",

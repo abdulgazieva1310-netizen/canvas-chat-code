@@ -6,3 +6,7 @@
 
 # Local environment secrets
 .env
+
+# Browser QA artifacts
+frontend/test-results/
+frontend/playwright-report/

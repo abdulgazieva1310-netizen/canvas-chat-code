@@ -1,5 +1,5 @@
 import { UserMenu } from "@/components/UserMenu";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Interview } from "@/lib/api/types";
 import { useCallback, useSyncExternalStore, type ReactNode } from "react";
@@ -10,9 +10,12 @@ const steps = [
   { to: "/ready", label: "Lobby" },
   { to: "/interview", label: "Interview" },
   { to: "/report", label: "Report" },
+  { to: "/history", label: "History" },
+  { to: "/profile", label: "Profile" },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
   const client = useQueryClient();
   const subscribe = useCallback(
     (changed: () => void) => client.getQueryCache().subscribe(changed),
@@ -20,23 +23,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
   // AuthGate/Dashboard own fetching. Subscribe directly without creating a query
   // observer that can overwrite their query options with a missing queryFn.
-  const getHistory = useCallback(
-    () => client.getQueryData<Interview[]>(["history"]),
-    [client],
-  );
+  const getHistory = useCallback(() => client.getQueryData<Interview[]>(["history"]), [client]);
   const history = useSyncExternalStore(subscribe, getHistory, () => undefined) ?? [];
   const getActiveInterview = useCallback(
-    () => client.getQueriesData<Interview>({ queryKey: ["interview"] })
-      .map(([, session]) => session)
-      .filter((session): session is Interview =>
-        !!session && session.status === "active" && !!session.id?.trim(),
-      )
-      .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0] ?? null,
+    () =>
+      client
+        .getQueriesData<Interview>({ queryKey: ["interview"] })
+        .map(([, session]) => session)
+        .filter(
+          (session): session is Interview =>
+            !!session && session.status === "active" && !!session.id?.trim(),
+        )
+        .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0] ?? null,
     [client],
   );
   const activeInterview = useSyncExternalStore(subscribe, getActiveInterview, () => null);
   const incompleteInterview = history
-    .filter((session) => (session.status === "incomplete" || session.status === "active") && session.id.trim())
+    .filter(
+      (session) =>
+        (session.status === "incomplete" || session.status === "active") && session.id.trim(),
+    )
     .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
   const latestReport = history.find(
     (session) => session.status === "complete" && session.id.trim(),
@@ -44,18 +50,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/70 backdrop-blur sticky top-0 z-10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-4">
           <Link to="/" className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-primary font-display text-primary-foreground">
               M
             </span>
             <span className="font-display text-lg">Interview Mirror</span>
           </Link>
-          <nav className="hidden gap-1 md:flex">
+          <nav
+            aria-label="Main navigation"
+            className="order-last flex w-full gap-1 overflow-x-auto pb-1 lg:order-none lg:w-auto"
+          >
             {steps.map((s) => {
               const session =
                 s.to === "/interview"
-                  ? activeInterview ?? incompleteInterview
+                  ? (activeInterview ?? incompleteInterview)
                   : s.to === "/report"
                     ? latestReport
                     : undefined;
@@ -76,8 +85,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={s.to}
                   to={s.to === "/interview" && !session ? "/setup" : s.to}
                   search={session ? { interviewId: session.id } : {}}
-                  className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
-                  activeProps={{ className: "bg-muted text-foreground" }}
+                  className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+                  activeProps={
+                    pathname === s.to
+                      ? { className: "bg-muted text-foreground" }
+                      : { "aria-current": false }
+                  }
                   activeOptions={{ exact: true, includeSearch: false }}
                 >
                   {s.label}

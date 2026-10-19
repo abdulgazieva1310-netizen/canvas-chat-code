@@ -4,7 +4,7 @@ from itertools import product
 import pytest
 from pydantic import ValidationError
 
-from app.models import CODING_ROLES, InterviewSetup
+from app.models import CODING_ROLES, InterviewSetup, Role
 from app.services.question_bank import (
     BankError, BankQuestion, load_bank, select_question, validate_coverage,
 )
@@ -48,6 +48,27 @@ def test_full_coding_coverage():
                            product(sorted(CODING_ROLES), ['Junior', 'Middle', 'Senior'])])
     with pytest.raises(BankError):
         validate_coverage(bank[:-1], [setup(level='Senior')])
+
+
+def test_default_coverage_validator_checks_all_role_type_level_combinations():
+    levels = ['Junior', 'Middle', 'Senior']
+    roles = list(Role.__args__)
+    questions = []
+    for kind in ('Technical', 'Behavioral', 'Role-specific'):
+        for index in range(15):
+            questions.append(BankQuestion(
+                id=f'{kind.lower()}-{index:02}', version=1, roles=roles, levels=levels,
+                type=kind, topic=f'{kind} topic {index}',
+                prompt=('Implement a function and analyze its complexity.' if kind == 'Technical' else
+                        'Tell me about a time you handled a challenging situation?' if kind == 'Behavioral' else
+                        'How would you handle this role-specific workplace scenario?'),
+                examples=['Input: [1, 2]. Output: 3.'] if kind == 'Technical' else [],
+                constraints='1 <= n <= 100' if kind == 'Technical' else '',
+                reviewerNotes=f'Expected concepts for {kind} prompt {index}.',
+            ))
+    validate_coverage(questions)
+    with pytest.raises(BankError, match='No unused compatible'):
+        validate_coverage(questions[:-1])
 
 
 def test_incompatible_role_type_and_empty_bank():

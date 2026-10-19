@@ -1,7 +1,7 @@
 """Versioned curated content. Reviewer notes must never enter candidate prompts."""
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -70,7 +70,15 @@ def select_question(questions: list[BankQuestion], setup: InterviewSetup,
     return matches[0]
 
 
-def validate_coverage(questions: list[BankQuestion], setups: list[InterviewSetup]) -> None:
+def validate_coverage(questions: list[BankQuestion],
+                      setups: list[InterviewSetup] | None = None) -> None:
+    """Require 15 distinct compatible questions for each supplied or MVP setup."""
+    if setups is None:
+        roles = get_args(Role)
+        setups = [InterviewSetup(role=role, level=level, mode='Practice', questionCount=15,
+                   type=kind, input='Text', language='English')
+                  for role in roles for kind in ('Technical', 'Behavioral', 'Role-specific')
+                  for level in ('Junior', 'Middle', 'Senior')]
     for setup in setups:
         used: set[str] = set()
         for _ in range(setup.questionCount):

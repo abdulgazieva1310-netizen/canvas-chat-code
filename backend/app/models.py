@@ -82,6 +82,7 @@ class InterviewSetup(BaseModel):
 
 class Answer(BaseModel):
     selectedLanguage: Literal['Python', 'Java', 'C++', 'JavaScript', 'TypeScript'] | None = None
+    expectedQuestionId: str | None = Field(default=None, min_length=1)
     text: str = Field(min_length=1, pattern=r'\S')
 
 

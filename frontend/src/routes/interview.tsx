@@ -95,8 +95,8 @@ function Interview() {
   const answer = useMutation({
     mutationFn: (value: string) =>
       codingLanguage
-        ? Api.sendMessage(interviewId, value, languageLabels[codingLanguage])
-        : Api.sendMessage(interviewId, value),
+        ? Api.sendMessage(interviewId, value, languageLabels[codingLanguage], latestQuestion?.id)
+        : Api.sendMessage(interviewId, value, undefined, latestQuestion?.id),
     onSuccess: async (updated) => {
       setText("");
       await receive(updated);

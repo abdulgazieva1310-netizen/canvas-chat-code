@@ -274,6 +274,14 @@ class Repository:
         self.loaded[ident] = record
         return Interview.model_validate(record.payload)
 
+    def accepted_answer(self, interview_id, question_id):
+        record = self.session.scalar(select(AnswerEvaluationRecord).where(
+            AnswerEvaluationRecord.interview_id == interview_id,
+            AnswerEvaluationRecord.question_id == question_id))
+        if record is None:
+            return None
+        return record.answer_id
+
     def resume(self, interview):
         if interview.status == 'complete' or interview.answeredCount >= interview.setup.questionCount:
             raise HTTPException(409, 'Completed interviews cannot be resumed.')

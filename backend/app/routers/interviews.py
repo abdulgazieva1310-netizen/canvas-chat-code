@@ -53,12 +53,20 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
     store = request.app.state.store
     with store.transaction() as store:
         interview = store.find(user.id, interviewId)
+        current_question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
+        submitted = answer_text(interview.setup, data.text)
+        if data.expectedQuestionId:
+            accepted_answer_id = store.accepted_answer(interviewId, data.expectedQuestionId)
+            if accepted_answer_id:
+                accepted_answer = next((m for m in interview.messages if m.id == accepted_answer_id), None)
+                if accepted_answer and accepted_answer.text == submitted:
+                    return interview.model_copy(deep=True)
+            if data.expectedQuestionId != current_question_message.id:
+                raise HTTPException(409, 'The pending question changed. Reload the interview before answering.')
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
-        current_question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
         main_question_id = current_question_message.mainQuestionId or current_question_message.id
-        submitted = answer_text(interview.setup, data.text)
         language = None
         if interview.setup.type == 'Technical' and interview.setup.role in CODING_ROLES:
             language = data.selectedLanguage or {**CODING_LANGUAGES,

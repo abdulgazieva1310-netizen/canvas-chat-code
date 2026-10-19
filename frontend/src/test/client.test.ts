@@ -35,7 +35,7 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
   await Api.startInterview(defaultSetup);
   await Api.getHistory();
   await Api.getInterview("a/b");
-  await Api.sendMessage("a/b", "Answer");
+  await Api.sendMessage("a/b", "Answer", undefined, "question-1");
   await Api.getHint("a/b");
   await Api.endInterview("a/b");
   await Api.getReport("a/b");
@@ -57,7 +57,9 @@ it("uses backend endpoints with cookies and JSON bodies", async () => {
     JSON.stringify({ email: "demo@example.com", password: "demo-password" }),
   );
   expect(fetch.mock.calls[2]?.[1].body).toBe(JSON.stringify(defaultSetup));
-  expect(fetch.mock.calls[5]?.[1].body).toBe(JSON.stringify({ text: "Answer" }));
+  expect(fetch.mock.calls[5]?.[1].body).toBe(
+    JSON.stringify({ text: "Answer", expectedQuestionId: "question-1" }),
+  );
   expect(fetch.mock.calls[6]?.[1]).not.toHaveProperty("body");
   expect(fetch.mock.calls[9]?.[1]).not.toHaveProperty("body");
 });
@@ -215,9 +217,10 @@ it("loads and updates the authenticated profile and logs out with credentials", 
 it("includes the selected coding language in message requests", async () => {
   const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "session-123" })));
   vi.stubGlobal("fetch", fetch);
-  await Api.sendMessage("session-123", "const answer = 42;", "JavaScript");
+  await Api.sendMessage("session-123", "const answer = 42;", "JavaScript", "question-1");
   expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toEqual({
     text: "const answer = 42;",
     selectedLanguage: "JavaScript",
+    expectedQuestionId: "question-1",
   });
 });

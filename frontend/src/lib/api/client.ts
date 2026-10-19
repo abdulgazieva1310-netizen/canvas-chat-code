@@ -98,10 +98,11 @@ export const Api = {
   deleteInterview: (id: string) => request<void>(interviewPath(id), undefined, "DELETE"),
   resumeInterview: (id: string) =>
     request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
-  sendMessage: (id: string, text: string, selectedLanguage?: string) =>
+  sendMessage: (id: string, text: string, selectedLanguage?: string, expectedQuestionId?: string) =>
     request<Interview>(`${interviewPath(id)}/messages`, {
       text,
       ...(selectedLanguage ? { selectedLanguage } : {}),
+      ...(expectedQuestionId ? { expectedQuestionId } : {}),
     }),
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),

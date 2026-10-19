@@ -282,7 +282,9 @@ paths:
       operationId: sendMessage
       summary: Submit an answer and advance the interview
       description: |
-        Rejects empty answers. Preserves source whitespace for supported coding roles in Technical
+        Rejects empty answers. Clients send expectedQuestionId for the pending question; an exact
+        retry returns the already persisted interview unchanged, while stale or competing submissions
+        return 409. Preserves source whitespace for supported coding roles in Technical
         submissions and trims other answers. Reviews code in the selected language using
         static AI analysis without execution. Appends the user's message and increments
         answeredCount. Appends the next AI question unless questionCount is reached,
@@ -305,6 +307,10 @@ paths:
                   type: string
                   enum: [Python, Java, C++, JavaScript, TypeScript]
                   description: Language for technical code evaluation; omitted values use the role default.
+                expectedQuestionId:
+                  type: string
+                  minLength: 1
+                  description: ID of the pending AI question being answered; used to reject stale submissions and make exact retries idempotent.
             examples:
               text:
                 $ref: '#/components/examples/TextAnswer'

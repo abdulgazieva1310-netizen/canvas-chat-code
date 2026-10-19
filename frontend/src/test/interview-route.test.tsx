@@ -329,7 +329,12 @@ it.each(["click", "Enter"])(
     if (trigger === "click") fireEvent.click(button);
     else fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() =>
-      expect(send).toHaveBeenCalledExactlyOnceWith(saved.id, "My resumed answer"),
+      expect(send).toHaveBeenCalledExactlyOnceWith(
+        saved.id,
+        "My resumed answer",
+        undefined,
+        "question-2",
+      ),
     );
     expect(input).toBeDisabled();
     expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
@@ -422,6 +427,8 @@ it("transcribes a Voice answer into the input and sends it through the existing 
     expect(send).toHaveBeenCalledExactlyOnceWith(
       active.id,
       "My approach: use a hash map for lookups.",
+      undefined,
+      "question-2",
     ),
   );
   await waitFor(() => expect(input).toHaveValue(""));
@@ -577,7 +584,12 @@ it("shows an actionable permission denial and sends only reviewed text", async (
   expect(send).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
   await waitFor(() =>
-    expect(send).toHaveBeenCalledExactlyOnceWith(active.id, "Reviewed typed fallback"),
+    expect(send).toHaveBeenCalledExactlyOnceWith(
+      active.id,
+      "Reviewed typed fallback",
+      undefined,
+      "question-2",
+    ),
   );
   client.clear();
 });
@@ -710,6 +722,7 @@ it.each([
       active.id,
       code,
       { python: "Python", java: "Java", cpp: "C++", javascript: "JavaScript" }[language],
+      "question-2",
     ),
   );
   expect(editor).toBeDisabled();
@@ -888,6 +901,8 @@ it("switches Monaco language immediately and submits the selected language", asy
     target: { value: code },
   });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
-  await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code, "TypeScript"));
+  await waitFor(() =>
+    expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code, "TypeScript", "question-2"),
+  );
   client.clear();
 });

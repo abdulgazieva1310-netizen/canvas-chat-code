@@ -384,6 +384,46 @@ def test_dynamic_questions_and_final_answer(client, monkeypatch):
     assert client.get(path).json() == result.json()
 
 
+def test_expected_question_id_makes_retries_idempotent_and_stale_answers_conflict(client, monkeypatch):
+    from app.services import ai_service
+    calls = {'evaluate': 0, 'generate': 0}
+    def evaluate(*args, **kwargs):
+        calls['evaluate'] += 1
+        return None
+    def generate(*args, **kwargs):
+        calls['generate'] += 1
+        return f'Question {calls["generate"]}?'
+    monkeypatch.setattr(ai_service, 'evaluate_answer', evaluate)
+    monkeypatch.setattr(ai_service, 'generate_followup', lambda *args, **kwargs: None)
+    monkeypatch.setattr(ai_service, 'generate_question', generate)
+    login(client)
+    interview = start(client)
+    path = '/api/interviews/' + interview['id']
+    first_question_id = interview['messages'][-1]['id']
+    payload = {'text': 'Accepted answer', 'expectedQuestionId': first_question_id}
+    accepted = client.post(path + '/messages', json=payload)
+    assert accepted.status_code == 200
+    accepted_state = accepted.json()
+    assert accepted_state['answeredCount'] == 1
+    assert [message['from'] for message in accepted_state['messages'][-2:]] == ['you', 'ai']
+
+    retry = client.post(path + '/messages', json=payload)
+    assert retry.status_code == 200
+    assert retry.json() == accepted_state
+    assert calls == {'evaluate': 1, 'generate': 2}
+
+    stale = client.post(path + '/messages', json={
+        'text': 'Competing stale answer', 'expectedQuestionId': first_question_id})
+    assert stale.status_code == 409
+    assert client.get(path).json() == accepted_state
+
+    next_question_id = accepted_state['messages'][-1]['id']
+    next_answer = client.post(path + '/messages', json={
+        'text': 'Answer to pending question', 'expectedQuestionId': next_question_id})
+    assert next_answer.status_code == 200
+    assert next_answer.json()['answeredCount'] == 2
+
+
 def test_question_fallback_during_api_outage(client, monkeypatch):
     import httpx
     from app.services import ai_service

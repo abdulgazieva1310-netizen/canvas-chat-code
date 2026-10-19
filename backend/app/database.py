@@ -34,6 +34,14 @@ class PasswordResetRecord(Base):
     expires_at: Mapped[float] = mapped_column(Float)
 
 
+class InterviewStartRecord(Base):
+    __tablename__ = 'interview_starts'
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), primary_key=True)
+    key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    setup: Mapped[dict] = mapped_column(JSON)
+    interview_id: Mapped[str] = mapped_column(String(36))
+
+
 class InterviewRecord(Base):
     __tablename__ = 'interviews'
     id: Mapped[str] = mapped_column(String(36), primary_key=True)

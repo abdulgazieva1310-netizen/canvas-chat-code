@@ -26,11 +26,25 @@ export class ApiError extends Error {
   }
 }
 
+const pendingStarts = new Map<string, string>();
+const pendingStartsKey = "interview-mirror.pending-starts";
+
+function rememberStarts() {
+  try {
+    sessionStorage.setItem(pendingStartsKey, JSON.stringify([...pendingStarts]));
+  } catch {
+    // In-memory retry protection remains available if browser storage is blocked.
+  }
+}
+
 async function request<T>(
   path: string,
   body?: unknown,
   method = body === undefined ? "GET" : "POST",
-  { notifyUnauthorized = true }: { notifyUnauthorized?: boolean } = {},
+  {
+    notifyUnauthorized = true,
+    idempotencyKey,
+  }: { notifyUnauthorized?: boolean; idempotencyKey?: string } = {},
 ): Promise<T> {
   const isAuthRequest =
     path === "/auth/login" || path === "/auth/register" || path.startsWith("/auth/password-reset/");
@@ -40,6 +54,7 @@ async function request<T>(
     credentials: "include",
     headers: {
       Accept: "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       ...(authorization ? { Authorization: authorization } : {}),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },
@@ -64,6 +79,8 @@ async function request<T>(
   if (response.status === 204) return undefined as T;
   const data = (await response.json()) as T;
   if (path === "/auth/login" || path === "/auth/register") {
+    pendingStarts.clear();
+    rememberStarts();
     const authorization = response.headers.get("Authorization");
     saveAuthorization(authorization?.startsWith("Bearer ") ? authorization : null);
   }
@@ -86,12 +103,36 @@ export const Api = {
     saveAuthorization(null);
   },
   async startInterview(setup: InterviewSetup): Promise<Interview> {
+    try {
+      const saved: unknown = JSON.parse(sessionStorage.getItem(pendingStartsKey) || "[]");
+      if (Array.isArray(saved)) {
+        for (const pair of saved) {
+          if (
+            Array.isArray(pair) &&
+            pair.length === 2 &&
+            typeof pair[0] === "string" &&
+            typeof pair[1] === "string"
+          ) {
+            pendingStarts.set(pair[0], pair[1]);
+          }
+        }
+      }
+    } catch {
+      // Fall back to in-memory keys for unavailable or invalid browser storage.
+    }
+    const fingerprint = JSON.stringify([getAuthorization(), setup]);
+    const key = pendingStarts.get(fingerprint) || crypto.randomUUID();
+    pendingStarts.set(fingerprint, key);
+    rememberStarts();
     const interview = await request<Interview>("/interviews", setup, "POST", {
       notifyUnauthorized: false,
+      idempotencyKey: key,
     });
     if (typeof interview?.id !== "string" || !interview.id.trim() || !interview.setup) {
       throw new Error("The backend did not return a valid interview. Please try starting again.");
     }
+    pendingStarts.delete(fingerprint);
+    rememberStarts();
     return interview;
   },
   getInterview: (id: string) => request<Interview>(interviewPath(id)),

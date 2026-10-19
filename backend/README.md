@@ -163,6 +163,12 @@ can always clear stale sessions. Other device sessions are left active.
 
 Starting an interview preserves the user's saved profile target and level.
 Change these preferences through Profile Settings using `PATCH /api/auth/me`.
+`POST /api/interviews` accepts an optional `Idempotency-Key` header (1–128
+characters). For the same owner, reusing the key with the same full configuration
+returns the existing interview's current state and avoids duplicate creation,
+including concurrent requests and retries after restart. Reusing it with changed
+settings returns 409. Keys remain reserved after deletion and return 409 rather
+than recreating a deleted interview. Requests without a key create new sessions.
 
 `POST /api/interviews/{id}/hint` asks Groq for a concise, actionable clue about the
 current question using the interview role, level, and type. Previous hints for

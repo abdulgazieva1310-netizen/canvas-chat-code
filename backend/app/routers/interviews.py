@@ -1,4 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Response
+from sqlalchemy.exc import IntegrityError
+from ..database import InterviewStartRecord
 
 from ..auth import CurrentUser
 from ..models import CODING_LANGUAGES, CODING_ROLES, Answer, Interview, InterviewReport, InterviewSetup
@@ -11,13 +13,44 @@ router = APIRouter(prefix='/interviews', tags=['interviews'])
 
 @router.post('', response_model=Interview, response_model_exclude_none=False, status_code=201)
 def start(data: InterviewSetup, request: Request, user: CurrentUser):
+    key = request.headers.get('Idempotency-Key')
+    if key is not None and (not key.strip() or len(key) > 128):
+        raise HTTPException(400, 'Idempotency-Key must contain 1–128 characters.')
+    def previous(store):
+        record = store.session.get(InterviewStartRecord, (user.id, key))
+        if record is None:
+            return None
+        if record.setup != data.model_dump(mode='json'):
+            raise HTTPException(409, 'This start key was already used with different settings.')
+        try:
+            return store.find(user.id, record.interview_id).model_copy(deep=True)
+        except HTTPException as exc:
+            if exc.status_code == 404:
+                raise HTTPException(409, 'The interview created by this request was deleted.') from exc
+            raise
+    if key:
+        with request.app.state.store.transaction() as store:
+            existing = previous(store)
+            if existing is not None:
+                return existing
     first_question = ai_service.generate_question(data.role, data.level, [],
         interview_type=data.type, job_description=data.jobDescription,
         practice_topic=data.practiceTopic)
     store = request.app.state.store
-    with store.transaction() as store:
-        interview = store.start(user.id, data, first_question=first_question)
-        return interview.model_copy(deep=True)
+    try:
+        with store.transaction() as repository:
+            interview = repository.start(user.id, data, first_question=first_question)
+            if key:
+                repository.session.add(InterviewStartRecord(owner_id=user.id, key=key,
+                    setup=data.model_dump(mode='json'), interview_id=interview.id))
+            return interview.model_copy(deep=True)
+    except IntegrityError:
+        if key:
+            with store.transaction() as repository:
+                existing = previous(repository)
+                if existing is not None:
+                    return existing
+        raise
 
 
 @router.get('', response_model=list[Interview])

@@ -15,7 +15,7 @@ import { Route as ProfileRoute } from "@/routes/profile";
 import { Api } from "@/lib/api/client";
 import { getAuthorization, saveAuthorization } from "@/lib/api/session";
 import type { User } from "@/lib/api/types";
-import { defaultSetup } from "@/lib/api/default-setup";
+import { defaultSetup, quickStartDefaults } from "@/lib/api/default-setup";
 
 const user: User = {
   id: "user-1",
@@ -33,12 +33,12 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-function openPage(path = "/", cached = false, realDashboard = false) {
+function openPage(path = "/", cached = false, realDashboard = false, currentUser: User = user) {
   vi.stubGlobal("PointerEvent", MouseEvent);
-  vi.spyOn(Api, "getProfile").mockResolvedValue(user);
+  vi.spyOn(Api, "getProfile").mockResolvedValue(currentUser);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(["history"], []);
-  if (cached) client.setQueryData(["profile"], user);
+  if (cached) client.setQueryData(["profile"], currentUser);
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
   const home = createRoute({
     getParentRoute: () => root,
@@ -59,7 +59,19 @@ function openPage(path = "/", cached = false, realDashboard = false) {
   });
   const router = createRouter({
     context: { queryClient: client },
-    routeTree: root.addChildren([home, profile, login]),
+    routeTree: root.addChildren([
+      home,
+      profile,
+      login,
+      createRoute({
+        getParentRoute: () => root,
+        path: "/interview",
+        validateSearch: (search: Record<string, unknown>) => ({
+          interviewId: String(search["interviewId"] || ""),
+        }),
+        component: () => <p>New interview room</p>,
+      }),
+    ]),
     history: createMemoryHistory({ initialEntries: [path] }),
   });
   render(
@@ -76,6 +88,105 @@ async function openMenu() {
   await screen.findByRole("menu");
   return button;
 }
+
+it("quick starts with saved preferences and opens the newly created room", async () => {
+  vi.spyOn(Api, "getHistory").mockResolvedValue([]);
+  const created = {
+    id: "quick-started",
+    setup: { ...quickStartDefaults, role: user.targetRole, level: user.level },
+    status: "active" as const,
+    startedAt: new Date().toISOString(),
+    endedAt: null,
+    answeredCount: 0,
+    messages: [],
+    lastFeedback: null,
+  };
+  const start = vi.spyOn(Api, "startInterview").mockResolvedValue(created);
+  const { client, router } = openPage("/", true, true);
+  fireEvent.click(await screen.findByRole("button", { name: "Quick Start →" }));
+  await screen.findByText("New interview room");
+  expect(start).toHaveBeenCalledExactlyOnceWith({
+    ...quickStartDefaults,
+    role: user.targetRole,
+    level: user.level,
+  });
+  expect(router.state.location.search).toEqual({ interviewId: "quick-started" });
+  expect(client.getQueryData(["interview", "quick-started"])).toEqual(created);
+  expect(client.getQueryData(["profile"])).toEqual(user);
+  client.clear();
+});
+
+it("uses explicit Quick Start defaults when saved role and level are missing", async () => {
+  vi.spyOn(Api, "getHistory").mockResolvedValue([]);
+  vi.spyOn(Api, "getDashboardSummary").mockResolvedValue({
+    completedCount: 0,
+    recentActivity: [],
+    groups: [],
+    strengths: [],
+    weaknesses: [],
+    suggestions: [],
+  });
+  const incompleteProfile = {
+    ...user,
+    targetRole: "" as User["targetRole"],
+    level: "" as User["level"],
+  };
+  const created = {
+    id: "default-quick-start",
+    setup: quickStartDefaults,
+    status: "active" as const,
+    startedAt: new Date().toISOString(),
+    endedAt: null,
+    answeredCount: 0,
+    messages: [],
+    lastFeedback: null,
+  };
+  const start = vi.spyOn(Api, "startInterview").mockResolvedValue(created);
+  const { client, router } = openPage("/", false, true, incompleteProfile);
+  const quickStart = await screen.findByRole("button", { name: "Quick Start →" });
+  await waitFor(() => expect(quickStart).toBeEnabled());
+  fireEvent.click(quickStart);
+  await screen.findByText("New interview room");
+  expect(start).toHaveBeenCalledExactlyOnceWith(quickStartDefaults);
+  expect(router.state.location.search).toEqual({ interviewId: created.id });
+  expect(client.getQueryData(["profile"])).toEqual(incompleteProfile);
+  client.clear();
+});
+
+it("keeps Quick Start on the dashboard after failure and retries without an invalid ID", async () => {
+  vi.spyOn(Api, "getHistory").mockResolvedValue([]);
+  vi.spyOn(Api, "getDashboardSummary").mockResolvedValue({
+    completedCount: 0,
+    recentActivity: [],
+    groups: [],
+    strengths: [],
+    weaknesses: [],
+    suggestions: [],
+  });
+  const created = {
+    id: "quick-start-retry",
+    setup: { ...quickStartDefaults, role: user.targetRole, level: user.level },
+    status: "active" as const,
+    startedAt: new Date().toISOString(),
+    endedAt: null,
+    answeredCount: 0,
+    messages: [],
+    lastFeedback: null,
+  };
+  const start = vi.spyOn(Api, "startInterview").mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce(created);
+  const { client, router } = openPage("/", true, true);
+  fireEvent.click(await screen.findByRole("button", { name: "Quick Start →" }));
+  await waitFor(() =>
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not start interview: offline"),
+  );
+  expect(router.state.location.pathname).toBe("/");
+  fireEvent.click(screen.getByRole("button", { name: "Quick Start →" }));
+  await screen.findByText("New interview room");
+  expect(start).toHaveBeenCalledTimes(2);
+  expect(router.state.location.search).toEqual({ interviewId: created.id });
+  client.clear();
+});
 
 it("opens the avatar dropdown with the actual user and links to profile settings", async () => {
   const { client, router } = openPage();

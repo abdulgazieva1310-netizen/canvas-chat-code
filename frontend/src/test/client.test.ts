@@ -7,6 +7,40 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+it("reuses a start key after a lost response and uses a new key after success", async () => {
+  const fetch = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("response lost"))
+    .mockImplementation(
+      async () => new Response(JSON.stringify({ id: "created", setup: defaultSetup })),
+    );
+  vi.stubGlobal("fetch", fetch);
+  await expect(Api.startInterview(defaultSetup)).rejects.toThrow("response lost");
+  await Api.startInterview(defaultSetup);
+  await Api.startInterview(defaultSetup);
+  const keys = fetch.mock.calls.map(([, options]) => options.headers["Idempotency-Key"]);
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
+  expect(keys[2]).not.toBe(keys[0]);
+});
+
+it("restores an unresolved start key from browser session storage", async () => {
+  const fingerprint = JSON.stringify([null, defaultSetup]);
+  sessionStorage.setItem(
+    "interview-mirror.pending-starts",
+    JSON.stringify([[fingerprint, "before-reload"]]),
+  );
+  const fetch = vi
+    .fn()
+    .mockResolvedValue(new Response(JSON.stringify({ id: "restored", setup: defaultSetup })));
+  vi.stubGlobal("fetch", fetch);
+  await Api.startInterview(defaultSetup);
+  expect(fetch.mock.calls[0]?.[1].headers["Idempotency-Key"]).toBe("before-reload");
+  expect(
+    JSON.parse(sessionStorage.getItem("interview-mirror.pending-starts") || "[]"),
+  ).not.toContainEqual([fingerprint, "before-reload"]);
+});
+
 it("preserves credentials when requesting recovery and clears them after replacement", async () => {
   sessionStorage.setItem("interview-mirror.authorization", "Bearer existing");
   const fetch = vi

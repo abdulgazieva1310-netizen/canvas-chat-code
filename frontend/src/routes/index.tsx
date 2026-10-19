@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { Api } from "@/lib/api/client";
 import type { Interview } from "@/lib/api/types";
 import { AppShell } from "@/components/AppShell";
 import { DashboardSummary } from "@/components/DashboardSummary";
+import { quickStartDefaults } from "@/lib/api/default-setup";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,14 +38,30 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [deleteTarget, setDeleteTarget] = useState<Interview | null>(null);
+  const navigate = useNavigate();
   const client = useQueryClient();
   // Account identity and target come from saved profile settings, independently of sessions.
-  const { data: profile } = useQuery({
+  const { data: profile, isPending: profilePending } = useQuery({
     queryKey: ["profile"],
     queryFn: Api.getProfile,
     retry: false,
   });
   const name = profile?.name?.trim() || "User";
+  const quickStart = useMutation({
+    mutationFn: () =>
+      Api.startInterview({
+        ...quickStartDefaults,
+        role: profile?.targetRole || quickStartDefaults.role,
+        level: profile?.level || quickStartDefaults.level,
+      }),
+    onSuccess: async (interview) => {
+      if (!interview?.id?.trim()) {
+        throw new Error("The backend did not return an interview ID. Please try again.");
+      }
+      client.setQueryData(["interview", interview.id], interview);
+      await navigate({ to: "/interview", search: { interviewId: interview.id } });
+    },
+  });
   const target = profile?.targetRole?.trim()
     ? [profile.level?.trim(), profile.targetRole.trim()].filter(Boolean).join(" ")
     : "Not set";
@@ -81,11 +98,23 @@ function Dashboard() {
           <Link to="/setup" className="btn btn-ghost">
             Custom setup
           </Link>
-          <Link to="/ready" className="btn btn-primary">
-            Quick Start →
-          </Link>
+          <button
+            className="btn btn-primary"
+            disabled={profilePending || quickStart.isPending}
+            onClick={() => {
+              if (!quickStart.isPending) quickStart.mutate();
+            }}
+          >
+            {quickStart.isPending ? "Starting…" : "Quick Start →"}
+          </button>
         </div>
       </div>
+
+      {quickStart.error && (
+        <p role="alert" className="mt-4">
+          Could not start interview: {quickStart.error.message}. Please try again.
+        </p>
+      )}
 
       <DashboardSummary />
 
@@ -142,6 +171,7 @@ function Dashboard() {
             </div>
           ))}
         </div>
+      </div>
       <AlertDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
@@ -172,7 +202,6 @@ function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </div>
     </AppShell>
   );
 }

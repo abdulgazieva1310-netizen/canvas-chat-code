@@ -99,6 +99,19 @@ inline/fenced code, lists, blockquotes, and GitHub-style tables. Code blocks kee
 indentation and scroll horizontally; user submissions remain literal source text.
 Raw HTML and embedded images are omitted, and links use the renderer's default
 safe URL handling. Styles are scoped to generated Markdown content.
+
+# Starting interviews
+
+Dashboard Quick Start creates an interview using the saved role and level, with
+Backend Developer/Junior, Technical, Practice, 5 questions, Text, and English as
+defaults when preferences are missing. Custom Setup
+uses the selected configuration. Starting never changes profile preferences.
+The HTTP client sends an owner-scoped `Idempotency-Key` and retains unresolved
+start keys in browser session storage so retries after a lost response or reload
+recover the created interview. Successful starts discard their pending key;
+the next start creates a new session. When browser storage is unavailable, keys
+are retained in memory for retries within the current page.
+
 # Password recovery
 
 Sign in links to `/forgot-password`. Recovery emails open

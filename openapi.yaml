@@ -180,7 +180,6 @@ paths:
       parameters:
         - in: header
           name: Idempotency-Key
-          x-implementation-status: planned
           required: false
           schema: {type: string, minLength: 1, maxLength: 128}
           description: Reuse for retries of one start attempt; use a new key for a new interview.

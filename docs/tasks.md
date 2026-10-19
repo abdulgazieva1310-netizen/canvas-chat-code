@@ -55,6 +55,8 @@ Goal: Capture and validate a complete interview configuration.
 Description: Build a form and validated configuration model for role, level, Technical/Behavioral/Role-specific type, Practice/Real Interview mode, text/voice input, 5/10/15 main questions, and an optional job description. Verify every allowed option and reject unsupported values; use a stub start handler if interview creation is unavailable.
 
 ## 12. Create interview sessions and Quick Start
+Status: Complete. Dashboard starts with saved role/level and explicit defaults; setup persists the full configuration without editing profile preferences. Owner-scoped start keys prevent duplicate sessions on retries and concurrent requests, verified with persistence, isolation, and frontend start tests.
+
 Goal: Start a saved interview from custom settings or reusable defaults.
 Description: Implement session creation and connect both the setup form and Dashboard Quick Start to it, using saved profile preferences and explicit defaults for missing settings. Persist the full configuration without changing the profile, open the new Interview Room, and verify that retrying a pending start cannot accidentally create duplicate sessions.
 

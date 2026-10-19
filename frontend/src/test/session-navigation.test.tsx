@@ -14,7 +14,7 @@ import { Route as ReadyRoute } from "@/routes/ready";
 import { AppShell } from "@/components/AppShell";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
-import type { Interview } from "@/lib/api/types";
+import type { Interview, User } from "@/lib/api/types";
 
 afterEach(() => {
   cleanup();
@@ -52,7 +52,9 @@ const sessions: Interview[] = [
     lastFeedback: null,
   },
 ];
-function openDashboard(history: Interview[], initialEntry = "/") {
+const dashboardUser: User = { id: "current", name: "Dana Sadyk", email: "dana@example.com", targetRole: "Python Developer", level: "Senior", preferredLanguage: "English" };
+function openDashboard(history: Interview[], initialEntry = "/", profile: User | null = dashboardUser) {
+  vi.spyOn(Api, "getProfile").mockResolvedValue(profile as User);
   vi.spyOn(Api, "getHistory").mockResolvedValue(history);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
@@ -317,5 +319,30 @@ it("opens the /ready Lobby link and removes its highlight after leaving", async 
   await screen.findByText("Setup destination");
   expect(screen.getByRole("link", { name: "Lobby" })).not.toHaveClass("bg-muted");
   expect(screen.getByRole("link", { name: "Setup" })).toHaveClass("bg-muted");
+  client.clear();
+});
+
+it("uses the authenticated user's name and saved target on the dashboard", async () => {
+  const { client } = openDashboard([]);
+  await screen.findByText("Welcome back, Dana Sadyk");
+  expect(screen.getByText("Target: Senior Python Developer · English")).toBeInTheDocument();
+  expect(screen.queryByText(/Welcome back, Aruzhan/)).toBeNull();
+  client.clear();
+});
+
+it("uses User and Not set when no profile data is available", async () => {
+  const { client } = openDashboard([], "/", null);
+  await screen.findByText("No saved sessions yet.");
+  expect(screen.getByText("Welcome back, User")).toBeInTheDocument();
+  expect(screen.getByText("Target: Not set · English")).toBeInTheDocument();
+  client.clear();
+});
+
+it("updates the greeting and target when the shared profile changes", async () => {
+  const { client } = openDashboard([]);
+  await screen.findByText("Welcome back, Dana Sadyk");
+  client.setQueryData(["profile"], { ...dashboardUser, name: "New Name", targetRole: "Java Developer", level: "Junior" });
+  await screen.findByText("Welcome back, New Name");
+  expect(screen.getByText("Target: Junior Java Developer · English")).toBeInTheDocument();
   client.clear();
 });

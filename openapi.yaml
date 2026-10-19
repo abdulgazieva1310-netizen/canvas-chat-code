@@ -120,7 +120,7 @@ paths:
     post:
       operationId: startInterview
       summary: Start an interview
-      description: Returns an active interview with its first AI question, zero answers, and null endedAt and lastFeedback.
+      description: Returns an active interview with its first AI question, zero answers, and null endedAt and lastFeedback. Saves the selected role and level as the authenticated user's profile preferences in the same transaction.
       requestBody:
         required: true
         content:

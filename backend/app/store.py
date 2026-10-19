@@ -123,6 +123,10 @@ class Repository:
         record.profile = user.model_dump(mode='json')
         return user
 
+    def update_target(self, user_id, role, level):
+        record = self.session.get(UserRecord, user_id)
+        record.profile = {**record.profile, 'targetRole': role, 'level': level}
+
     def token_user(self, digest):
         token = self.session.get(TokenRecord, digest)
         if token is None or token.expires_at <= now().timestamp():

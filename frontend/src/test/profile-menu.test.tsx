@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/AppShell";
+import { Route as DashboardRoute } from "@/routes/index";
 import { Route as ProfileRoute } from "@/routes/profile";
 import { Api } from "@/lib/api/client";
 import { getAuthorization, saveAuthorization } from "@/lib/api/session";
@@ -31,7 +32,7 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-function openPage(path = "/", cached = false) {
+function openPage(path = "/", cached = false, realDashboard = false) {
   vi.stubGlobal("PointerEvent", MouseEvent);
   vi.spyOn(Api, "getProfile").mockResolvedValue(user);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -41,7 +42,7 @@ function openPage(path = "/", cached = false) {
   const home = createRoute({
     getParentRoute: () => root,
     path: "/",
-    component: () => <AppShell>Dashboard content</AppShell>,
+    component: realDashboard ? DashboardRoute.options.component! : () => <AppShell>Dashboard content</AppShell>,
   });
   const profile = createRoute({
     getParentRoute: () => root,
@@ -178,5 +179,23 @@ it("shows logout failures and retains the session for retry", async () => {
   expect(getAuthorization()).toBe("Bearer private-token");
   expect(router.state.location.pathname).toBe("/");
   expect(screen.getByRole("menuitem", { name: "Logout" })).not.toHaveAttribute("data-disabled");
+  client.clear();
+});
+
+it("shows saved profile edits when returning to the real dashboard", async () => {
+  const { client } = openPage("/profile", false, true);
+  await screen.findByLabelText("Name");
+  const updated: User = { ...user, name: "Dana Sadyk", targetRole: "Java Developer", level: "Senior" };
+  vi.spyOn(Api, "updateProfile").mockResolvedValue(updated);
+  vi.spyOn(Api, "getHistory").mockResolvedValue([]);
+  vi.mocked(Api.getProfile).mockResolvedValue(updated);
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: updated.name } });
+  fireEvent.change(screen.getByLabelText("Target role"), { target: { value: updated.targetRole } });
+  fireEvent.change(screen.getByLabelText("Level"), { target: { value: updated.level } });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await screen.findByText("Profile saved.");
+  fireEvent.click(screen.getByRole("link", { name: "Dashboard" }));
+  await screen.findByText("Welcome back, Dana Sadyk");
+  expect(screen.getByText("Target: Senior Java Developer · English")).toBeInTheDocument();
   client.clear();
 });

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import { useState } from "react";
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/ready")({
 });
 
 function Ready() {
+  const client = useQueryClient();
   const [mic, setMic] = useState(false);
   const { interviewId, retryId } = Route.useSearch();
   const navigate = useNavigate();
@@ -53,7 +54,11 @@ function Ready() {
       }
       return result;
     },
-    onSuccess: (result) => navigate({ to: "/interview", search: { interviewId: result.id } }),
+    onSuccess: (result) => {
+      client.setQueryData(["interview", result.id], result);
+      void client.invalidateQueries({ queryKey: ["profile"] });
+      return navigate({ to: "/interview", search: { interviewId: result.id } });
+    },
   });
   return (
     <AppShell>

@@ -14,7 +14,9 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
         interview_type=data.type, job_description=data.jobDescription)
     store = request.app.state.store
     with store.transaction() as store:
-        return store.start(user.id, data, first_question=first_question).model_copy(deep=True)
+        interview = store.start(user.id, data, first_question=first_question)
+        store.update_target(user.id, data.role, data.level)
+        return interview.model_copy(deep=True)
 
 
 @router.get('', response_model=list[Interview])

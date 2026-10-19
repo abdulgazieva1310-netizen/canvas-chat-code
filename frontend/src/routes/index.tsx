@@ -32,6 +32,15 @@ const categories = [
 ];
 function Dashboard() {
   const client = useQueryClient();
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: Api.getProfile,
+    retry: false,
+  });
+  const name = profile?.name?.trim() || "User";
+  const target = profile?.targetRole?.trim()
+    ? [profile.level?.trim(), profile.targetRole.trim()].filter(Boolean).join(" ")
+    : "Not set";
   const {
     data: history = [],
     error: historyError,
@@ -57,9 +66,11 @@ function Dashboard() {
     <AppShell>
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="eyebrow">Welcome back, Aruzhan</p>
+          <p className="eyebrow">Welcome back, {name}</p>
           <h1 className="mt-2 text-4xl md:text-5xl">Your practice, reflected.</h1>
-          <p className="mt-2 text-muted-foreground">Target: Middle Frontend Developer · English</p>
+          <p className="mt-2 text-muted-foreground">
+            Target: {target} · {profile?.preferredLanguage || "English"}
+          </p>
         </div>
         <div className="flex gap-3">
           <Link to="/setup" className="btn btn-ghost">

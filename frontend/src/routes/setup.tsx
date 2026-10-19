@@ -65,6 +65,7 @@ function Setup() {
     mutationFn: (setupData: InterviewSetup) => Api.startInterview(setupData),
     onSuccess: async (interview) => {
       client.setQueryData(["interview", interview.id], interview);
+      void client.invalidateQueries({ queryKey: ["profile"] });
       await navigate({ to: "/interview", search: { interviewId: interview.id } });
     },
   });

@@ -72,3 +72,8 @@ email (loaded on opening the menu; cached after login). Profile Settings opens
 revokes the server session and expires the cookie, clears the browser bearer token
 and React Query cache, then returns to login. Failed saves/logouts show an error
 and support retrying.
+
+The Dashboard reads the shared profile query for the greeting and target role/level,
+with `User` and `Not set` as missing-data fallbacks. Profile edits update this cache
+immediately. Successful starts from Setup or Lobby invalidate the profile query,
+so returning to the Dashboard fetches the newly saved interview target.

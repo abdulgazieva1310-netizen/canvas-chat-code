@@ -258,3 +258,15 @@ it.each(["Java Developer", "Python Developer", "C++ Developer"] as const)(
     client.clear();
   },
 );
+
+it.each(["/setup", "/ready"] as const)("refreshes saved profile preferences after starting from %s", async (path) => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(JSON.stringify(createdInterview), { status: 201 })));
+  const { client } = openStartPage(path);
+  client.setQueryData(["profile"], { id: "user", name: "User", targetRole: "Java Developer", level: "Senior" });
+  const invalidate = vi.spyOn(client, "invalidateQueries");
+  fireEvent.click(await screen.findByRole("button", { name: "Start interview" }));
+  await screen.findByText("Live interview");
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["profile"] });
+  expect(client.getQueryState(["profile"])?.isInvalidated).toBe(true);
+  client.clear();
+});

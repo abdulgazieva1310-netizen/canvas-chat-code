@@ -332,7 +332,8 @@ it.each([
   expect(screen.queryByRole("button", { name: "Start microphone" })).toBeNull();
   const template = (editor as HTMLTextAreaElement).value;
   expect(template).toContain("Write your code here");
-  expect(template).toContain(language === "python" ? "def two_sum(nums, target):" : "class Solution");
+  expect(template).toContain(language === "python" ? "def solution():" : "class Solution");
+  expect(template).not.toMatch(/two_?sum/i);
   expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   fireEvent.change(editor, { target: { value: "" } });
   expect(editor).toHaveValue("");
@@ -344,7 +345,9 @@ it.each([
   await waitFor(() => expect(send).toHaveBeenCalledExactlyOnceWith(active.id, code));
   expect(editor).toBeDisabled();
   finish({ ...active, answeredCount: 2, messages: [...active.messages,
-    { id: "submitted-code", interviewId: active.id, from: "you", text: code, createdAt: new Date().toISOString() }] });
+    { id: "submitted-code", interviewId: active.id, from: "you", text: code, createdAt: new Date().toISOString() },
+    { id: "question-3", interviewId: active.id, from: "ai", text: "Implement mergeIntervals to merge overlapping intervals.", createdAt: new Date().toISOString() }] });
+  await screen.findByText(/Implement mergeIntervals/);
   await waitFor(() => expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(template));
   const displayed = document.querySelector("pre");
   expect(displayed?.textContent).toBe(code);

@@ -10,13 +10,10 @@ import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 const codeTemplates: Record<CodingLanguage, string> = {
   java: `class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        // Write your code here
-        return new int[]{};
-    }
+    // Write your code here
 }
 `,
-  python: `def two_sum(nums, target):
+  python: `def solution():
     # Write your code here
     pass
 `,
@@ -24,10 +21,7 @@ const codeTemplates: Record<CodingLanguage, string> = {
 
 class Solution {
 public:
-    std::vector<int> twoSum(std::vector<int>& nums, int target) {
-        // Write your code here
-        return {};
-    }
+    // Write your code here
 };
 `,
 };

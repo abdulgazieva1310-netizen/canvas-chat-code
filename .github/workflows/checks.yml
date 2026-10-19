@@ -1,0 +1,68 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --locked --project backend
+      - run: npm ci --prefix frontend
+      - run: uv run --locked --project backend pytest backend/tests
+      - run: npm test --prefix frontend
+      - run: npm run build --prefix frontend
+  journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AI_API_KEY: ''
+      EMAIL_ADAPTER: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --locked --project backend
+      - run: npm ci --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: uv run --locked --project backend python scripts/journey.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+            frontend/journey-servers.log

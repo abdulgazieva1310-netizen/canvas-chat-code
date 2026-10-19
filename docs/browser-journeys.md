@@ -40,3 +40,29 @@ For environments where Chromium libraries are provided in an isolated directory,
 prefix the invocation with `LD_LIBRARY_PATH=/path/to/libraries`. Local QA used
 packages extracted under `/tmp/interview-browser-libs/extracted/usr/lib/x86_64-linux-gnu`
 because sudo authentication was unavailable. This path is environment-specific.
+
+## Continuous integration
+
+`.github/workflows/checks.yml` runs on pull requests and pushes to `main`.
+Both jobs have a 15-minute timeout. uv caches use `backend/uv.lock`; npm caches
+use `frontend/package-lock.json`. The checks install locked dependencies and run
+these commands from the repository root:
+
+```sh
+uv sync --locked --project backend
+npm ci --prefix frontend
+uv run --locked --project backend pytest backend/tests
+npm test --prefix frontend
+npm run build --prefix frontend
+```
+
+The separate browser job installs Chromium and Linux libraries with
+`cd frontend && npx playwright install --with-deps chromium`, then runs
+`uv run --locked --project backend python scripts/journey.py`. Its temporary
+database and deterministic providers require no AI or email secrets. Failed
+runs upload browser traces, screenshots, video, HTML reports and server logs
+for seven days. The production build and journey runner must run sequentially
+because they share frontend build outputs.
+
+Hosted execution must be checked on GitHub after the workflow is pushed or
+merged; a local run cannot verify GitHub runner provisioning or upload delivery.

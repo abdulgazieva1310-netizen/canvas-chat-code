@@ -25,7 +25,7 @@ it("speaks a Russian question with the Russian voice locale", () => {
   });
   renderHook(() => useSpokenQuestion(true, "question-1", "Расскажите о проекте?", "Russian"));
   expect(speak).toHaveBeenCalledOnce();
-  expect((speak.mock.calls[0][0] as FakeUtterance).lang).toBe("ru-RU");
+  expect((speak.mock.calls[0]![0] as FakeUtterance).lang).toBe("ru-RU");
 });
 
 it("does not silently use an English voice for Russian playback", () => {
@@ -50,8 +50,21 @@ it("selects the matching voice and changes playback when session language change
   const { rerender } = renderHook(({ language }: { language: "English" | "Russian" }) =>
     useSpokenQuestion(true, "same-question", "Текст вопроса", language),
     { initialProps: { language: "Russian" as "English" | "Russian" } });
-  expect(speak.mock.calls[0][0].voice).toBe(russian);
+  expect(speak.mock.calls[0]![0].voice).toBe(russian);
   rerender({ language: "English" });
   expect(speak).toHaveBeenCalledTimes(2);
-  expect(speak.mock.calls[1][0].voice).toBe(english);
+  expect(speak.mock.calls[1]![0].voice).toBe(english);
+});
+
+it("uses a compatible system voice and explains when the saved voice is unavailable", () => {
+  const speak = vi.fn();
+  const available = { lang: "en-US", name: "Available system voice" };
+  vi.stubGlobal("SpeechSynthesisUtterance", FakeUtterance);
+  vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn(), getVoices: () => [available] });
+  const { result } = renderHook(() =>
+    useSpokenQuestion(true, "question-1", "Tell me about your work.", "English", "Missing voice", "en-GB"),
+  );
+  expect(speak).toHaveBeenCalledOnce();
+  expect(speak.mock.calls[0]![0].voice).toBe(available);
+  expect(result.current.error).toContain("Using Available system voice instead");
 });

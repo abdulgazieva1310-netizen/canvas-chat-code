@@ -25,6 +25,9 @@ const user: User = {
   targetRole: "Backend Developer",
   level: "Middle",
   preferredLanguage: "English",
+  interviewerAvatar: "classic",
+  interviewerVoiceName: null,
+  interviewerVoiceLang: null,
 };
 
 afterEach(() => {
@@ -118,19 +121,55 @@ it("quick starts with saved preferences and opens the newly created room", async
   client.clear();
 });
 
-it("saves an interviewer appearance preference for later sessions", async () => {
+it("saves an interviewer appearance preference to the profile", async () => {
   openPage("/profile");
   await screen.findByRole("heading", { name: "Profile Settings" });
+  const update = vi.spyOn(Api, "updateProfile").mockResolvedValue({ ...user, interviewerAvatar: "rose" });
   const rose = await screen.findByRole("button", { name: "Rose" });
   fireEvent.click(rose);
   expect(rose).toHaveAttribute("aria-pressed", "true");
-  expect(getInterviewerAvatar()).toBe("rose");
-  expect(screen.getByText("Saved appearance: Rose")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await screen.findByText("Profile saved.");
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({ interviewerAvatar: "rose" }));
+  expect(screen.getByText("Selected appearance: Rose")).toBeVisible();
 });
 
 it("uses the stable default for an unsupported saved appearance", () => {
-  localStorage.setItem("interview-mirror-avatar", "removed-avatar");
-  expect(getInterviewerAvatar()).toBe("classic");
+  expect(getInterviewerAvatar("removed-avatar")).toBe("classic");
+});
+
+it("previews and saves an available system voice", async () => {
+  const voice = { name: "Local English", lang: "en-US", localService: true };
+  const speak = vi.fn();
+  vi.stubGlobal("speechSynthesis", {
+    getVoices: () => [voice],
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    cancel: vi.fn(),
+    speak,
+  });
+  class Utterance {
+    voice?: unknown;
+    lang = "";
+    constructor(readonly text: string) {}
+  }
+  vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+  const update = vi.spyOn(Api, "updateProfile").mockResolvedValue({
+    ...user,
+    interviewerVoiceName: voice.name,
+    interviewerVoiceLang: voice.lang,
+  });
+  openPage("/profile");
+  const selector = await screen.findByLabelText("Voice");
+  fireEvent.change(selector, { target: { value: `${voice.lang}\u0000${voice.name}` } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview voice" }));
+  expect(speak).toHaveBeenCalledOnce();
+  expect((speak.mock.calls[0]![0] as Utterance).voice).toBe(voice);
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await screen.findByText("Profile saved.");
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({
+    interviewerVoiceName: "Local English", interviewerVoiceLang: "en-US",
+  }));
 });
 
 it("uses explicit Quick Start defaults when saved role and level are missing", async () => {
@@ -260,6 +299,9 @@ it("saves name, role, and level and updates the shared user cache and avatar", a
       targetRole: "C++ Developer",
       level: "Senior",
       preferredLanguage: "Kazakh",
+      interviewerAvatar: "classic",
+      interviewerVoiceName: null,
+      interviewerVoiceLang: null,
     }),
   );
   expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
@@ -347,6 +389,9 @@ it("shows saved profile edits when returning to the real dashboard", async () =>
       lastFeedback: null,
     },
   ]);
+  vi.spyOn(Api, "getDashboardSummary").mockResolvedValue({
+    completedCount: 0, recentActivity: [], groups: [], strengths: [], weaknesses: [], suggestions: [],
+  });
   vi.mocked(Api.getProfile).mockResolvedValue(updated);
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: updated.name } });
   fireEvent.change(screen.getByLabelText("Target role"), { target: { value: updated.targetRole } });
@@ -361,9 +406,11 @@ it("shows saved profile edits when returning to the real dashboard", async () =>
 
 it("requires confirmation for deletion, supports cancel/retry and clears private data on success", async () => {
   saveAuthorization("Bearer owner-token");
+  expect(getAuthorization()).toBe("Bearer owner-token");
   const deletion=vi.spyOn(Api,"deleteAccount").mockRejectedValueOnce(new Error("Current password is incorrect"))
     .mockImplementationOnce(async()=>{saveAuthorization(null);});
   const {client,router}=openPage("/profile",true);
+  expect(getAuthorization()).toBe("Bearer owner-token");
   client.setQueryData(["interview","private"],{id:"private"});
   await screen.findByRole("button",{name:"Delete my account"});
   fireEvent.click(screen.getByRole("button",{name:"Delete my account"}));
@@ -378,6 +425,7 @@ it("requires confirmation for deletion, supports cancel/retry and clears private
   fireEvent.change(screen.getByLabelText("Type DELETE to confirm"),{target:{value:"DELETE"}});
   fireEvent.click(screen.getByRole("button",{name:"Permanently delete account"}));
   await screen.findByRole("alert");
+  expect(deletion).toHaveBeenCalledTimes(1);
   expect(getAuthorization()).toBe("Bearer owner-token");
   expect(client.getQueryData(["interview","private"])).toEqual({id:"private"});
   fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"correct"}});

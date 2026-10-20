@@ -17,6 +17,7 @@ import type { InterviewReport } from "@/lib/api/types";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 function openReport(url: string) {
@@ -118,6 +119,49 @@ it("plays and deletes only the owner's saved recording without replacing the rep
   await waitFor(() => expect(deleteMedia).toHaveBeenCalledWith("session-media", "media-1"));
   await waitFor(() => expect(screen.getByText(/No saved recordings/)).toBeInTheDocument());
   expect(screen.getByRole("heading", { name: /Frontend Developer/ })).toBeInTheDocument();
+  client.clear();
+});
+
+it("opens the transcript at a searched message and highlights it", async () => {
+  const now = new Date().toISOString();
+  vi.spyOn(Api, "getReport").mockResolvedValue({
+    interview: {
+      id: "searched-session",
+      setup: { ...defaultSetup },
+      status: "complete",
+      startedAt: now,
+      endedAt: now,
+      answeredCount: 1,
+      lastFeedback: null,
+      messages: [
+        {
+          id: "answer-hit",
+          interviewId: "searched-session",
+          from: "you",
+          text: "Queue answer",
+          createdAt: now,
+        },
+      ],
+    },
+    feedback: {
+      interviewId: "searched-session",
+      answeredQuestions: 1,
+      selectedQuestions: 5,
+      overall: null,
+      scores: null,
+      strengths: [],
+      gaps: [],
+      questions: [],
+    },
+  });
+  vi.stubGlobal("location", { ...window.location, hash: "#transcript-answer-hit" });
+  const { client } = openReport("/report?interviewId=searched-session");
+  const message = await screen.findByText("Queue answer");
+  expect(message).toBeVisible();
+  expect(document.getElementById("transcript-answer-hit")).toHaveAttribute(
+    "data-highlighted",
+    "true",
+  );
   client.clear();
 });
 

@@ -40,7 +40,8 @@ def test_authentication_and_seed(client):
     assert client.get('/api/interviews').status_code == 401
     assert client.post('/api/auth/login', json={'email': 'demo@example.com', 'password': 'wrong'}).status_code == 401
     response = login(client)
-    assert set(response.json()) == {'id', 'name', 'email', 'targetRole', 'level', 'preferredLanguage'}
+    assert set(response.json()) == {'id', 'name', 'email', 'targetRole', 'level', 'preferredLanguage',
+                                    'interviewerAvatar', 'interviewerVoiceName', 'interviewerVoiceLang'}
     assert 'HttpOnly' in response.headers['set-cookie']
     assert 'Path=/api' in response.headers['set-cookie']
     token = response.headers['authorization'].split()[1]
@@ -809,6 +810,28 @@ def test_profile_requires_authentication_and_persists(tmp_path):
         assert login(restarted).json() == expected
 
 
+def test_interviewer_preferences_persist_in_profile_and_can_reset(client):
+    original = login(client).json()
+    selected = {'name': original['name'], 'targetRole': original['targetRole'],
+                'level': original['level'], 'interviewerAvatar': 'rose',
+                'interviewerVoiceName': 'System English', 'interviewerVoiceLang': 'en-US'}
+    updated = client.patch('/api/auth/me', json=selected)
+    assert updated.status_code == 200
+    assert updated.json()['interviewerAvatar'] == 'rose'
+    assert updated.json()['interviewerVoiceName'] == 'System English'
+    assert client.get('/api/auth/me').json() == updated.json()
+    client.post('/api/auth/logout')
+    assert login(client).json() == updated.json()
+    reset = client.patch('/api/auth/me', json={
+        'name': original['name'], 'targetRole': original['targetRole'], 'level': original['level'],
+        'interviewerAvatar': 'classic', 'interviewerVoiceName': None, 'interviewerVoiceLang': None,
+    })
+    assert reset.status_code == 200
+    assert reset.json()['interviewerAvatar'] == 'classic'
+    assert reset.json()['interviewerVoiceName'] is None
+    assert reset.json()['interviewerVoiceLang'] is None
+
+
 @pytest.mark.parametrize('data', [
     {}, {'name': '   ', 'targetRole': 'Backend Developer', 'level': 'Senior'},
     {'name': 'New', 'targetRole': 'Invalid', 'level': 'Senior'},
@@ -818,6 +841,8 @@ def test_profile_requires_authentication_and_persists(tmp_path):
     {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'preferredLanguage': '   '},
     {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'preferredLanguage': 'a' * 81},
     {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'preferredLanguage': None},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'interviewerAvatar': 'unknown'},
+    {'name': 'New', 'targetRole': 'Java Developer', 'level': 'Senior', 'interviewerVoiceName': 'Only one half'},
 ])
 def test_profile_rejects_invalid_or_uneditable_fields(client, data):
     original = login(client).json()

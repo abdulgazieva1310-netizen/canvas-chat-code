@@ -238,7 +238,13 @@ class Repository:
         user = user.model_copy(update={
             'name': data.name.strip(), 'targetRole': data.targetRole, 'level': data.level,
             'preferredLanguage': (data.preferredLanguage.strip() if 'preferredLanguage' in data.model_fields_set
-                                  else user.preferredLanguage)})
+                                  else user.preferredLanguage),
+            'interviewerAvatar': (data.interviewerAvatar if 'interviewerAvatar' in data.model_fields_set
+                                  else user.interviewerAvatar),
+            'interviewerVoiceName': (data.interviewerVoiceName if 'interviewerVoiceName' in data.model_fields_set
+                                     else user.interviewerVoiceName),
+            'interviewerVoiceLang': (data.interviewerVoiceLang if 'interviewerVoiceLang' in data.model_fields_set
+                                     else user.interviewerVoiceLang)})
         record.profile = user.model_dump(mode='json')
         return user
 

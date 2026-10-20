@@ -152,6 +152,7 @@ def database_engine(url=None):
     if url.get_backend_name() == 'sqlite':
         @event.listens_for(engine, 'connect')
         def configure_sqlite(connection, _):
+            connection.create_function('casefold', 1, lambda value: value.casefold() if value else '')
             cursor = connection.cursor()
             cursor.execute('PRAGMA foreign_keys=ON')
             cursor.close()

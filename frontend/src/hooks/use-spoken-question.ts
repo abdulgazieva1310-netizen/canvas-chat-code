@@ -11,6 +11,8 @@ export function useSpokenQuestion(
   questionId: string,
   text: string,
   language: "English" | "Russian" = "English",
+  preferredVoiceName: string | null = null,
+  preferredVoiceLang: string | null = null,
 ) {
   const [muted, setMuted] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -36,21 +38,37 @@ export function useSpokenQuestion(
       return;
     }
     try {
-      const voice = (speaker.getVoices?.() ?? []).find((voice) =>
-        voice.lang.toLowerCase().replaceAll("_", "-").startsWith(language === "Russian" ? "ru-" : "en-"),
+      const voices = speaker.getVoices?.() ?? [];
+      const voicePrefix = language === "Russian" ? "ru-" : "en-";
+      const preferredVoice = preferredVoiceName && preferredVoiceLang
+        ? { name: preferredVoiceName, lang: preferredVoiceLang }
+        : null;
+      const languageVoices = voices.filter((voice) =>
+        voice.lang.toLowerCase().replaceAll("_", "-").startsWith(voicePrefix),
       );
+      const voice = preferredVoice && preferredVoice.lang.toLowerCase().replaceAll("_", "-").startsWith(voicePrefix)
+        ? languageVoices.find((item) => item.name === preferredVoice.name && item.lang === preferredVoice.lang)
+        : undefined;
+      const fallbackVoice = voice ?? languageVoices[0];
+      if (preferredVoice && !voice) {
+        setError(fallbackVoice
+          ? `Your selected voice is unavailable for this session. Using ${fallbackVoice.name} instead.`
+          : "Your selected voice is unavailable on this device. Using the browser default voice.");
+      }
       if (
         language === "Russian" &&
-        !voice
+        !fallbackVoice
       ) {
         setError(
-          "Spoken Russian is unavailable in this browser. Read the transcript and continue by text.",
+          preferredVoice
+            ? "The selected voice and a Russian system voice are unavailable. Read the transcript and continue by text."
+            : "Spoken Russian is unavailable in this browser. Read the transcript and continue by text.",
         );
         return;
       }
       const next = new SpeechSynthesisUtterance(text);
       next.lang = language === "Russian" ? "ru-RU" : "en-US";
-      if (voice) next.voice = voice;
+      if (fallbackVoice) next.voice = fallbackVoice;
       next.onstart = () => setSpeaking(true);
       next.onend = () => setSpeaking(false);
       next.onerror = () => {
@@ -62,7 +80,7 @@ export function useSpokenQuestion(
     } catch {
       setError("Question playback failed. Read the transcript and continue by text.");
     }
-  }, [language, stop, text]);
+  }, [language, preferredVoiceLang, preferredVoiceName, stop, text]);
 
   useEffect(() => {
     if (!enabled) {

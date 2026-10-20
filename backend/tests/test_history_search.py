@@ -55,6 +55,63 @@ def test_combined_filters_boundaries_ties_and_owner_total(client):
     assert client.get('/api/interviews', params={'type': 'Technical'}).json()['total'] == 0
 
 
+def test_transcript_search_returns_owner_scoped_message_matches_and_database_pages(client):
+    with client.app.state.store.sessions.begin() as session:
+        for ident, message_id, sender, text in [
+            ('a', 'question-a', 'ai', 'Explain the café protocol for 50%_ready queues? ' + 'detail ' * 50),
+            ('a', 'answer-a', 'you', 'We retry safely; café is a Unicode word.'),
+            ('a', 'hint-a', 'hint', 'café hint is not a question or submitted answer'),
+            ('b', 'question-b', 'ai', 'How does CAFÉ caching work?'),
+            ('foreign', 'question-foreign', 'ai', 'Explain the café protocol for 50%_ready queues?'),
+            ('active', 'question-active', 'ai', 'Explain the café protocol for 50%_ready queues?'),
+        ]:
+            record = session.get(InterviewRecord, ident)
+            payload = dict(record.payload)
+            messages = list(payload['messages'])
+            messages.append({'id': message_id, 'interviewId': ident, 'from': sender, 'text': text,
+                             'createdAt': '2026-10-19T00:00:00Z'})
+            payload['messages'] = messages
+            record.payload = payload
+
+    statements = []
+    def executed(conn, cursor, statement, parameters, context, many):
+        statements.append(statement)
+    event.listen(client.app.state.store.engine, 'before_cursor_execute', executed)
+    try:
+        result = client.get('/api/interviews', params={
+            'searchMode': 'transcript', 'search': 'CAFÉ', 'pageSize': 1,
+        }).json()
+    finally:
+        event.remove(client.app.state.store.engine, 'before_cursor_execute', executed)
+
+    assert result['total'] == 2
+    assert [item['id'] for item in result['items']] == ['a']
+    assert [match['id'] for match in result['matches']['a']] == ['question-a', 'answer-a']
+    assert len(result['matches']['a'][0]['snippet']) <= 240
+    assert all(match['sender'] in ('ai', 'you') for match in result['matches']['a'])
+    assert any('json_each' in sql.lower() and 'limit' in sql.lower() for sql in statements)
+    assert client.get('/api/interviews', params={
+        'searchMode': 'transcript', 'search': '50%_ready',
+    }).json()['total'] == 1
+    assert client.get('/api/interviews', params={
+        'searchMode': 'transcript', 'search': 'CAFÉ', 'role': 'Data Analyst',
+    }).json()['total'] == 0
+    next_page = client.get('/api/interviews', params={
+        'searchMode': 'transcript', 'search': 'CAFÉ', 'pageSize': 1, 'page': 2,
+    }).json()
+    assert [item['id'] for item in next_page['items']] == ['b']
+
+
+@pytest.mark.parametrize('search', [None, '', 'x'])
+def test_transcript_search_rejects_blank_and_one_character_queries(client, search):
+    params = {'searchMode': 'transcript'}
+    if search is not None:
+        params['search'] = search
+    response = client.get('/api/interviews', params=params)
+    assert response.status_code == 400
+    assert response.json()['message']
+
+
 def test_unscored_defaults_database_pagination(client):
     statements = []
     def executed(conn, cursor, statement, parameters, context, many):

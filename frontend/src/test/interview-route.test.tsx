@@ -66,7 +66,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-function openInterview(url = "/interview?interviewId=session-123") {
+function openInterview(url = "/interview?interviewId=session-123", profileOverrides: Partial<User> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(["profile"], {
     id: "owner-123",
@@ -75,6 +75,7 @@ function openInterview(url = "/interview?interviewId=session-123") {
     targetRole: "Backend Developer",
     level: "Middle",
     preferredLanguage: "English",
+    ...profileOverrides,
   });
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
   const interview = createRoute({
@@ -574,6 +575,29 @@ it("plays each voice question once and provides replay, mute, and stop controls"
   client.clear();
 });
 
+it("uses the saved profile voice for question playback", async () => {
+  class Utterance {
+    lang = "";
+    voice?: unknown;
+    onstart: (() => void) | null = null;
+    onend: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor(readonly text: string) {}
+  }
+  const savedVoice = { name: "Saved English", lang: "en-US" };
+  const speak = vi.fn();
+  vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+  vi.stubGlobal("speechSynthesis", {
+    speak, cancel: vi.fn(), speaking: false, pending: false, paused: false,
+    getVoices: () => [savedVoice],
+  });
+  const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  openInterview(undefined, { interviewerVoiceName: savedVoice.name, interviewerVoiceLang: savedVoice.lang });
+  await waitFor(() => expect(speak).toHaveBeenCalledOnce());
+  expect((speak.mock.calls[0]![0] as Utterance).voice).toBe(savedVoice);
+});
+
 it("keeps interview progress and syncs the opt-in 3D view to question playback", async () => {
   class Utterance {
     onstart: (() => void) | null = null;
@@ -585,10 +609,14 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   vi.stubGlobal("SpeechRecognition", RoomRecognition);
   vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
   vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });
-  window.localStorage.setItem("interview-mirror-avatar", "sage");
   const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   const client = openInterview();
+  client.setQueryData(["profile"], {
+    id: "owner-123", name: "Test User", email: "test@example.com",
+    targetRole: "Backend Developer", level: "Middle", preferredLanguage: "English",
+    interviewerAvatar: "sage",
+  });
   await screen.findByRole("button", { name: "Replay question" });
   const answer = screen.getByRole("textbox", { name: "Your answer" });
   fireEvent.change(answer, { target: { value: "Draft answer" } });

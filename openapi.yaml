@@ -226,7 +226,7 @@ paths:
     get:
       operationId: getHistory
       summary: Get saved interview history
-      description: Returns owner-scoped complete and incomplete interviews in a page envelope. Filters combine with AND. Order is startedAt descending then ID ascending. Date bounds are inclusive UTC calendar days; search is a case-insensitive substring over role and optional job description. Unscored sessions remain unless score bounds are supplied. Invalid pages or ranges return 400.
+      description: Returns owner-scoped complete and incomplete interviews in a page envelope. Filters combine with AND. Order is startedAt descending then ID ascending. Date bounds are inclusive UTC calendar days. Search defaults to a case-insensitive substring over role and optional job description; searchMode=transcript searches question and submitted-answer text and returns bounded message snippets. Unscored sessions remain unless score bounds are supplied. Invalid pages, ranges, or transcript queries return 400.
       x-implementation-status: implemented
       parameters:
         - in: query
@@ -250,6 +250,9 @@ paths:
         - in: query
           name: search
           schema: {type: string, maxLength: 200}
+        - in: query
+          name: searchMode
+          schema: {type: string, enum: [setup, transcript], default: setup}
         - in: query
           name: page
           schema: {type: integer, minimum: 1, default: 1}
@@ -945,6 +948,7 @@ components:
         minScore: {type: number, minimum: 1, maximum: 10}
         maxScore: {type: number, minimum: 1, maximum: 10}
         search: {type: string}
+        searchMode: {type: string, enum: [setup, transcript], default: setup}
         page: {type: integer, minimum: 1, default: 1}
         pageSize: {type: integer, minimum: 1, maximum: 100, default: 20}
     HistoryPage:
@@ -959,6 +963,19 @@ components:
         total: {type: integer, minimum: 0}
         page: {type: integer, minimum: 1}
         pageSize: {type: integer, minimum: 1, maximum: 100}
+        matches:
+          type: object
+          description: Transcript-mode matches keyed by interview ID; each item links to one actual message.
+          additionalProperties:
+            type: array
+            items: {$ref: '#/components/schemas/HistoryMatch'}
+    HistoryMatch:
+      type: object
+      required: [id, sender, snippet]
+      properties:
+        id: {type: string}
+        sender: {type: string, enum: [ai, you]}
+        snippet: {type: string, maxLength: 240}
     PlannedScores:
       x-implementation-status: implemented
       description: Each unavailable or inapplicable category is null and excluded from averages. All-null categories produce no overall estimate.
@@ -1082,7 +1099,7 @@ components:
       enum: [Junior, Middle, Senior]
     User:
       type: object
-      required: [id, name, email, targetRole, level, preferredLanguage]
+      required: [id, name, email, targetRole, level, preferredLanguage, interviewerAvatar, interviewerVoiceName, interviewerVoiceLang]
       properties:
         id: {type: string}
         name: {type: string}
@@ -1092,6 +1109,9 @@ components:
         level:
           $ref: '#/components/schemas/Level'
         preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Saved profile preference; each interview records its own supported language.}
+        interviewerAvatar: {type: string, enum: [classic, sage, rose], default: classic}
+        interviewerVoiceName: {type: string, maxLength: 120, nullable: true, description: Device-provided speech voice name; null selects automatic voice.}
+        interviewerVoiceLang: {type: string, maxLength: 32, nullable: true, description: Paired BCP-47 language tag for the selected device voice.}
     ProfileUpdate:
       type: object
       additionalProperties: false
@@ -1099,6 +1119,9 @@ components:
       properties:
         name: {type: string, minLength: 1, pattern: '\S'}
         preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Omission preserves the saved preference.}
+        interviewerAvatar: {type: string, enum: [classic, sage, rose], default: classic, description: Profile-synced illustration choice; omission preserves the saved preference.}
+        interviewerVoiceName: {type: string, maxLength: 120, nullable: true, description: Device-provided voice name; null resets to automatic voice. Must be paired with interviewerVoiceLang.}
+        interviewerVoiceLang: {type: string, maxLength: 32, nullable: true, description: Voice language tag; must be paired with interviewerVoiceName.}
         targetRole:
           $ref: '#/components/schemas/Role'
         level:

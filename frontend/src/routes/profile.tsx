@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
@@ -7,9 +7,7 @@ import { DeleteAccount } from "@/components/DeleteAccount";
 import { Api } from "@/lib/api/client";
 import { targetRoles, type Level, type Role, type User } from "@/lib/api/types";
 import {
-  getInterviewerAvatar,
   interviewerAvatars,
-  setInterviewerAvatar,
   type InterviewerAvatarId,
 } from "@/lib/interviewer-avatar";
 
@@ -55,7 +53,22 @@ function ProfileForm({ user }: { user: User }) {
   const [targetRole, setTargetRole] = useState<Role>(user.targetRole);
   const [level, setLevel] = useState<Level>(user.level);
   const [preferredLanguage, setPreferredLanguage] = useState(user.preferredLanguage);
-  const [avatar, setAvatar] = useState(getInterviewerAvatar);
+  const [avatar, setAvatar] = useState<InterviewerAvatarId>(user.interviewerAvatar ?? "classic");
+  const [voiceName, setVoiceName] = useState(user.interviewerVoiceName ?? "");
+  const [voiceLang, setVoiceLang] = useState(user.interviewerVoiceLang ?? "");
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
+  useEffect(() => {
+    const synthesis = window.speechSynthesis;
+    const refresh = () => {
+      setVoices(synthesis?.getVoices?.() ?? []);
+      setVoicesLoaded(true);
+    };
+    refresh();
+    synthesis?.addEventListener?.("voiceschanged", refresh);
+    return () => synthesis?.removeEventListener?.("voiceschanged", refresh);
+  }, []);
+  const selectedVoice = voices.find((voice) => voice.name === voiceName && voice.lang === voiceLang);
   const save = useMutation({
     mutationFn: () =>
       Api.updateProfile({
@@ -63,6 +76,9 @@ function ProfileForm({ user }: { user: User }) {
         targetRole,
         level,
         preferredLanguage: preferredLanguage.trim(),
+        interviewerAvatar: avatar,
+        interviewerVoiceName: voiceName || null,
+        interviewerVoiceLang: voiceName ? voiceLang : null,
       }),
     onSuccess: (updated) => {
       client.setQueryData(["profile"], updated);
@@ -70,6 +86,9 @@ function ProfileForm({ user }: { user: User }) {
       setTargetRole(updated.targetRole);
       setLevel(updated.level);
       setPreferredLanguage(updated.preferredLanguage);
+      setAvatar(updated.interviewerAvatar ?? "classic");
+      setVoiceName(updated.interviewerVoiceName ?? "");
+      setVoiceLang(updated.interviewerVoiceLang ?? "");
     },
   });
   return (
@@ -149,8 +168,8 @@ function ProfileForm({ user }: { user: User }) {
       <fieldset className="space-y-3 border-t pt-5">
         <legend className="font-semibold">Interviewer appearance</legend>
         <p className="text-sm text-muted-foreground">
-          Choose the 3D interviewer used in compatible interviews. This preference is saved on this
-          device.
+          Choose the illustrated interviewer used in compatible sessions. This preference is saved
+          to your profile and works with the avatar hidden.
         </p>
         <div className="grid grid-cols-3 gap-2">
           {interviewerAvatars.map((option) => (
@@ -161,8 +180,8 @@ function ProfileForm({ user }: { user: User }) {
               aria-pressed={avatar === option.id}
               onClick={() => {
                 const next = option.id as InterviewerAvatarId;
-                setInterviewerAvatar(next);
                 setAvatar(next);
+                save.reset();
               }}
             >
               <span
@@ -180,9 +199,74 @@ function ProfileForm({ user }: { user: User }) {
           ))}
         </div>
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          Saved appearance:{" "}
-          {interviewerAvatars.find((item) => item.id === avatar)?.name ?? "Classic"}
+          Selected appearance: {interviewerAvatars.find((item) => item.id === avatar)?.name ?? "Classic"}
         </p>
+      </fieldset>
+      <fieldset className="space-y-3 border-t pt-5">
+        <legend className="font-semibold">Interviewer voice</legend>
+        <p className="text-sm text-muted-foreground">
+          Voices come from this browser and device. Your selection syncs with your profile; if it is
+          unavailable elsewhere, the interview uses a matching system voice or text.
+        </p>
+        <label className="block">
+          Voice
+          <select
+            value={voiceName ? `${voiceLang}\u0000${voiceName}` : ""}
+            disabled={save.isPending}
+            onChange={(event) => {
+              const voice = voices.find((item) => `${item.lang}\u0000${item.name}` === event.target.value);
+              setVoiceName(voice?.name ?? "");
+              setVoiceLang(voice?.lang ?? "");
+              save.reset();
+            }}
+            className="mt-2 w-full rounded-lg border bg-background p-3"
+          >
+            <option value="">Automatic system voice</option>
+            {voices.map((voice, index) => (
+              <option key={`${voice.lang}-${voice.name}-${index}`} value={`${voice.lang}\u0000${voice.name}`}>
+                {voice.name} ({voice.lang}){voice.localService ? " · on device" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        {selectedVoice && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              const utterance = new SpeechSynthesisUtterance("Hello. I will guide your interview practice.");
+              utterance.voice = selectedVoice;
+              utterance.lang = selectedVoice.lang;
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.speak(utterance);
+            }}
+          >
+            Preview voice
+          </button>
+        )}
+        {!voices.length && (
+          <p role="status" className="text-sm text-muted-foreground">
+            No selectable system voices are available. Automatic voice or text fallback will be used.
+          </p>
+        )}
+        {voicesLoaded && voiceName && !selectedVoice && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Your saved voice is not available on this device. Automatic voice or text fallback will be used.
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={save.isPending || (avatar === "classic" && !voiceName)}
+          onClick={() => {
+            setAvatar("classic");
+            setVoiceName("");
+            setVoiceLang("");
+            save.reset();
+          }}
+        >
+          Reset interviewer preferences
+        </button>
       </fieldset>
       {save.error && <p role="alert">Could not save profile: {save.error.message}</p>}
       {save.isSuccess && <p role="status">Profile saved.</p>}

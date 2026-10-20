@@ -40,6 +40,9 @@ class User(BaseModel):
     targetRole: Role = 'Frontend Developer'
     level: Level = 'Middle'
     preferredLanguage: str = Field(default='English', min_length=1, max_length=80, pattern=r'\S')
+    interviewerAvatar: Literal['classic', 'sage', 'rose'] = 'classic'
+    interviewerVoiceName: str | None = Field(default=None, max_length=120)
+    interviewerVoiceLang: str | None = Field(default=None, max_length=32)
 
 
 class ProfileUpdate(BaseModel):
@@ -48,6 +51,18 @@ class ProfileUpdate(BaseModel):
     targetRole: Role
     level: Level
     preferredLanguage: str = Field(default='English', min_length=1, max_length=80, pattern=r'\S')
+    interviewerAvatar: Literal['classic', 'sage', 'rose'] = 'classic'
+    interviewerVoiceName: str | None = Field(default=None, max_length=120)
+    interviewerVoiceLang: str | None = Field(default=None, max_length=32)
+
+    @model_validator(mode='after')
+    def voice_pair(self):
+        fields = self.model_fields_set
+        if ('interviewerVoiceName' in fields) != ('interviewerVoiceLang' in fields):
+            raise ValueError('interviewer voice name and language must be updated together')
+        if (self.interviewerVoiceName is None) != (self.interviewerVoiceLang is None):
+            raise ValueError('interviewer voice name and language must be set together')
+        return self
 
 
 class InterviewSetup(BaseModel):

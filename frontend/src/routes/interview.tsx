@@ -110,7 +110,7 @@ function Interview() {
   const { interviewId } = Route.useSearch();
   const navigate = useNavigate();
   const client = useQueryClient();
-  const { data: profile } = useQuery({
+  const { data: profile, isSuccess: profileLoaded } = useQuery({
     queryKey: ["profile"],
     queryFn: Api.getProfile,
     retry: false,
@@ -280,13 +280,15 @@ function Interview() {
     setShow3D(false);
   }, []);
   useEffect(() => {
-    setAvatarId(getInterviewerAvatar());
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(preference.matches);
     update();
     preference.addEventListener("change", update);
     return () => preference.removeEventListener("change", update);
   }, []);
+  useEffect(() => {
+    setAvatarId(getInterviewerAvatar(profile?.interviewerAvatar));
+  }, [profile?.interviewerAvatar]);
   const receive = async (updated: InterviewData) => {
     client.setQueryData(queryKey, updated);
     if (updated.status !== "active") {
@@ -426,10 +428,12 @@ function Interview() {
     interview?.setup?.language ?? "English",
   );
   const spoken = useSpokenQuestion(
-    interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
+    profileLoaded && interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
     latestQuestion?.id ?? "",
     latestQuestion?.text ?? "",
     interview?.setup?.language ?? "English",
+    profile?.interviewerVoiceName ?? null,
+    profile?.interviewerVoiceLang ?? null,
   );
   useEffect(() => {
     const startedAt = interview?.startedAt;

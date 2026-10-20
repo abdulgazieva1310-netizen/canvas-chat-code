@@ -18,10 +18,13 @@ export interface User {
   targetRole: Role;
   level: Level;
   preferredLanguage: string;
+  interviewerAvatar?: "classic" | "sage" | "rose";
+  interviewerVoiceName?: string | null;
+  interviewerVoiceLang?: string | null;
 }
 
 export type ProfileUpdate = Pick<User, "name" | "targetRole" | "level"> &
-  Partial<Pick<User, "preferredLanguage">>;
+  Partial<Pick<User, "preferredLanguage" | "interviewerAvatar" | "interviewerVoiceName" | "interviewerVoiceLang">>;
 
 export const targetRoles: Role[] = [
   "Frontend Developer",
@@ -239,6 +242,7 @@ export interface HistoryQuery {
   minScore?: number;
   maxScore?: number;
   search?: string;
+  searchMode?: "setup" | "transcript";
   page?: number;
   pageSize?: number;
 }
@@ -248,6 +252,13 @@ export interface HistoryPage {
   total: number;
   page: number;
   pageSize: number;
+  matches?: Record<string, HistoryMatch[]>;
+}
+
+export interface HistoryMatch {
+  id: string;
+  sender: "ai" | "you";
+  snippet: string;
 }
 
 /** Planned nullable categories; null means unavailable or inapplicable. */
@@ -300,4 +311,9 @@ export interface StudyQuestion {
   note: string;
   savedAt: string;
 }
-export interface StudyPage { items: StudyQuestion[]; total: number; page: number; pageSize: number; }
+export interface StudyPage {
+  items: StudyQuestion[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

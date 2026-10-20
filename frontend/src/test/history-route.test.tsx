@@ -94,6 +94,23 @@ function reportFor(interview: Interview, overall: number | null): InterviewRepor
   };
 }
 
+it("does not query transcript search until at least two characters are entered", async () => {
+  const request = vi.spyOn(Api, "getHistoryPage").mockResolvedValue(page([]));
+  const { client } = openHistory("/history?searchMode=transcript&search=a");
+  expect(
+    await screen.findByText("Enter at least 2 characters to search transcript questions and answers."),
+  ).toBeVisible();
+  expect(request).not.toHaveBeenCalled();
+
+  fireEvent.change(screen.getByLabelText("Search questions and answers"), {
+    target: { value: "ab" },
+  });
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledWith({ search: "ab", searchMode: "transcript", page: 1, pageSize: 20 }),
+  );
+  client.clear();
+});
+
 it("composes URL-backed filters, resets page on change, and navigates stably between pages", async () => {
   const item = session("one", "complete");
   const request = vi
@@ -239,17 +256,63 @@ it("renders saved history during the legacy array-to-page rollout", async () => 
   client.clear();
 });
 
-it("selects only two ended reports for comparison without starting interviews",async()=>{
-  const sessions=[session("one","complete"),session("two","incomplete"),session("three","complete"),session("active","active")];
-  vi.spyOn(Api,"getHistoryPage").mockResolvedValue(page(sessions));
-  vi.spyOn(Api,"getReport").mockImplementation(async id=>reportFor(sessions.find(s=>s.id===id)!,7));
-  const start=vi.spyOn(Api,"startInterview");
-  const {client}=openHistory();
-  const first=await screen.findByRole("checkbox",{name:"Compare QA Engineer one"});
-  expect(screen.getByRole("checkbox",{name:"Compare QA Engineer active"})).toBeDisabled();
+it("searches transcripts separately and links a bounded match to its exact message", async () => {
+  const item = session("transcript-id", "complete");
+  const request = vi.spyOn(Api, "getHistoryPage").mockImplementation(async (query) => ({
+    ...page([item]),
+    matches: query.search
+      ? {
+          [item.id]: [{ id: "answer-message", sender: "you", snippet: "I used a queue safely." }],
+        }
+      : {},
+  }));
+  vi.spyOn(Api, "getReport").mockResolvedValue(reportFor(item, 8));
+  const { client } = openHistory();
+
+  fireEvent.change(await screen.findByLabelText("Search in"), { target: { value: "transcript" } });
+  expect(
+    await screen.findByText("Enter at least 2 characters to search transcript questions and answers."),
+  ).toBeVisible();
+  expect(request).toHaveBeenCalledTimes(1);
+  fireEvent.change(screen.getByLabelText("Search questions and answers"), {
+    target: { value: "queue" },
+  });
+  const result = await screen.findByRole("link", { name: "Your answer: I used a queue safely." });
+  expect(result).toHaveAttribute(
+    "href",
+    "/report?interviewId=transcript-id#transcript-answer-message",
+  );
+  expect(request).toHaveBeenLastCalledWith(
+    expect.objectContaining({ searchMode: "transcript", search: "queue" }),
+  );
+  client.clear();
+});
+
+it("selects only two ended reports for comparison without starting interviews", async () => {
+  const sessions = [
+    session("one", "complete"),
+    session("two", "incomplete"),
+    session("three", "complete"),
+    session("active", "active"),
+  ];
+  vi.spyOn(Api, "getHistoryPage").mockResolvedValue(page(sessions));
+  vi.spyOn(Api, "getReport").mockImplementation(async (id) =>
+    reportFor(
+      sessions.find((s) => s.id === id)!,
+      7,
+    ),
+  );
+  const start = vi.spyOn(Api, "startInterview");
+  const { client } = openHistory();
+  const first = await screen.findByRole("checkbox", { name: "Compare QA Engineer one" });
+  expect(screen.getByRole("checkbox", { name: "Compare QA Engineer active" })).toBeDisabled();
   fireEvent.click(first);
-  fireEvent.click(screen.getByRole("checkbox",{name:"Compare QA Engineer two"}));
-  expect(screen.getByRole("checkbox",{name:"Compare QA Engineer three"})).toBeDisabled();
-  expect(screen.getByRole("link",{name:"Compare selected reports"})).toHaveAttribute("href","/compare?first=one&second=two");
-  expect(start).not.toHaveBeenCalled();client.clear();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Compare QA Engineer two" }));
+  expect(screen.getByRole("checkbox", { name: "Compare QA Engineer three" })).toBeDisabled();
+  expect(screen.getByRole("link", { name: "Compare selected reports" })).toHaveAttribute(
+    "href",
+    "/compare?first=one&second=two",
+  );
+  expect(start).not.toHaveBeenCalled();
+  client.clear();
 });

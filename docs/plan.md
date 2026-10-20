@@ -132,11 +132,14 @@ The product should teach users *why* an answer was strong or weak, not merely as
 **Why:** Broad enough to be useful while keeping question quality manageable.  
 **Other options:** One role only (too narrow); all possible roles (too broad).
 
-### Decision 3 — English for the first release
+### Decision 3 — English first, Russian as a validated post-MVP language
 
-**Chosen:** English interviews and feedback; profile can retain language preference for expansion.  
-**Why:** Reduces complexity in voice recognition and evaluation.  
-**Other options:** English/Russian; English/Russian/Kazakh; fully multilingual from day one.
+**Chosen:** English for the initial release, with Russian as the first additional language after
+end-to-end provider, prompt, and browser speech checks. Profile preferences continue to store
+languages that are not yet supported for interviews.
+**Why:** Additional language support must cover interview content, feedback, and speech without
+silently mixing languages.
+**Other options:** English/Russian/Kazakh; fully multilingual from day one.
 
 ### Decision 4 — Quick Start plus custom setup
 

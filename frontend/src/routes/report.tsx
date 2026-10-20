@@ -59,6 +59,24 @@ function Report() {
     },
     [playingMedia],
   );
+  useEffect(() => {
+    if (!data || !window.location.hash.startsWith("#transcript-")) return;
+    let messageId = "";
+    try {
+      messageId = decodeURIComponent(window.location.hash.slice("#transcript-".length));
+    } catch {
+      return;
+    }
+    if (!data.interview.messages.some((message) => message.id === messageId)) return;
+    setTranscriptOpen(true);
+    setHighlightedAnswerId(messageId);
+    if (transcriptOpen) {
+      const target = document.getElementById(`transcript-${messageId}`);
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({ block: "center" });
+      }
+    }
+  }, [data, transcriptOpen]);
   const playMedia = async (mediaId: string) => {
     setMediaPending(true);
     setMediaError(null);
@@ -146,7 +164,11 @@ function Report() {
           </h1>
         </div>
         <div className="flex gap-3">
-          <DownloadButton label="Download Markdown report" filename="interview-report.md" load={() => Api.exportReport(interviewId)} />
+          <DownloadButton
+            label="Download Markdown report"
+            filename="interview-report.md"
+            load={() => Api.exportReport(interviewId)}
+          />
           <Link to="/ready" search={{ retryId: interview.id }} className="btn btn-ghost">
             Retry
           </Link>

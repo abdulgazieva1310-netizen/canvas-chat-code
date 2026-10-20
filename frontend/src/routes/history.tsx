@@ -13,6 +13,7 @@ function validateSearch(search: Record<string, unknown>): HistoryQuery {
   const maxScore = Number(search["maxScore"]);
   const role = targetRoles.find((candidate) => candidate === search["role"]);
   const type = interviewTypes.find((candidate) => candidate === search["type"]);
+  const searchMode = search["searchMode"] === "transcript" ? "transcript" : undefined;
   const date = (name: "startDate" | "endDate") => {
     const value = search[name];
     if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
@@ -32,6 +33,7 @@ function validateSearch(search: Record<string, unknown>): HistoryQuery {
     ...(score(minScore) ? { minScore: score(minScore) } : {}),
     ...(score(maxScore) ? { maxScore: score(maxScore) } : {}),
     ...(text ? { search: text } : {}),
+    ...(searchMode ? { searchMode } : {}),
     page: Number.isInteger(page) && page > 0 ? page : 1,
     pageSize: 20,
   };
@@ -45,18 +47,23 @@ export const Route = createFileRoute("/history")({
 
 function History() {
   const navigate = useNavigate();
-  const [selected,setSelected]=useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
   const filters = Route.useSearch();
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 20;
   const query = { ...filters, page, pageSize };
+  const transcriptQueryInvalid =
+    filters.searchMode === "transcript" && (filters.search?.trim().length ?? 0) < 2;
   const history = useQuery({
     queryKey: ["history-page", query],
     queryFn: async () => {
       const data = await Api.getHistoryPage(query);
       // Support the existing array response while the paginated backend rolls out.
-      return Array.isArray(data) ? { items: data as Interview[], total: data.length, page: 1, pageSize } : data;
+      return Array.isArray(data)
+        ? { items: data as Interview[], total: data.length, page: 1, pageSize }
+        : data;
     },
+    enabled: !transcriptQueryInvalid,
     retry: false,
   });
   const update = (key: keyof HistoryQuery, value: string) => {
@@ -77,7 +84,15 @@ function History() {
       <p className="eyebrow">Your saved sessions</p>
       <h1 className="mt-2 text-4xl">Interview History</h1>
       <p>Select two saved reports to compare. Active interviews cannot be selected.</p>
-      {selected.length===2 && <Link className="btn btn-primary mt-3" to="/compare" search={{first:selected[0]!,second:selected[1]!}}>Compare selected reports</Link>}
+      {selected.length === 2 && (
+        <Link
+          className="btn btn-primary mt-3"
+          to="/compare"
+          search={{ first: selected[0]!, second: selected[1]! }}
+        >
+          Compare selected reports
+        </Link>
+      )}
       <div className="card-surface mt-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
         <label className="grid gap-1 text-sm" htmlFor="history-role">
           Role
@@ -154,16 +169,35 @@ function History() {
           />
         </label>
         <label className="grid gap-1 text-sm sm:col-span-2" htmlFor="history-search">
-          Search role or job description
+          {filters.searchMode === "transcript"
+            ? "Search questions and answers"
+            : "Search role or job description"}
           <input
             id="history-search"
             type="search"
+            minLength={filters.searchMode === "transcript" ? 2 : undefined}
             maxLength={200}
             value={filters.search ?? ""}
             onChange={(e) => update("search", e.target.value)}
-            placeholder="Case-insensitive text search"
+            placeholder={
+              filters.searchMode === "transcript"
+                ? "Enter at least 2 characters"
+                : "Case-insensitive text search"
+            }
             className="rounded border bg-background p-2"
           />
+        </label>
+        <label className="grid gap-1 text-sm" htmlFor="history-search-mode">
+          Search in
+          <select
+            id="history-search-mode"
+            value={filters.searchMode ?? "setup"}
+            onChange={(e) => update("searchMode", e.target.value)}
+            className="rounded border bg-background p-2"
+          >
+            <option value="setup">Role and job description</option>
+            <option value="transcript">Questions and answers</option>
+          </select>
         </label>
         {filtered && (
           <button
@@ -176,12 +210,17 @@ function History() {
         )}
       </div>
 
-      {history.isPending && (
+      {transcriptQueryInvalid && (
+        <p role="status" className="mt-6">
+          Enter at least 2 characters to search transcript questions and answers.
+        </p>
+      )}
+      {!transcriptQueryInvalid && history.isPending && (
         <p role="status" className="mt-6">
           Loading interview history…
         </p>
       )}
-      {history.error && (
+      {!transcriptQueryInvalid && history.error && (
         <section className="card-surface mt-6 p-5">
           <p role="alert">Could not load interview history: {history.error.message}</p>
           <button
@@ -193,7 +232,7 @@ function History() {
           </button>
         </section>
       )}
-      {!history.isPending && !history.error && history.data?.items.length === 0 && (
+      {!transcriptQueryInvalid && !history.isPending && !history.error && history.data?.items.length === 0 && (
         <div className="card-surface mt-6 p-6">
           <p>{filtered ? "No interviews match these filters." : "No saved interviews yet."}</p>
           {filtered && (
@@ -207,13 +246,24 @@ function History() {
           )}
         </div>
       )}
-      {!history.isPending && !history.error && (history.data?.items.length ?? 0) > 0 && (
+      {!transcriptQueryInvalid && !history.isPending && !history.error && (history.data?.items.length ?? 0) > 0 && (
         <>
           <ul className="mt-6 divide-y divide-border rounded-xl border">
             {history.data!.items.map((interview) => (
-              <HistoryItem key={interview.id} interview={interview} selected={selected.includes(interview.id)}
-                disabled={!selected.includes(interview.id) && selected.length===2}
-                toggle={()=>setSelected(current=>current.includes(interview.id) ? current.filter(id=>id!==interview.id) : [...current,interview.id])} />
+              <HistoryItem
+                key={interview.id}
+                interview={interview}
+                matches={history.data?.matches?.[interview.id] ?? []}
+                selected={selected.includes(interview.id)}
+                disabled={!selected.includes(interview.id) && selected.length === 2}
+                toggle={() =>
+                  setSelected((current) =>
+                    current.includes(interview.id)
+                      ? current.filter((id) => id !== interview.id)
+                      : [...current, interview.id],
+                  )
+                }
+              />
             ))}
           </ul>
           <div className="mt-4 flex items-center justify-between gap-3">
@@ -255,7 +305,19 @@ function History() {
   );
 }
 
-function HistoryItem({ interview, selected, disabled, toggle }: { interview: Interview; selected:boolean; disabled:boolean; toggle:()=>void }) {
+function HistoryItem({
+  interview,
+  matches,
+  selected,
+  disabled,
+  toggle,
+}: {
+  interview: Interview;
+  matches: { id: string; sender: "ai" | "you"; snippet: string }[];
+  selected: boolean;
+  disabled: boolean;
+  toggle: () => void;
+}) {
   const report = useQuery({
     queryKey: ["report", interview.id],
     queryFn: () => Api.getReport(interview.id),
@@ -271,36 +333,66 @@ function HistoryItem({ interview, selected, disabled, toggle }: { interview: Int
         : "Active";
   const score = report.data?.feedback.overall;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 p-4">
-      <label className="text-sm"><input type="checkbox" checked={selected} disabled={disabled || interview.status==="active"} onChange={toggle}
-        aria-label={`Compare ${interview.setup.role} ${interview.id}`} /> Select for comparison</label>
-      <Link
-        to={destination}
-        search={{ interviewId: interview.id }}
-        className="min-w-0 flex-1 rounded focus-visible:outline focus-visible:outline-2"
-      >
-        <span className="block font-medium">
-          {interview.setup.role} · {interview.setup.type}
+    <li className="p-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <label className="text-sm">
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={disabled || interview.status === "active"}
+            onChange={toggle}
+            aria-label={`Compare ${interview.setup.role} ${interview.id}`}
+          />{" "}
+          Select for comparison
+        </label>
+        <Link
+          to={destination}
+          search={{ interviewId: interview.id }}
+          className="min-w-0 flex-1 rounded focus-visible:outline focus-visible:outline-2"
+        >
+          <span className="block font-medium">
+            {interview.setup.role} · {interview.setup.type}
+          </span>
+          <span className="block text-sm text-muted-foreground">
+            {new Date(interview.startedAt).toISOString().slice(0, 10)} UTC · {interview.setup.mode}{" "}
+            · {status}
+          </span>
+        </Link>
+        <span aria-label="Interview score" className="text-sm">
+          {interview.status === "active"
+            ? "In progress"
+            : report.isPending
+              ? "Loading score…"
+              : report.error
+                ? "Score unavailable"
+                : score == null
+                  ? "Unscored"
+                  : `Score ${score} / 10`}
         </span>
-        <span className="block text-sm text-muted-foreground">
-          {new Date(interview.startedAt).toISOString().slice(0, 10)} UTC · {interview.setup.mode} ·{" "}
-          {status}
-        </span>
-      </Link>
-      <span aria-label="Interview score" className="text-sm">
-        {interview.status === "active"
-          ? "In progress"
-          : report.isPending
-            ? "Loading score…"
-            : report.error
-              ? "Score unavailable"
-              : score == null
-                ? "Unscored"
-                : `Score ${score} / 10`}
-      </span>
-      <Link to={destination} search={{ interviewId: interview.id }} className="btn btn-ghost">
-        {interview.status === "active" ? "Resume interview" : "Open report"}
-      </Link>
+        <Link to={destination} search={{ interviewId: interview.id }} className="btn btn-ghost">
+          {interview.status === "active" ? "Resume interview" : "Open report"}
+        </Link>
+      </div>
+      {matches.length > 0 && (
+        <ul
+          aria-label={`Transcript matches for ${interview.setup.role}`}
+          className="mt-3 space-y-2 border-l-2 pl-3"
+        >
+          {matches.map((match) => (
+            <li key={match.id}>
+              <a
+                className="text-sm underline underline-offset-2"
+                href={`/report?interviewId=${encodeURIComponent(interview.id)}#transcript-${encodeURIComponent(match.id)}`}
+              >
+                <span className="font-medium">
+                  {match.sender === "ai" ? "Question" : "Your answer"}:
+                </span>{" "}
+                {match.snippet}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </li>
   );
 }

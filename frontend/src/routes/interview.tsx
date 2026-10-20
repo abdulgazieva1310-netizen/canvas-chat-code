@@ -329,7 +329,7 @@ function Interview() {
     voiceMode && interview?.status === "active" && !busy && !error,
     interviewId,
     setText,
-    interview?.setup.language ?? "English",
+    interview?.setup?.language ?? "English",
   );
   const latestQuestion = [...(interview?.messages ?? [])]
     .reverse()
@@ -338,7 +338,7 @@ function Interview() {
     interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
     latestQuestion?.id ?? "",
     latestQuestion?.text ?? "",
-    interview?.setup.language ?? "English",
+    interview?.setup?.language ?? "English",
   );
   useEffect(() => {
     const startedAt = interview?.startedAt;

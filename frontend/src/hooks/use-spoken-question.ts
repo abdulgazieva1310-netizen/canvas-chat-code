@@ -36,7 +36,7 @@ export function useSpokenQuestion(
       return;
     }
     try {
-      const voice = speaker.getVoices().find((voice) =>
+      const voice = (speaker.getVoices?.() ?? []).find((voice) =>
         voice.lang.toLowerCase().replaceAll("_", "-").startsWith(language === "Russian" ? "ru-" : "en-"),
       );
       if (

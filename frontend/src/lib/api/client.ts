@@ -98,6 +98,7 @@ async function request<T>(
 const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 
 export const Api = {
+  exportAccount: () => request<Blob>("/auth/me/export", undefined, "GET", { responseType: "blob" }),
   saveStudyQuestion: (interviewId: string, questionId: string) => request<StudyQuestion>("/study/questions", {interviewId, questionId}),
   getStudyQuestions: (page = 1) => request<StudyPage>(`/study/questions?page=${page}`),
   updateStudyQuestion: (id: string, note: string) => request<StudyQuestion>(`/study/questions/${encodeURIComponent(id)}`, {note}, "PATCH"),

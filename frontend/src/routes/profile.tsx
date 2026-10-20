@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
+import { DownloadButton } from "@/components/DownloadButton";
 import { Api } from "@/lib/api/client";
 import { targetRoles, type Level, type Role, type User } from "@/lib/api/types";
 import {
@@ -34,7 +35,14 @@ function Profile() {
           </button>
         </div>
       )}
-      {profile.data && <ProfileForm key={profile.data.id} user={profile.data} />}
+      {profile.data && <>
+        <ProfileForm key={profile.data.id} user={profile.data} />
+        <section className="card-surface mt-6 max-w-xl p-7" aria-label="Account data export">
+          <h2 className="text-xl">Download your account data</h2>
+          <p>Download a versioned JSON copy of your profile, interviews, feedback and study notes. Media metadata is included; recording files are excluded. End active Real Interviews first. Archives over 10 MiB cannot be downloaded here.</p>
+          <DownloadButton label="Download account archive" filename="interview-mirror-account.json" load={Api.exportAccount} />
+        </section>
+      </>}
     </AppShell>
   );
 }

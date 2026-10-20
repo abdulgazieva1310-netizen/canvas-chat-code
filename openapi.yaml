@@ -457,6 +457,41 @@ paths:
           description: Missing or inaccessible interview
         '409':
           description: Interview is still active
+  /auth/me/export:
+    get:
+      operationId: exportAccount
+      summary: Download an owner-scoped versioned JSON account archive
+      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, study notes and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
+      responses:
+        '200':
+          description: JSON archive attachment
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, media, mediaBytesIncluded]
+                properties:
+                  schemaVersion: {type: integer, enum: [1]}
+                  exportedAt: {type: string, format: date-time}
+                  profile: {$ref: '#/components/schemas/User'}
+                  interviews:
+                    type: array
+                    items: {$ref: '#/components/schemas/Interview'}
+                  evaluations:
+                    type: array
+                    items: {type: object}
+                  learningPlan: {$ref: '#/components/schemas/DashboardSummary'}
+                  studyQuestions:
+                    type: array
+                    items: {type: object}
+                  media:
+                    type: array
+                    items: {type: object}
+                  mediaBytesIncluded: {type: boolean, enum: [false]}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409': {description: Active Real Interview would expose feedback prematurely}
+        '413': {description: Archive exceeds 10 MiB; no partial attachment returned}
   /study/questions:
     get:
       operationId: listStudyQuestions

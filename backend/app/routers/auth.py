@@ -123,3 +123,13 @@ def login(data: LoginData, request: Request, response: Response):
             raise HTTPException(401, 'Invalid email or password.', headers={'WWW-Authenticate': 'Bearer'})
         establish_session(request, response, record.id, store)
         return User.model_validate(record.profile)
+
+
+@router.get('/me/export')
+def export_account(request: Request, user: CurrentUser):
+    from ..account_export import archive
+    with request.app.state.store.transaction() as store:
+        payload = archive(store, user)
+    return Response(payload, media_type='application/json', headers={
+        'Content-Disposition': 'attachment; filename="interview-mirror-account.json"',
+        'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})

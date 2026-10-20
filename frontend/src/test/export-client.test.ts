@@ -15,3 +15,11 @@ it("preserves download errors instead of downloading an error document", async (
   vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response('{"message":"End the interview first."}',{status:409})));
   await expect(Api.exportReport("active")).rejects.toMatchObject({status:409,message:"End the interview first."});
 });
+it("downloads only the current account archive with session credentials", async () => {
+  saveAuthorization("Bearer owner-session");
+  const fetch=vi.fn().mockResolvedValue(new Response('{"schemaVersion":1}',{headers:{"Content-Type":"application/json"}}));
+  vi.stubGlobal("fetch",fetch);
+  const blob=await Api.exportAccount();
+  expect(await blob.text()).toContain('"schemaVersion":1');
+  expect(fetch).toHaveBeenCalledWith("http://localhost:8000/api/auth/me/export",expect.objectContaining({credentials:"include",headers:expect.objectContaining({Authorization:"Bearer owner-session"})}));
+});

@@ -112,3 +112,20 @@ test("authentication and recovery links remain reachable", async ({ page }) => {
   await page.goto("/reset-password?token=test-link");
   await expect(page.getByRole("heading", { name: /password/i })).toBeVisible();
 });
+
+for (const width of [375, 1280]) {
+  test(`saved report comparison is readable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({width,height:900});
+    await page.route("**/api/interviews/*/report",async route=>{
+      const id=new URL(route.request().url()).pathname.split("/").at(-2)!;
+      await route.fulfill({json:{interview:{...complete,id,status:"incomplete",answeredCount:1},feedback:{interviewId:id,overall:id==="one" ? 7:8,scores:{accuracy:id==="one" ? 7:8,completeness:null,clarity:6,structure:null},strengths:["Clear explanation"],gaps:["Explain trade-offs"],questions:[]}}});
+    });
+    await page.goto("/compare?first=one&second=two");
+    await expect(page.getByRole("heading",{name:"Compare saved reports"})).toBeVisible();
+    await expect(page.getByRole("table")).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    const link=page.getByRole("link",{name:"Review full report 1"});
+    await link.focus();await expect(link).toBeFocused();
+    await page.reload();await expect(page.getByRole("table")).toBeVisible();
+  });
+}

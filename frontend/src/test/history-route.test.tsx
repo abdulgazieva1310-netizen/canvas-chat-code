@@ -238,3 +238,18 @@ it("renders saved history during the legacy array-to-page rollout", async () => 
   expect(screen.getByText("QA Engineer · Behavioral")).toBeInTheDocument();
   client.clear();
 });
+
+it("selects only two ended reports for comparison without starting interviews",async()=>{
+  const sessions=[session("one","complete"),session("two","incomplete"),session("three","complete"),session("active","active")];
+  vi.spyOn(Api,"getHistoryPage").mockResolvedValue(page(sessions));
+  vi.spyOn(Api,"getReport").mockImplementation(async id=>reportFor(sessions.find(s=>s.id===id)!,7));
+  const start=vi.spyOn(Api,"startInterview");
+  const {client}=openHistory();
+  const first=await screen.findByRole("checkbox",{name:"Compare QA Engineer one"});
+  expect(screen.getByRole("checkbox",{name:"Compare QA Engineer active"})).toBeDisabled();
+  fireEvent.click(first);
+  fireEvent.click(screen.getByRole("checkbox",{name:"Compare QA Engineer two"}));
+  expect(screen.getByRole("checkbox",{name:"Compare QA Engineer three"})).toBeDisabled();
+  expect(screen.getByRole("link",{name:"Compare selected reports"})).toHaveAttribute("href","/compare?first=one&second=two");
+  expect(start).not.toHaveBeenCalled();client.clear();
+});

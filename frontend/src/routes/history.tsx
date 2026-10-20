@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Api } from "@/lib/api/client";
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/history")({
 
 function History() {
   const navigate = useNavigate();
+  const [selected,setSelected]=useState<string[]>([]);
   const filters = Route.useSearch();
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 20;
@@ -74,6 +76,8 @@ function History() {
     <AppShell>
       <p className="eyebrow">Your saved sessions</p>
       <h1 className="mt-2 text-4xl">Interview History</h1>
+      <p>Select two saved reports to compare. Active interviews cannot be selected.</p>
+      {selected.length===2 && <Link className="btn btn-primary mt-3" to="/compare" search={{first:selected[0]!,second:selected[1]!}}>Compare selected reports</Link>}
       <div className="card-surface mt-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
         <label className="grid gap-1 text-sm" htmlFor="history-role">
           Role
@@ -207,7 +211,9 @@ function History() {
         <>
           <ul className="mt-6 divide-y divide-border rounded-xl border">
             {history.data!.items.map((interview) => (
-              <HistoryItem key={interview.id} interview={interview} />
+              <HistoryItem key={interview.id} interview={interview} selected={selected.includes(interview.id)}
+                disabled={!selected.includes(interview.id) && selected.length===2}
+                toggle={()=>setSelected(current=>current.includes(interview.id) ? current.filter(id=>id!==interview.id) : [...current,interview.id])} />
             ))}
           </ul>
           <div className="mt-4 flex items-center justify-between gap-3">
@@ -249,7 +255,7 @@ function History() {
   );
 }
 
-function HistoryItem({ interview }: { interview: Interview }) {
+function HistoryItem({ interview, selected, disabled, toggle }: { interview: Interview; selected:boolean; disabled:boolean; toggle:()=>void }) {
   const report = useQuery({
     queryKey: ["report", interview.id],
     queryFn: () => Api.getReport(interview.id),
@@ -266,6 +272,8 @@ function HistoryItem({ interview }: { interview: Interview }) {
   const score = report.data?.feedback.overall;
   return (
     <li className="flex flex-wrap items-center justify-between gap-4 p-4">
+      <label className="text-sm"><input type="checkbox" checked={selected} disabled={disabled || interview.status==="active"} onChange={toggle}
+        aria-label={`Compare ${interview.setup.role} ${interview.id}`} /> Select for comparison</label>
       <Link
         to={destination}
         search={{ interviewId: interview.id }}

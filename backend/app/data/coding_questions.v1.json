@@ -3,6 +3,8 @@
   "questions": [
     {
       "id": "coding-junior-first-repeat",
+      "judgeKey": "first-repeat-v1",
+      "judgeSpecVersion": 1,
       "version": 1,
       "roles": [
         "Java Developer",
@@ -25,6 +27,8 @@
     },
     {
       "id": "coding-junior-runs",
+      "judgeKey": "runs-v1",
+      "judgeSpecVersion": 1,
       "version": 1,
       "roles": [
         "Java Developer",
@@ -47,6 +51,8 @@
     },
     {
       "id": "coding-junior-merge-sorted",
+      "judgeKey": "merge-sorted-v1",
+      "judgeSpecVersion": 1,
       "version": 1,
       "roles": [
         "Java Developer",
@@ -70,6 +76,7 @@
     {
       "id": "coding-junior-balanced",
       "judgeKey": "balanced-brackets-v1",
+      "judgeSpecVersion": 1,
       "version": 1,
       "roles": [
         "Java Developer",

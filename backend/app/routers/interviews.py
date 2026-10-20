@@ -26,6 +26,13 @@ from ..services.question_bank import load_bank
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
 RUNNABLE_LANGUAGES = frozenset({'Python', 'Java', 'C++', 'JavaScript', 'TypeScript'})
+JUDGED_QUESTION_BY_ROLE = {
+    'Backend Developer': 'coding-junior-balanced',
+    'Python Developer': 'coding-junior-first-repeat',
+    'Java Developer': 'coding-junior-runs',
+    'C++ Developer': 'coding-junior-merge-sorted',
+    'Full Stack Developer': 'coding-junior-first-repeat',
+}
 JUDGE_CASES = {
     'balanced-brackets-v1': [
         ('normal', '{}[]\n', 'true\n'),
@@ -33,9 +40,35 @@ JUDGE_CASES = {
         ('boundary', '\n', 'true\n'),
         ('boundary', '(((())))\n', 'true\n'),
         ('invalid-input', '(a)\n', 'false\n'),
-    ]
+    ],
+    'first-repeat-v1': [
+        ('normal', '4 4 2 4 2\n', '4\n'),
+        ('normal', '3 1 2 3\n', 'null\n'),
+        ('boundary', '0\n', 'null\n'),
+        ('boundary', '3 -2147483648 0 -2147483648\n', '-2147483648\n'),
+        ('boundary', '2 7 7\n', '7\n'),
+        ('invalid-input', '-1\n', 'null\n'),
+        ('invalid-input', '2 x 1\n', 'null\n'),
+    ],
+    'runs-v1': [
+        ('normal', '4 2 2 3 2\n', '[[2,2],[3,1],[2,1]]\n'),
+        ('normal', '3 5 5 5\n', '[[5,3]]\n'),
+        ('boundary', '0\n', '[]\n'),
+        ('boundary', '2 -2147483648 2147483647\n', '[[-2147483648,1],[2147483647,1]]\n'),
+        ('boundary', '1 0\n', '[[0,1]]\n'),
+        ('invalid-input', '-1\n', '[]\n'),
+        ('invalid-input', '2 1 x\n', '[]\n'),
+    ],
+    'merge-sorted-v1': [
+        ('normal', '2 2 1 3 2 3\n', '[1,2,3,3]\n'),
+        ('normal', '3 0 1 2 3\n', '[1,2,3]\n'),
+        ('boundary', '0 0\n', '[]\n'),
+        ('boundary', '1 1 -2147483648 2147483647\n', '[-2147483648,2147483647]\n'),
+        ('boundary', '2 2 1 1 1 1\n', '[1,1,1,1]\n'),
+        ('invalid-input', '-1 0\n', '[]\n'),
+        ('invalid-input', '2 1 3 1 2\n', '[]\n'),
+    ],
 }
-
 
 def judge_code(language, code, judge_key):
     cases = JUDGE_CASES[judge_key]
@@ -60,6 +93,9 @@ def judge_code(language, code, judge_key):
         if result.status == 'timeout':
             return {'status': 'timeout', 'passed': passed, 'total': len(cases),
                     'summary': 'The solution exceeded the execution time limit.'}
+        if result.status == 'unavailable':
+            return {'status': 'unavailable', 'passed': passed, 'total': len(cases),
+                    'summary': 'Automated correctness checks are temporarily unavailable; AI coaching feedback is still provided.'}
         if result.status != 'success':
             return {'status': 'runtime-error', 'passed': passed, 'total': len(cases),
                     'summary': 'The solution stopped with a runtime error.'}
@@ -67,7 +103,7 @@ def judge_code(language, code, judge_key):
             passed += 1
     status = 'passed' if passed == len(cases) else 'failed'
     summary = ('All reviewed correctness checks passed.' if status == 'passed' else
-               f'{len(cases) - passed} reviewed correctness check(s) failed. Review bracket matching, empty input, and invalid characters.')
+               f'{len(cases) - passed} reviewed correctness check(s) failed. Review the problem contract and boundary cases.')
     return {'status': status, 'passed': passed, 'total': len(cases), 'summary': summary}
 
 
@@ -273,7 +309,8 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
     judged_question = None
     if (data.type == 'Technical' and data.role in CODING_ROLES and data.level == 'Junior'
             and not data.practiceTopic and data.language == 'English'):
-        judged_question = next((item for item in load_bank() if item.id == 'coding-junior-balanced'), None)
+        question_id = JUDGED_QUESTION_BY_ROLE.get(data.role)
+        judged_question = next((item for item in load_bank() if item.id == question_id), None)
     if judged_question:
         first_question = judged_question.candidate_prompt(data.role)
     else:
@@ -288,6 +325,9 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
             interview = repository.start(user.id, data, first_question=first_question)
             if judged_question:
                 interview.messages[0].codingQuestionId = judged_question.id
+                interview.messages[0].codingQuestionVersion = judged_question.version
+                interview.messages[0].codingJudgeSpecKey = judged_question.judgeKey
+                interview.messages[0].codingJudgeSpecVersion = judged_question.judgeSpecVersion
                 repository.save(interview)
             if key:
                 repository.session.add(InterviewStartRecord(owner_id=user.id, key=key,
@@ -362,9 +402,9 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             raise HTTPException(503, 'Russian answer evaluation is temporarily unavailable. Your answer was not saved; retry or select English.')
         setup = interview.setup
         coding_judge = None
-        if current_question_message.codingQuestionId:
+        if current_question_message.codingJudgeSpecKey:
             coding_judge = judge_code(language or data.selectedLanguage or 'Python', data.text,
-                                      'balanced-brackets-v1')
+                                      current_question_message.codingJudgeSpecKey)
         current_level = interview.effectiveLevel or setup.level
         is_main_answer = current_question_message.kind == 'main'
         already_adjusted = any(

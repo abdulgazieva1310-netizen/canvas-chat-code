@@ -25,12 +25,15 @@ class BankQuestion(BaseModel):
     constraints: str = ''
     reviewerNotes: str = Field(min_length=1)
     judgeKey: str | None = None
+    judgeSpecVersion: int | None = None
 
     @model_validator(mode='after')
     def coding_details(self):
         if self.type == 'Technical' and CODING_ROLES.intersection(self.roles):
             if not self.examples or not self.constraints.strip():
                 raise ValueError('Coding entries require examples and constraints')
+        if bool(self.judgeKey) != bool(self.judgeSpecVersion):
+            raise ValueError('Judged questions require a versioned judge specification')
         return self
 
     def candidate_prompt(self, role: str) -> str:
@@ -44,6 +47,17 @@ class BankQuestion(BaseModel):
             sections.append('Examples:\n' + '\n'.join(self.examples))
         if self.constraints:
             sections.append('Constraints: ' + self.constraints)
+        if self.judgeKey:
+            contracts = {
+                'balanced-brackets-v1': 'Read one line from standard input and print exactly true or false.',
+                'first-repeat-v1': ('Read n followed by n signed 32-bit integers from standard input. Print the '
+                                    'first repeated integer, or null if none repeats. Print null for malformed input.'),
+                'runs-v1': ('Read n followed by n signed 32-bit integers from standard input. Print compact JSON '
+                            'run pairs [[value,count],...] in encounter order. Print [] for malformed input.'),
+                'merge-sorted-v1': ('Read n, m, then n and m signed 32-bit integers from standard input. Print '
+                                    'the merged array as compact JSON. Print [] for malformed or unsorted input.'),
+            }
+            sections.append('Program contract: ' + contracts[self.judgeKey])
         return '\n\n'.join(sections)
 
 

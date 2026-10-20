@@ -133,6 +133,9 @@ class Message(BaseModel):
     kind: Literal['main', 'follow-up'] = 'main'
     mainQuestionId: str | None = None
     codingQuestionId: str | None = None
+    codingQuestionVersion: int | None = None
+    codingJudgeSpecKey: str | None = None
+    codingJudgeSpecVersion: int | None = None
     codingJudge: CodingJudgeSummary | None = None
 
 
@@ -188,6 +191,10 @@ class Interview(BaseModel):
 class QuestionFeedback(BaseModel):
     questionId: str
     answerId: str
+    codingQuestionId: str | None = None
+    codingQuestionVersion: int | None = None
+    codingJudgeSpecKey: str | None = None
+    codingJudgeSpecVersion: int | None = None
     q: str
     answer: str
     score: float | None

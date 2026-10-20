@@ -1144,6 +1144,10 @@ components:
         createdAt: {type: string, format: date-time}
         kind: {type: string, enum: [main, follow-up], default: main}
         mainQuestionId: {type: string, nullable: true, description: Main-question ID for a follow-up message; null for main questions.}
+        codingQuestionId: {type: string, nullable: true}
+        codingQuestionVersion: {type: integer, nullable: true}
+        codingJudgeSpecKey: {type: string, nullable: true}
+        codingJudgeSpecVersion: {type: integer, nullable: true}
     DifficultyDecision:
       type: object
       required: [questionId, answerId, previousLevel, effectiveLevel, average, reason]
@@ -1235,6 +1239,10 @@ components:
       properties:
         questionId: {type: string, description: Saved transcript question message ID.}
         answerId: {type: string, description: Saved transcript answer message ID.}
+        codingQuestionId: {type: string, nullable: true}
+        codingQuestionVersion: {type: integer, nullable: true}
+        codingJudgeSpecKey: {type: string, nullable: true}
+        codingJudgeSpecVersion: {type: integer, nullable: true}
         q: {type: string}
         answer: {type: string}
         score: {type: number, minimum: 1, maximum: 10, nullable: true}

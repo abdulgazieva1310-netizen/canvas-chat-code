@@ -70,6 +70,9 @@ export interface Message {
   kind?: "main" | "follow-up";
   mainQuestionId?: string | null;
   codingQuestionId?: string | null;
+  codingQuestionVersion?: number | null;
+  codingJudgeSpecKey?: string | null;
+  codingJudgeSpecVersion?: number | null;
   codingJudge?: CodingJudgeSummary | null;
 }
 
@@ -127,6 +130,10 @@ export interface Feedback {
   questions: {
     questionId: string;
     answerId: string;
+    codingQuestionId?: string | null;
+    codingQuestionVersion?: number | null;
+    codingJudgeSpecKey?: string | null;
+    codingJudgeSpecVersion?: number | null;
     q: string;
     answer: string;
     score: number | null;

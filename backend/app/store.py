@@ -163,7 +163,10 @@ def report(interview, evaluations=None):
         topics = practice_topics(evaluation.missing, evaluation.practice_topic) if evaluation else []
         answer_scores = [getattr(evaluation, name) for name in Scores.model_fields
                          if evaluation and getattr(evaluation, name) is not None]
-        feedback.append(QuestionFeedback(questionId=q.id, answerId=a.id, q=q.text, answer=a.text,
+        feedback.append(QuestionFeedback(questionId=q.id, answerId=a.id,
+            codingQuestionId=q.codingQuestionId, codingQuestionVersion=q.codingQuestionVersion,
+            codingJudgeSpecKey=q.codingJudgeSpecKey,
+            codingJudgeSpecVersion=q.codingJudgeSpecVersion, q=q.text, answer=a.text,
             score=round(sum(answer_scores) / len(answer_scores), 1) if answer_scores else None,
             scores=evaluation.category_scores() if evaluation else None,
             good=positive_observation(evaluation.went_well) if evaluation else (

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CalendarReminder } from "@/components/CalendarReminder";
 import { JobTargets } from "@/components/JobTargets";
+import { SetupPresets } from "@/components/SetupPresets";
 
 export const Route = createFileRoute("/setup")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -120,6 +121,20 @@ function Setup() {
         role: target.role,
         jobDescription: target.description,
       }))} />
+      <SetupPresets setup={setup} onApply={(preset) => setSetup((current) => {
+        const next = {
+          ...current,
+          role: preset.role,
+          level: preset.level,
+          type: preset.type,
+          mode: preset.mode,
+          input: preset.input,
+          questionCount: preset.questionCount,
+          language: preset.language,
+        };
+        if (preset.mode !== "Practice") delete next.practiceTopic;
+        return next;
+      })} />
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         <div className="card-surface space-y-7 p-7 md:col-span-2">
           <Choice

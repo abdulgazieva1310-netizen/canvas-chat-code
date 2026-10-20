@@ -595,11 +595,78 @@ paths:
         '204': {description: Target deleted}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /setup-presets:
+    get:
+      operationId: listSetupPresets
+      summary: List private saved Setup presets
+      responses:
+        '200':
+          description: Presets owned by the authenticated user
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SetupPresetList'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      operationId: createSetupPreset
+      summary: Save a Setup preset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SetupPresetInput'}
+      responses:
+        '201':
+          description: Created preset
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SetupPreset'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {description: Duplicate normalized name or owner limit reached}
+        '400': {description: Invalid preset fields}
+  /setup-presets/{id}:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: string}}
+    get:
+      operationId: getSetupPreset
+      summary: Read one owned Setup preset
+      responses:
+        '200':
+          description: Saved preset
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SetupPreset'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      operationId: updateSetupPreset
+      summary: Replace or rename an owned Setup preset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SetupPresetInput'}
+      responses:
+        '200':
+          description: Updated preset
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SetupPreset'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: Duplicate normalized name}
+        '400': {description: Invalid preset fields}
+    delete:
+      operationId: deleteSetupPreset
+      summary: Delete an owned Setup preset
+      responses:
+        '204': {description: Preset deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /auth/me/export:
     get:
       operationId: exportAccount
       summary: Download an owner-scoped versioned JSON account archive
-      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, study notes, job targets and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
+      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, study notes, job targets, Setup presets and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
       responses:
         '200':
           description: JSON archive attachment
@@ -607,7 +674,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, evaluationFeedback, jobTargets, media, mediaBytesIncluded]
+                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, evaluationFeedback, jobTargets, setupPresets, media, mediaBytesIncluded]
                 properties:
                   schemaVersion: {type: integer, enum: [1]}
                   exportedAt: {type: string, format: date-time}
@@ -628,6 +695,9 @@ paths:
                   jobTargets:
                     type: array
                     items: {$ref: '#/components/schemas/JobTarget'}
+                  setupPresets:
+                    type: array
+                    items: {$ref: '#/components/schemas/SetupPreset'}
                   media:
                     type: array
                     items: {type: object}
@@ -1208,6 +1278,36 @@ components:
         items:
           type: array
           items: {$ref: '#/components/schemas/JobTarget'}
+        limit: {type: integer, enum: [20]}
+    SetupPresetInput:
+      type: object
+      additionalProperties: false
+      required: [name, role, level, type, mode, input, questionCount, language]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 80}
+        role: {$ref: '#/components/schemas/Role'}
+        level: {$ref: '#/components/schemas/Level'}
+        type: {type: string, enum: [Technical, Behavioral, Role-specific]}
+        mode: {type: string, enum: [Practice, Real Interview]}
+        input: {type: string, enum: [Voice, Text]}
+        questionCount: {type: integer, enum: [5, 10, 15]}
+        language: {type: string, enum: [English, Russian]}
+    SetupPreset:
+      allOf:
+        - {$ref: '#/components/schemas/SetupPresetInput'}
+        - type: object
+          required: [id, createdAt, updatedAt]
+          properties:
+            id: {type: string}
+            createdAt: {type: string, format: date-time}
+            updatedAt: {type: string, format: date-time}
+    SetupPresetList:
+      type: object
+      required: [items, limit]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/SetupPreset'}
         limit: {type: integer, enum: [20]}
     InterviewReport:
       type: object

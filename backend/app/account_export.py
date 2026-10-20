@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy import select
-from .database import (AnswerEvaluationRecord, EvaluationFeedbackRecord, JobTargetRecord, InterviewRecord,
+from .database import (AnswerEvaluationRecord, EvaluationFeedbackRecord, JobTargetRecord, SetupPresetRecord, InterviewRecord,
                        InterviewMediaRecord, StudyQuestionRecord)
 from .models import AnswerEvaluation, Interview
 
@@ -33,6 +33,8 @@ def archive(store, user):
                                                                 EvaluationFeedbackRecord.answer_id)).all()
     job_targets = store.session.scalars(select(JobTargetRecord).where(JobTargetRecord.owner_id == user.id)
                                         .order_by(JobTargetRecord.created_at, JobTargetRecord.id)).all()
+    setup_presets = store.session.scalars(select(SetupPresetRecord).where(SetupPresetRecord.owner_id == user.id)
+                                          .order_by(SetupPresetRecord.created_at, SetupPresetRecord.id)).all()
     media = store.session.scalars(select(InterviewMediaRecord).where(InterviewMediaRecord.owner_id == user.id)
                                  .order_by(InterviewMediaRecord.id)).all()
     result = {
@@ -53,6 +55,11 @@ def archive(store, user):
         'jobTargets': [{'id': row.id, 'title': row.title, 'company': row.company, 'role': row.role,
                         'description': row.description, 'createdAt': row.created_at, 'updatedAt': row.updated_at}
                        for row in job_targets],
+        'setupPresets': [{'id': row.id, 'name': row.name, 'role': row.role, 'level': row.level,
+                          'type': row.type, 'mode': row.mode, 'input': row.input,
+                          'questionCount': row.question_count, 'language': row.language,
+                          'createdAt': row.created_at, 'updatedAt': row.updated_at}
+                         for row in setup_presets],
         'media': [{'id': row.id, 'interviewId': row.interview_id, 'mediaType': row.media_type,
                    'sizeBytes': row.size_bytes, 'createdAt': row.created_at, 'expiresAt': row.expires_at} for row in media],
         'mediaBytesIncluded': False,

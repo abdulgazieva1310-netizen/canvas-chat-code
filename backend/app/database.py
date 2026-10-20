@@ -103,6 +103,24 @@ class JobTargetRecord(Base):
     updated_at: Mapped[float] = mapped_column(Float)
 
 
+class SetupPresetRecord(Base):
+    __tablename__ = 'setup_presets'
+    __table_args__ = (UniqueConstraint('owner_id', 'name_key', name='uq_setup_preset_owner_name'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    name_key: Mapped[str] = mapped_column(String(256))
+    role: Mapped[str] = mapped_column(String(40))
+    level: Mapped[str] = mapped_column(String(16))
+    type: Mapped[str] = mapped_column(String(24))
+    mode: Mapped[str] = mapped_column(String(24))
+    input: Mapped[str] = mapped_column(String(16))
+    question_count: Mapped[int] = mapped_column(Integer)
+    language: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[float] = mapped_column(Float)
+
+
 class InterviewMediaConsentRecord(Base):
     __tablename__ = 'interview_media_consents'
     interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), primary_key=True)

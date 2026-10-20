@@ -7,6 +7,8 @@ import type {
   EvaluationFeedback,
   JobTarget,
   JobTargetList,
+  SetupPreset,
+  SetupPresetList,
   InterviewMediaList,
   InterviewMediaInfo,
   InterviewSetup,
@@ -230,6 +232,12 @@ export const Api = {
   updateJobTarget: (id: string, data: Pick<JobTarget, "title" | "company" | "role" | "description">) =>
     request<JobTarget>(`/job-targets/${encodeURIComponent(id)}`, data, "PUT"),
   deleteJobTarget: (id: string) => request<void>(`/job-targets/${encodeURIComponent(id)}`, undefined, "DELETE"),
+  listSetupPresets: () => request<SetupPresetList>("/setup-presets"),
+  createSetupPreset: (data: Omit<SetupPreset, "id" | "createdAt" | "updatedAt">) =>
+    request<SetupPreset>("/setup-presets", data, "POST"),
+  updateSetupPreset: (id: string, data: Omit<SetupPreset, "id" | "createdAt" | "updatedAt">) =>
+    request<SetupPreset>(`/setup-presets/${encodeURIComponent(id)}`, data, "PUT"),
+  deleteSetupPreset: (id: string) => request<void>(`/setup-presets/${encodeURIComponent(id)}`, undefined, "DELETE"),
   async getHistory(): Promise<Interview[]> {
     // Existing dashboard/session consumers still need the complete saved history.
     const first = await request<HistoryPage>("/interviews");

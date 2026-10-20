@@ -194,6 +194,47 @@ test("job target save retries without losing editor text", async ({ page }) => {
   expect(attempts).toBe(2);
 });
 
+test("applying a preset keeps the job description and waits for explicit Start", async ({ page }) => {
+  const preset = { id: "preset-1", name: "QA Practice", role: "QA Engineer", level: "Senior",
+    type: "Role-specific", mode: "Practice", input: "Text", questionCount: 10, language: "English",
+    createdAt: "2026-10-20T00:00:00Z", updatedAt: "2026-10-20T00:00:00Z" };
+  let starts = 0;
+  await page.route("**/api/setup-presets", (route) => route.fulfill({ json: { items: [preset], limit: 20 } }));
+  await page.route("**/api/interviews", async (route) => {
+    if (route.request().method() === "POST") starts += 1;
+    await route.fulfill({ json: active });
+  });
+  await page.goto("/setup");
+  await page.getByLabel("Job description").fill("Keep this saved target text");
+  await page.getByRole("button", { name: "Apply to Setup" }).last().click();
+  await expect(page.getByLabel("Job description")).toHaveValue("Keep this saved target text");
+  await expect(page.getByText("Senior · adaptive", { exact: true })).toBeVisible();
+  expect(starts).toBe(0);
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect.poll(() => starts).toBe(1);
+});
+
+test("preset save retries without losing its name", async ({ page }) => {
+  let attempts = 0;
+  let saved: Record<string, unknown> | null = null;
+  await page.route("**/api/setup-presets", async (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { items: saved ? [saved] : [], limit: 20 } });
+    attempts += 1;
+    if (attempts === 1) return route.fulfill({ status: 503, json: { message: "Temporarily unavailable" } });
+    saved = { id: "preset-1", ...route.request().postDataJSON(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    return route.fulfill({ status: 201, json: saved });
+  });
+  await page.goto("/setup");
+  await page.getByRole("button", { name: "Save current Setup" }).click();
+  await page.getByLabel("Preset name").fill("Weekly practice");
+  await page.getByRole("button", { name: "Save preset" }).click();
+  await expect(page.getByRole("alert")).toContainText("Temporarily unavailable");
+  await expect(page.getByLabel("Preset name")).toHaveValue("Weekly practice");
+  await page.getByRole("button", { name: "Retry save" }).click();
+  await expect(page.locator("article").filter({ hasText: "Weekly practice" })).toBeVisible();
+  expect(attempts).toBe(2);
+});
+
 for (const width of [375, 1280]) {
   test(`saved report comparison is readable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({width,height:900});

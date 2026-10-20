@@ -184,6 +184,25 @@ export interface JobTargetList {
   limit: number;
 }
 
+export interface SetupPreset {
+  id: string;
+  name: string;
+  role: Role;
+  level: Level;
+  type: InterviewSetup["type"];
+  mode: InterviewSetup["mode"];
+  input: InterviewSetup["input"];
+  questionCount: InterviewSetup["questionCount"];
+  language: InterviewLanguage;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SetupPresetList {
+  items: SetupPreset[];
+  limit: number;
+}
+
 export interface RegisterData {
   name: string;
   email: string;

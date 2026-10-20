@@ -6,7 +6,8 @@ from sqlalchemy import delete, select
 from .auth import hasher
 from .database import (UserRecord, TokenRecord, PasswordResetRecord, InterviewRecord,
     InterviewStartRecord, AnswerEvaluationRecord, InterviewMediaRecord,
-    InterviewMediaConsentRecord, StudyQuestionRecord, EvaluationFeedbackRecord, JobTargetRecord, MediaCleanupRecord)
+    InterviewMediaConsentRecord, StudyQuestionRecord, EvaluationFeedbackRecord, JobTargetRecord,
+    SetupPresetRecord, MediaCleanupRecord)
 from .media_storage import remove_media_file
 
 
@@ -19,7 +20,8 @@ def delete_owned_account(store, owner_id, password):
     for key in keys:
         store.session.add(MediaCleanupRecord(storage_key=key, created_at=datetime.now(timezone.utc).timestamp()))
     store.session.flush()
-    for model in (StudyQuestionRecord, EvaluationFeedbackRecord, JobTargetRecord, InterviewMediaRecord, InterviewMediaConsentRecord):
+    for model in (StudyQuestionRecord, EvaluationFeedbackRecord, JobTargetRecord, SetupPresetRecord,
+                  InterviewMediaRecord, InterviewMediaConsentRecord):
         store.session.execute(delete(model).where(model.owner_id == owner_id))
     store.session.execute(delete(AnswerEvaluationRecord).where(AnswerEvaluationRecord.interview_id.in_(interview_ids)))
     store.session.execute(delete(InterviewStartRecord).where(InterviewStartRecord.owner_id == owner_id))

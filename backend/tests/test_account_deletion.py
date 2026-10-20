@@ -7,7 +7,7 @@ from app.main import create_app
 from app import account_deletion
 from app.database import (Base, UserRecord, TokenRecord, PasswordResetRecord, InterviewRecord,
     InterviewMediaRecord, InterviewMediaConsentRecord, StudyQuestionRecord, AnswerEvaluationRecord,
-    EvaluationFeedbackRecord, JobTargetRecord, InterviewStartRecord, MediaCleanupRecord)
+    EvaluationFeedbackRecord, JobTargetRecord, SetupPresetRecord, InterviewStartRecord, MediaCleanupRecord)
 from app.media_storage import media_path
 from app.services import ai_service
 from app.services.email_service import LocalMailbox
@@ -34,6 +34,9 @@ def test_account_deletion_reauth_revocation_isolation_and_durable_cleanup(tmp_pa
                 provenance=None,updated_at=1000))
             session.add(JobTargetRecord(id='target',owner_id=owner,title='Target',company=None,role='QA Engineer',
                 description='Private description',created_at=1000,updated_at=1000))
+            session.add(SetupPresetRecord(id='preset',owner_id=owner,name='Preset',name_key='preset',role='QA Engineer',
+                level='Junior',type='Behavioral',mode='Practice',input='Text',question_count=5,
+                language='English',created_at=1000,updated_at=1000))
         client.post('/api/study/questions',json={'interviewId':interview['id'],'questionId':interview['messages'][0]['id']})
         client.post('/api/auth/password-reset/request',json={'email':'owner@example.com'})
         reset=parse_qs(urlparse(mailbox.messages[-1]['link']).query)['token'][0]
@@ -62,7 +65,7 @@ def test_account_deletion_reauth_revocation_isolation_and_durable_cleanup(tmp_pa
             assert session.get(UserRecord,owner) is None and session.get(UserRecord,other) is not None
             for model in [TokenRecord,PasswordResetRecord,InterviewRecord,InterviewMediaRecord,
                           InterviewMediaConsentRecord,StudyQuestionRecord,AnswerEvaluationRecord,EvaluationFeedbackRecord,
-                          InterviewStartRecord,JobTargetRecord]:
+                          InterviewStartRecord,JobTargetRecord,SetupPresetRecord]:
                 # Other account's login token is the only surviving child row.
                 rows=session.scalars(select(model)).all()
                 assert len(rows)==(1 if model is TokenRecord else 0)

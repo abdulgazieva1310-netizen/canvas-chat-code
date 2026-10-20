@@ -13,7 +13,7 @@ answer evaluation, or report feedback for an existing session. Profile language
 remains a general preference; unsupported values are not treated as interview
 languages.
 
-Russian sessions require `AI_API_KEY` and the exact reviewed model above. When
+Russian sessions require `AI_API_KEY` and the exact allowlisted model above. When
 the provider or model is unavailable, the API returns a clear error rather than
 using English fallback questions, hints, or evaluations. Russian output is
 checked for Cyrillic text, and coding prompts also need localized problem

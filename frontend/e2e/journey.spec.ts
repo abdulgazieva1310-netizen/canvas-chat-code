@@ -95,3 +95,43 @@ test('Real mode hides feedback in responses and UI until ending', async ({ page 
   await expect(page).toHaveURL(/report\?interviewId=/);
   await expect(page.getByText('FIXTURE_FEEDBACK: concrete example').first()).toBeVisible();
 });
+
+test('optional 3D interviewer works at desktop and mobile sizes without requesting camera access', async ({ page }) => {
+  await page.addInitScript(() => {
+    const browserWindow = window as typeof window & { __cameraRequestCount?: number };
+    browserWindow.__cameraRequestCount = 0;
+    const mediaDevices = navigator.mediaDevices;
+    if (!mediaDevices) return;
+    const getUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
+    Object.defineProperty(mediaDevices, 'getUserMedia', {
+      configurable: true,
+      value: (...args: Parameters<MediaDevices['getUserMedia']>) => {
+        browserWindow.__cameraRequestCount = (browserWindow.__cameraRequestCount ?? 0) + 1;
+        return getUserMedia(...args);
+      },
+    });
+  });
+  await register(page, 'avatar');
+  await start(page);
+
+  const enable = page.getByRole('button', { name: 'Enable 3D interviewer', exact: true });
+  await enable.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Leave 3D interviewer' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () =>
+    (await page.locator('[data-state="idle"]').count()) +
+    (await page.getByText(/3D view is unavailable in this browser/).count()),
+  ).toBe(1);
+  if (await page.locator('[data-state="idle"]').isVisible()) {
+    await expect(page.getByText('Interviewer idle.')).toBeVisible();
+  }
+  expect(await page.evaluate(() => (window as typeof window & { __cameraRequestCount?: number }).__cameraRequestCount)).toBe(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('button', { name: 'Leave 3D interviewer' }).click();
+  await page.getByRole('button', { name: 'Enable 3D interviewer' }).click();
+  await expect(page.getByText(/Still avatar shown to respect your reduced-motion setting/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => (window as typeof window & { __cameraRequestCount?: number }).__cameraRequestCount)).toBe(0);
+});

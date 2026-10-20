@@ -479,15 +479,15 @@ function Interview() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
-        <div className="flex items-center gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="h-2.5 w-2.5 rounded-full bg-destructive pulse-dot" />
-          <span className="font-display text-lg">
+          <span className="min-w-0 font-display text-lg">
             {setup.role} · {setup.type}
           </span>
           <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{setup.mode}</span>
         </div>
-        <div className="flex items-center gap-6 text-sm">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 text-sm sm:w-auto sm:gap-6">
           <span>
             Question <b>{questionNumber}</b> / {setup.questionCount}
           </span>

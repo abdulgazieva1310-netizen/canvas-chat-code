@@ -132,6 +132,17 @@ test('optional 3D interviewer works at desktop and mobile sizes without requesti
   await page.getByRole('button', { name: 'Leave 3D interviewer' }).click();
   await page.getByRole('button', { name: 'Enable 3D interviewer' }).click();
   await expect(page.getByText(/Still avatar shown to respect your reduced-motion setting/)).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const mobileLayout = await page.evaluate(() => ({
+    width: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    overflowers: Array.from(document.querySelectorAll('*'))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { tag: element.tagName, className: typeof element.className === 'string' ? element.className : '', left: rect.left, right: rect.right, width: rect.width };
+      })
+      .filter((element) => element.right > window.innerWidth + 1 || element.left < -1)
+      .slice(0, 8),
+  }));
+  expect(mobileLayout.scrollWidth, JSON.stringify(mobileLayout)).toBeLessThanOrEqual(mobileLayout.width);
   expect(await page.evaluate(() => (window as typeof window & { __cameraRequestCount?: number }).__cameraRequestCount)).toBe(0);
 });

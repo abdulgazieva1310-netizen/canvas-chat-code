@@ -7,8 +7,9 @@ explicit snapshot and PostgreSQL uses REPEATABLE READ. Downloads are capped at
 10 MiB encoded UTF-8; oversize documents return 413 without a partial file.
 
 The archive includes public profile/preferences, interview configurations and
-transcripts, saved evaluations, derived learning-plan evidence, study notes and
-media metadata including expiry. Media files, private storage keys, credentials,
+transcripts, saved evaluations, generated study plans and their selected report
+references, derived learning-plan evidence, study notes and media metadata
+including expiry. Media files, private storage keys, credentials,
 password/reset/session hashes, hidden tests and internal reviewer notes are not
 included. Local-only avatar preferences and dismissed learning-plan suggestions
 are browser state and are not represented as server-persisted records. No AI
@@ -20,7 +21,7 @@ before export (409), preserving their feedback-visibility boundary.
 Profile requires the current password and typing DELETE to confirm. Cancellation
 or failed reauthentication leaves data unchanged. `DELETE /api/auth/me` removes
 the current user's interviews/transcripts, evaluations, start-idempotency rows,
-study questions/notes, recording consent/metadata, reset links and login tokens,
+study questions/notes and generated plans, recording consent/metadata, reset links and login tokens,
 then the account, in one transaction. Local private caches and credentials are
 cleared only after success. Other accounts are unaffected.
 

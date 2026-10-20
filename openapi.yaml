@@ -669,7 +669,7 @@ paths:
     get:
       operationId: exportAccount
       summary: Download an owner-scoped versioned JSON account archive
-      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, study notes, job targets, Setup presets and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
+      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, generated study plans, study notes, job targets, Setup presets and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
       responses:
         '200':
           description: JSON archive attachment
@@ -677,7 +677,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, evaluationFeedback, jobTargets, setupPresets, media, mediaBytesIncluded]
+                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, studyPlans, evaluationFeedback, jobTargets, setupPresets, media, mediaBytesIncluded]
                 properties:
                   schemaVersion: {type: integer, enum: [1]}
                   exportedAt: {type: string, format: date-time}
@@ -692,6 +692,9 @@ paths:
                   studyQuestions:
                     type: array
                     items: {type: object}
+                  studyPlans:
+                    type: array
+                    items: {$ref: '#/components/schemas/StudyPlanArchive'}
                   evaluationFeedback:
                     type: array
                     items: {$ref: '#/components/schemas/EvaluationFeedback'}
@@ -771,6 +774,100 @@ paths:
       responses:
         '204': {description: Removed}
         '404': {description: Missing or inaccessible saved question}
+  /study-plans:
+    get:
+      operationId: listStudyPlans
+      summary: List the current user's saved AI study plans
+      responses:
+        '200':
+          description: Owner-scoped generated plans ordered by most recently updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyPlanList'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      operationId: createStudyPlan
+      summary: Generate a plan from selected completed, scored reports in one comparison group
+      description: Requires 2–5 reports owned by the current user, all completed, scored and compatible by role, interview type, mode, starting level and language. Provider failure or invalid output saves no plan. AI values are coaching guidance and each item must reference supplied scored feedback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [sourceInterviewIds]
+              properties:
+                sourceInterviewIds:
+                  type: array
+                  minItems: 2
+                  maxItems: 5
+                  uniqueItems: true
+                  items: {type: string, minLength: 1}
+      responses:
+        '201':
+          description: Saved plan with explicit comparison group and source references
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyPlan'}
+        '400': {description: Duplicate IDs or incompatible comparison groups}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: One or more selected reports are not completed}
+        '422': {description: "Not enough scored, actionable feedback"}
+        '503': {description: Provider unavailable or returned invalid output; no plan was saved}
+  /study-plans/{planId}/regenerate:
+    parameters:
+      - {in: path, name: planId, required: true, schema: {type: string}}
+    post:
+      operationId: regenerateStudyPlan
+      summary: Regenerate an owned plan using its original source reports
+      responses:
+        '200':
+          description: Updated plan with unchecked items
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyPlan'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: Source reports changed}
+        '422': {description: Insufficient scored evidence}
+        '503': {description: Provider unavailable; existing plan is unchanged}
+  /study-plans/{planId}/items/{itemId}:
+    parameters:
+      - {in: path, name: planId, required: true, schema: {type: string}}
+      - {in: path, name: itemId, required: true, schema: {type: string}}
+    patch:
+      operationId: updateStudyPlanItem
+      summary: Save completion status for an owned plan item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [completed]
+              properties:
+                completed: {type: boolean}
+      responses:
+        '200':
+          description: Updated plan
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyPlan'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /study-plans/{planId}:
+    parameters:
+      - {in: path, name: planId, required: true, schema: {type: string}}
+    delete:
+      operationId: deleteStudyPlan
+      summary: Delete an owned plan without changing its source reports
+      responses:
+        '204': {description: Plan deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -1023,6 +1120,79 @@ components:
         total: {type: integer, minimum: 0}
         page: {type: integer, minimum: 1}
         pageSize: {type: integer, minimum: 1, maximum: 100}
+    StudyPlanComparisonGroup:
+      type: object
+      required: [role, type, mode, level, language]
+      properties:
+        role: {$ref: '#/components/schemas/Role'}
+        type: {type: string, enum: [Technical, Behavioral, Role-specific]}
+        mode: {type: string, enum: [Practice, Real Interview]}
+        level: {$ref: '#/components/schemas/Level'}
+        language: {type: string, enum: [English, Russian]}
+    StudyPlanSource:
+      type: object
+      required: [interviewId, startedAt, overall]
+      properties:
+        interviewId: {type: string}
+        startedAt: {type: string, format: date-time}
+        overall: {type: number, minimum: 1, maximum: 10}
+    StudyPlanItem:
+      type: object
+      required: [id, topic, rationale, action, completed, sources]
+      properties:
+        id: {type: string}
+        topic: {type: string, minLength: 1, maxLength: 120}
+        rationale: {type: string, minLength: 1, maxLength: 1000}
+        action: {type: string, minLength: 1, maxLength: 1000}
+        completed: {type: boolean}
+        sources:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: {$ref: '#/components/schemas/EvidenceReference'}
+    StudyPlan:
+      type: object
+      required: [id, comparisonGroup, sources, items, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        comparisonGroup: {$ref: '#/components/schemas/StudyPlanComparisonGroup'}
+        sources:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items: {$ref: '#/components/schemas/StudyPlanSource'}
+        items:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items: {$ref: '#/components/schemas/StudyPlanItem'}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    StudyPlanList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/StudyPlan'}
+    StudyPlanArchive:
+      type: object
+      required: [id, sourceInterviewIds, comparisonGroup, items, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        sourceInterviewIds:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items: {type: string}
+        comparisonGroup: {$ref: '#/components/schemas/StudyPlanComparisonGroup'}
+        items:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items: {$ref: '#/components/schemas/StudyPlanItem'}
+        createdAt: {type: number}
+        updatedAt: {type: number}
     PracticeSuggestion:
       type: object
       required: [topic, setup, sources]

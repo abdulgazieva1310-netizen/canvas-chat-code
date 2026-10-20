@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy import select
 from .database import (AnswerEvaluationRecord, EvaluationFeedbackRecord, JobTargetRecord, SetupPresetRecord, InterviewRecord,
-                       InterviewMediaRecord, StudyQuestionRecord)
+                       InterviewMediaRecord, StudyPlanRecord, StudyQuestionRecord)
 from .models import AnswerEvaluation, Interview
 
 MAX_ARCHIVE_BYTES = 10 * 1024 * 1024
@@ -35,6 +35,8 @@ def archive(store, user):
                                         .order_by(JobTargetRecord.created_at, JobTargetRecord.id)).all()
     setup_presets = store.session.scalars(select(SetupPresetRecord).where(SetupPresetRecord.owner_id == user.id)
                                           .order_by(SetupPresetRecord.created_at, SetupPresetRecord.id)).all()
+    study_plans = store.session.scalars(select(StudyPlanRecord).where(StudyPlanRecord.owner_id == user.id)
+                                        .order_by(StudyPlanRecord.created_at, StudyPlanRecord.id)).all()
     media = store.session.scalars(select(InterviewMediaRecord).where(InterviewMediaRecord.owner_id == user.id)
                                  .order_by(InterviewMediaRecord.id)).all()
     result = {
@@ -60,6 +62,10 @@ def archive(store, user):
                           'questionCount': row.question_count, 'language': row.language,
                           'createdAt': row.created_at, 'updatedAt': row.updated_at}
                          for row in setup_presets],
+        'studyPlans': [{'id': row.id, 'sourceInterviewIds': row.source_interview_ids,
+                        'comparisonGroup': row.comparison_group, 'items': row.items,
+                        'createdAt': row.created_at, 'updatedAt': row.updated_at}
+                       for row in study_plans],
         'media': [{'id': row.id, 'interviewId': row.interview_id, 'mediaType': row.media_type,
                    'sizeBytes': row.size_bytes, 'createdAt': row.created_at, 'expiresAt': row.expires_at} for row in media],
         'mediaBytesIncluded': False,

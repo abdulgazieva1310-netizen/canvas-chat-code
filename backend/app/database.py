@@ -121,6 +121,17 @@ class SetupPresetRecord(Base):
     updated_at: Mapped[float] = mapped_column(Float)
 
 
+class StudyPlanRecord(Base):
+    __tablename__ = 'study_plans'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    source_interview_ids: Mapped[list] = mapped_column(JSON)
+    comparison_group: Mapped[dict] = mapped_column(JSON)
+    items: Mapped[list] = mapped_column(JSON)
+    created_at: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[float] = mapped_column(Float)
+
+
 class InterviewMediaConsentRecord(Base):
     __tablename__ = 'interview_media_consents'
     interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), primary_key=True)

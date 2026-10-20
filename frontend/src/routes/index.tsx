@@ -182,7 +182,7 @@ function Dashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this interview?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the transcript and feedback for {deleteTarget?.setup.role}.
+              This permanently deletes the transcript and feedback for {deleteTarget?.setup.role}, along with any study plans based on this report.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deletion.error && (

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import event, select
 from app.main import create_app
-from app.database import UserRecord, InterviewMediaRecord
+from app.database import UserRecord, InterviewMediaRecord, StudyPlanRecord
 from app.services import ai_service
 
 
@@ -26,6 +26,13 @@ def test_archive_allowlists_owned_data_and_does_not_mutate(tmp_path,monkeypatch)
         with app.state.store.sessions.begin() as session:
             session.add(InterviewMediaRecord(id='owned-media',interview_id=interview['id'],owner_id=owner,
                 storage_key='private-storage-key',media_type='audio/webm',size_bytes=123,created_at=1000,expires_at=2000))
+            session.add(StudyPlanRecord(id='owned-plan', owner_id=owner,
+                source_interview_ids=[interview['id']],
+                comparison_group={'role':'QA Engineer','type':'Behavioral','mode':'Real Interview',
+                                  'level':'Junior','language':'English'},
+                items=[{'id':'item','topic':'Testing','rationale':'Source reason','action':'Practice a case',
+                        'completed':False,'sources':[{'interviewId':interview['id'],'answerId':'answer'}]}],
+                created_at=1000,updated_at=1000))
             password_hash=session.get(UserRecord,owner).password_hash
         before=client.get(path).json()
         def forbidden(*a,**k):
@@ -49,13 +56,15 @@ def test_archive_allowlists_owned_data_and_does_not_mutate(tmp_path,monkeypatch)
         assert text in [m['text'] for m in archive['interviews'][0]['messages']]
         assert archive['evaluations'][0]['feedback'] is None
         assert archive['studyQuestions'][0]['note']=='Русская заметка'
+        assert archive['studyPlans'][0]['id']=='owned-plan'
+        assert archive['studyPlans'][0]['sourceInterviewIds']==[interview['id']]
         assert archive['media'][0]['expiresAt']==2000 and not archive['mediaBytesIncluded']
         for secret in ['private-storage-key',password_hash,'private-password','storage_key','password_hash','reviewerNotes']:
             assert secret not in result.text
         assert client.get(path).json()==before
         client.post('/api/auth/register',json={'name':'Other','email':'other@example.com','password':'secret'})
         other=client.get('/api/auth/me/export?ownerId='+owner).json()
-        assert other['interviews']==other['evaluations']==other['studyQuestions']==other['media']==[]
+        assert other['interviews']==other['evaluations']==other['studyQuestions']==other['studyPlans']==other['media']==[]
         assert other['profile']['id']!=owner
         from app import account_export
         monkeypatch.setattr(account_export,'MAX_ARCHIVE_BYTES',20)

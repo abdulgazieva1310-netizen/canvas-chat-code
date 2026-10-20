@@ -15,7 +15,7 @@ load_dotenv(ENV_PATH)
 
 import httpx
 
-from ..models import CODING_ROLES, AnswerEvaluation, Message
+from ..models import CODING_ROLES, AnswerEvaluation, Message, StudyPlanDraft
 
 logger = logging.getLogger(__name__)
 API_URL = 'https://api.groq.com/openai/v1/chat/completions'
@@ -388,4 +388,56 @@ def generate_hint(question: str, previous_hints: Sequence[str], *, role: str, le
             f'{traceback.format_exc()}'
         ).replace(key, '[REDACTED]')
         logger.warning('AI hint generation unavailable.\n%s', diagnostic)
+        return None
+
+
+def generate_study_plan(evidence: list[dict], comparison_group: dict) -> StudyPlanDraft | None:
+    """Return a validated study plan grounded only in supplied report evidence."""
+    key = (os.getenv('AI_API_KEY') or '').strip()
+    if not key or key == 'your_api_key_here':
+        return None
+    language = comparison_group['language']
+    if not provider_supports_language(language):
+        return None
+    response = None
+    try:
+        with httpx.Client(timeout=httpx.Timeout(18.0, connect=3.0)) as client:
+            response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
+                **model_options(2048),
+                'response_format': {'type': 'json_object'},
+                'temperature': 0.2,
+                'messages': [
+                    {'role': 'system', 'content': (
+                        'You are an evidence-based interview practice coach. Create a short ordered study plan '
+                        'from only the supplied scored report evidence. Return a JSON object with exactly one '
+                        'field, items: an array of 2 to 4 objects. Each object must have exactly topic '
+                        '(concise skill name), rationale (specific explanation based on supplied feedback), '
+                        'action (a concrete practice activity), and sourceRefs (one or more exact evidence ref '
+                        'strings from the input). Do not invent performance claims, sources, or scores. If evidence '
+                        'does not support an item, omit it. Do not repeat a topic. This is coaching guidance, '
+                        'not an objective assessment or hiring prediction. Write all user-visible values in '
+                        f'{language}. Keep sourceRefs and JSON keys unchanged.'
+                    )},
+                    {'role': 'user', 'content': json.dumps({
+                        'comparisonGroup': comparison_group,
+                        'evidence': evidence[:20],
+                    }, ensure_ascii=False)},
+                ],
+            })
+            response.raise_for_status()
+            choice = response.json()['choices'][0]
+            if choice.get('finish_reason') != 'stop' or not isinstance(choice['message']['content'], str):
+                raise ValueError('Incomplete study plan response')
+            plan = StudyPlanDraft.model_validate_json(choice['message']['content'])
+            allowed_refs = {item['ref'] for item in evidence}
+            if any(not item.topic.strip() or not item.rationale.strip() or not item.action.strip()
+                   or len(set(item.sourceRefs)) != len(item.sourceRefs)
+                   or not set(item.sourceRefs) <= allowed_refs for item in plan.items):
+                raise ValueError('Study plan did not match supplied evidence')
+            topics = [item.topic.strip().casefold() for item in plan.items]
+            if len(topics) != len(set(topics)):
+                raise ValueError('Study plan contains duplicate topics')
+            return plan
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+        logger.warning('AI study plan unavailable (%s); no plan was produced.', type(exc).__name__)
         return None

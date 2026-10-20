@@ -248,6 +248,65 @@ class EvidenceClaim(BaseModel):
     sources: list[EvidenceReference]
 
 
+class StudyPlanComparisonGroup(BaseModel):
+    role: Role
+    type: Literal['Technical', 'Behavioral', 'Role-specific']
+    mode: Literal['Practice', 'Real Interview']
+    level: Level
+    language: InterviewLanguage
+
+
+class StudyPlanSource(BaseModel):
+    interviewId: str
+    startedAt: datetime
+    overall: float = Field(ge=1, le=10)
+
+
+class StudyPlanItem(BaseModel):
+    id: str
+    topic: str = Field(min_length=1, max_length=120)
+    rationale: str = Field(min_length=1, max_length=1000)
+    action: str = Field(min_length=1, max_length=1000)
+    completed: bool = False
+    sources: list[EvidenceReference] = Field(min_length=1, max_length=10)
+
+
+class StudyPlan(BaseModel):
+    id: str
+    comparisonGroup: StudyPlanComparisonGroup
+    sources: list[StudyPlanSource] = Field(min_length=2, max_length=5)
+    items: list[StudyPlanItem] = Field(min_length=2, max_length=4)
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class StudyPlanList(BaseModel):
+    items: list[StudyPlan]
+
+
+class StudyPlanCreate(BaseModel):
+    model_config = {'extra': 'forbid'}
+    sourceInterviewIds: list[str] = Field(min_length=2, max_length=5)
+
+
+class StudyPlanItemUpdate(BaseModel):
+    model_config = {'extra': 'forbid'}
+    completed: bool
+
+
+class StudyPlanDraftItem(BaseModel):
+    model_config = {'extra': 'forbid'}
+    topic: str = Field(min_length=1, max_length=120)
+    rationale: str = Field(min_length=1, max_length=1000)
+    action: str = Field(min_length=1, max_length=1000)
+    sourceRefs: list[str] = Field(min_length=1, max_length=10)
+
+
+class StudyPlanDraft(BaseModel):
+    model_config = {'extra': 'forbid'}
+    items: list[StudyPlanDraftItem] = Field(min_length=2, max_length=4)
+
+
 class PracticeSuggestion(BaseModel):
     topic: str
     setup: InterviewSetup

@@ -21,6 +21,8 @@ import type {
   User,
   StudyPage,
   StudyQuestion,
+  StudyPlan,
+  StudyPlanList,
 } from "./types";
 
 const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api").replace(
@@ -118,6 +120,15 @@ export const Api = {
     request<StudyQuestion>(`/study/questions/${encodeURIComponent(id)}`, { note }, "PATCH"),
   deleteStudyQuestion: (id: string) =>
     request<void>(`/study/questions/${encodeURIComponent(id)}`, undefined, "DELETE"),
+  getStudyPlans: () => request<StudyPlanList>("/study-plans"),
+  createStudyPlan: (sourceInterviewIds: string[]) =>
+    request<StudyPlan>("/study-plans", { sourceInterviewIds }),
+  updateStudyPlanItem: (planId: string, itemId: string, completed: boolean) =>
+    request<StudyPlan>(`/study-plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`, { completed }, "PATCH"),
+  regenerateStudyPlan: (planId: string) =>
+    request<StudyPlan>(`/study-plans/${encodeURIComponent(planId)}/regenerate`, undefined, "POST"),
+  deleteStudyPlan: (planId: string) =>
+    request<void>(`/study-plans/${encodeURIComponent(planId)}`, undefined, "DELETE"),
   exportReport: (id: string) =>
     request<Blob>(`${interviewPath(id)}/report/export`, undefined, "GET", { responseType: "blob" }),
   getDashboardSummary: () => request<DashboardSummary>("/dashboard/summary"),

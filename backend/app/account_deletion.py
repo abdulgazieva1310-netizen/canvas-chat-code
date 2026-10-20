@@ -7,7 +7,7 @@ from .auth import hasher
 from .database import (UserRecord, TokenRecord, PasswordResetRecord, InterviewRecord,
     InterviewStartRecord, AnswerEvaluationRecord, InterviewMediaRecord,
     InterviewMediaConsentRecord, StudyQuestionRecord, EvaluationFeedbackRecord, JobTargetRecord,
-    SetupPresetRecord, MediaCleanupRecord)
+    SetupPresetRecord, MediaCleanupRecord, StudyPlanRecord)
 from .media_storage import remove_media_file
 
 
@@ -20,7 +20,7 @@ def delete_owned_account(store, owner_id, password):
     for key in keys:
         store.session.add(MediaCleanupRecord(storage_key=key, created_at=datetime.now(timezone.utc).timestamp()))
     store.session.flush()
-    for model in (StudyQuestionRecord, EvaluationFeedbackRecord, JobTargetRecord, SetupPresetRecord,
+    for model in (StudyQuestionRecord, StudyPlanRecord, EvaluationFeedbackRecord, JobTargetRecord, SetupPresetRecord,
                   InterviewMediaRecord, InterviewMediaConsentRecord):
         store.session.execute(delete(model).where(model.owner_id == owner_id))
     store.session.execute(delete(AnswerEvaluationRecord).where(AnswerEvaluationRecord.interview_id.in_(interview_ids)))

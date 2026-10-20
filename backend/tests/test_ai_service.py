@@ -23,6 +23,48 @@ def test_missing_key_skips_network(monkeypatch, key):
     assert ai_service.generate_question('Backend Developer', 'Middle', []) is None
 
 
+def test_study_plan_requires_valid_evidence_references_and_returns_coaching_items(monkeypatch):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    monkeypatch.setenv('AI_MODEL', 'openai/gpt-oss-120b')
+    evidence = [{'ref': 'R1Q1', 'feedback': 'Add boundary cases.', 'question': 'Test a parser?', 'score': 6}]
+    group = {'role': 'QA Engineer', 'type': 'Behavioral', 'mode': 'Practice',
+             'level': 'Junior', 'language': 'English'}
+
+    def handler(request):
+        payload = json.loads(request.content)
+        assert payload['response_format'] == {'type': 'json_object'}
+        assert 'not an objective assessment' in payload['messages'][0]['content']
+        assert json.loads(payload['messages'][1]['content']) == {'comparisonGroup': group, 'evidence': evidence}
+        content = {'items': [
+            {'topic': 'Boundary tests', 'rationale': 'The report identifies missed boundary cases.',
+             'action': 'Write tests for empty and maximum input.', 'sourceRefs': ['R1Q1']},
+            {'topic': 'Parser errors', 'rationale': 'The scored answer missed invalid-input handling.',
+             'action': 'Add malformed-input cases to a small parser.', 'sourceRefs': ['R1Q1']},
+        ]}
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': json.dumps(content)}}]})
+
+    mock_provider(monkeypatch, handler)
+    result = ai_service.generate_study_plan(evidence, group)
+    assert [item.topic for item in result.items] == ['Boundary tests', 'Parser errors']
+
+
+@pytest.mark.parametrize('content', [
+    'not-json',
+    '{"items":[{"topic":"Invented","rationale":"No evidence","action":"Do something","sourceRefs":["R9Q9"]},{"topic":"Another","rationale":"x","action":"y","sourceRefs":["R1Q1"]}]}',
+])
+def test_study_plan_malformed_or_untrusted_provider_output_is_rejected(monkeypatch, content, caplog):
+    monkeypatch.setenv('AI_API_KEY', 'test-secret')
+    monkeypatch.setenv('AI_MODEL', 'openai/gpt-oss-120b')
+    mock_provider(monkeypatch, lambda _request: httpx.Response(200, json={'choices': [{
+        'finish_reason': 'stop', 'message': {'content': content}}]}))
+    result = ai_service.generate_study_plan(
+        [{'ref': 'R1Q1', 'feedback': 'A real weakness.'}],
+        {'role': 'QA Engineer', 'type': 'Behavioral', 'mode': 'Practice', 'level': 'Junior', 'language': 'English'})
+    assert result is None
+    assert 'test-secret' not in caplog.text
+
+
 def test_provider_receives_context(monkeypatch):
     monkeypatch.setenv('AI_API_KEY', 'test-secret')
     monkeypatch.setenv('AI_MODEL', 'test-model')

@@ -317,3 +317,39 @@ export interface StudyPage {
   page: number;
   pageSize: number;
 }
+
+export interface StudyPlanComparisonGroup {
+  role: Role;
+  type: InterviewSetup["type"];
+  mode: InterviewSetup["mode"];
+  level: Level;
+  language: InterviewLanguage;
+}
+
+export interface StudyPlanSource {
+  interviewId: string;
+  startedAt: string;
+  overall: number;
+}
+
+export interface StudyPlanItem {
+  id: string;
+  topic: string;
+  rationale: string;
+  action: string;
+  completed: boolean;
+  sources: EvidenceReference[];
+}
+
+export interface StudyPlan {
+  id: string;
+  comparisonGroup: StudyPlanComparisonGroup;
+  sources: StudyPlanSource[];
+  items: StudyPlanItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudyPlanList {
+  items: StudyPlan[];
+}

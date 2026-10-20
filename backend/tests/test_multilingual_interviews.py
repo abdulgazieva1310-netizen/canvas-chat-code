@@ -135,7 +135,7 @@ def test_groq_prompts_and_validates_russian_questions_hints_followups_and_feedba
             return Response(responses.pop(0))
 
     monkeypatch.setenv('AI_API_KEY', 'test-provider-key')
-    monkeypatch.setenv('AI_MODEL', 'llama-3.3-70b-versatile')
+    monkeypatch.setenv('AI_MODEL', 'openai/gpt-oss-120b')
     monkeypatch.setattr(ai_service.httpx, 'Client', Client)
     question = ai_service.generate_question('QA Engineer', 'Middle', [],
         interview_type='Behavioral', interview_language='Russian')
@@ -160,7 +160,7 @@ def test_russian_matrix_rejects_unreviewed_provider_model(monkeypatch):
 
 def test_russian_preview_requires_explicit_enablement_and_real_configuration(monkeypatch):
     monkeypatch.setenv('AI_API_KEY', 'test-key')
-    monkeypatch.setenv('AI_MODEL', 'llama-3.3-70b-versatile')
+    monkeypatch.setenv('AI_MODEL', 'openai/gpt-oss-120b')
     monkeypatch.delenv('ENABLE_RUSSIAN_INTERVIEWS', raising=False)
     assert not ai_service.provider_supports_language('Russian')
     monkeypatch.setenv('ENABLE_RUSSIAN_INTERVIEWS', 'true')
@@ -199,3 +199,10 @@ def test_question_and_hint_failures_do_not_mix_languages(client, monkeypatch):
 def test_russian_guard_rejects_english_with_token_cyrillic_and_preserves_code():
     assert not ai_service.has_russian_text('Explain the design and provide examples. Да.')
     assert ai_service.has_russian_text('Объясните решение и оцените сложность. ```python\ndef solve(items):\n return sorted(items)\n```')
+
+
+def test_reasoning_model_receives_visible_output_budget_without_affecting_other_models(monkeypatch):
+    monkeypatch.setenv('AI_MODEL','openai/gpt-oss-120b')
+    assert ai_service.model_options(256)=={'model':'openai/gpt-oss-120b','reasoning_effort':'low','max_completion_tokens':2048}
+    monkeypatch.setenv('AI_MODEL','test-model')
+    assert ai_service.model_options(256)=={'model':'test-model','max_completion_tokens':256}

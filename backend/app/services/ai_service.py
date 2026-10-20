@@ -20,9 +20,9 @@ from ..models import CODING_ROLES, AnswerEvaluation, Message
 logger = logging.getLogger(__name__)
 API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 SUPPORTED_LANGUAGE_MATRIX = {
-    'English': {'provider': 'Groq', 'model': 'llama-3.3-70b-versatile',
+    'English': {'provider': 'Groq', 'model': 'openai/gpt-oss-120b',
                 'recognition': 'en-US', 'synthesis': 'en-US'},
-    'Russian': {'provider': 'Groq', 'model': 'llama-3.3-70b-versatile',
+    'Russian': {'provider': 'Groq', 'model': 'openai/gpt-oss-120b',
                 'recognition': 'ru-RU', 'synthesis': 'ru-RU'},
 }
 
@@ -33,9 +33,18 @@ def provider_supports_language(language: str) -> bool:
         return False
     if language == 'Russian' and os.getenv('ENABLE_RUSSIAN_INTERVIEWS', '').lower() != 'true':
         return False
-    configured_model = os.getenv('AI_MODEL', 'llama-3.3-70b-versatile')
+    configured_model = os.getenv('AI_MODEL', 'openai/gpt-oss-120b')
     key = os.getenv('AI_API_KEY', '').strip()
     return configured_model == supported['model'] and bool(key) and key != 'your_api_key_here'
+
+
+def model_options(token_limit: int) -> dict:
+    model = os.getenv('AI_MODEL', 'openai/gpt-oss-120b')
+    options = {'model': model, 'max_completion_tokens': token_limit}
+    if model in {'openai/gpt-oss-120b', 'openai/gpt-oss-20b'}:
+        # Reasoning and visible content share the completion budget.
+        options.update(reasoning_effort='low', max_completion_tokens=max(token_limit, 2048))
+    return options
 
 
 def has_russian_text(value: str) -> bool:
@@ -132,9 +141,8 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             print(f'Groq AI_API_KEY={masked_key}; dotenv path={ENV_PATH}; exists={ENV_PATH.is_file()}', flush=True)
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
-                'model': os.getenv('AI_MODEL', 'llama-3.3-70b-versatile'),
+                **model_options(512 if interview_type == 'Technical' and role in CODING_ROLES else 256),
                 'messages': messages, 'temperature': 0.7,
-                'max_completion_tokens': 512 if interview_type == 'Technical' and role in CODING_ROLES else 256,
             })
             response.raise_for_status()
             choice = response.json()['choices'][0]
@@ -170,7 +178,8 @@ def _compatible_question(content: str, role: str, interview_type: str,
                           'specific past experience', 'when have you', 'how did you respond')
     if interview_language == 'Russian':
         behavioral_markers = ('расскажите о случае', 'расскажите о ситуации', 'опишите ситуацию', 'приведите пример',
-                              'расскажите о том, как', 'опишите случай')
+                              'расскажите о том, как', 'опишите случай', 'расскажите, как',
+                              'расскажите о времени', 'вспомните случай', 'вспомните ситуацию')
     if interview_type == 'Behavioral':
         return '?' in content and any(marker in text for marker in behavioral_markers)
     if any(marker in text for marker in behavioral_markers):
@@ -178,8 +187,7 @@ def _compatible_question(content: str, role: str, interview_type: str,
     if interview_type == 'Technical' and role in CODING_ROLES:
         if interview_language == 'Russian':
             return (any(marker in text for marker in ('ограничен', 'услови')) and
-                    'пример' in text and any(marker in text for marker in ('реализ', 'напиш'))
-                    and '?' in content)
+                    'пример' in text and any(marker in text for marker in ('реализ', 'напиш')))
         return ('constraint' in text and 'example' in text and
                 any(marker in text for marker in ('implement', 'write a function', 'write code')))
     return '?' in content
@@ -202,8 +210,8 @@ def generate_followup(role: str, level: str, interview_type: str, question: str,
     try:
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
-                'model': os.getenv('AI_MODEL', 'llama-3.3-70b-versatile'),
-                'temperature': 0.5, 'max_completion_tokens': 256,
+                **model_options(256),
+                'temperature': 0.5,
                 'messages': [
                     {'role': 'system', 'content': (
                         'You are an evidence-based job interviewer. Ask exactly one concise clarifying '
@@ -266,9 +274,9 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
     try:
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
-                'model': os.getenv('AI_MODEL', 'llama-3.3-70b-versatile'),
+                **model_options(4096),
                 'response_format': {'type': 'json_object'},
-                'temperature': 0.2, 'max_completion_tokens': 1500,
+                'temperature': 0.2,
                 'messages': [
                     {'role': 'system', 'content': (
                         'Act as an evidence-based job interviewer and evaluate the candidate answer. '
@@ -340,8 +348,8 @@ def generate_hint(question: str, previous_hints: Sequence[str], *, role: str, le
     try:
         with httpx.Client(timeout=httpx.Timeout(10.0, connect=3.0)) as client:
             response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
-                'model': os.getenv('AI_MODEL', 'llama-3.3-70b-versatile'),
-                'temperature': 0.4, 'max_completion_tokens': 300,
+                **model_options(300),
+                'temperature': 0.4,
                 'messages': [
                     {'role': 'system', 'content': (
                         'You are a helpful interview coach in Practice mode. Give one concise, actionable '

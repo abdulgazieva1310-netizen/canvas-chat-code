@@ -4,8 +4,8 @@ The supported language/provider matrix is intentionally small and explicit:
 
 | Interview language | AI provider and model | Recognition locale | Speech playback |
 | --- | --- | --- | --- |
-| English | Groq `llama-3.3-70b-versatile` | `en-US` | `en-US` browser voice |
-| Russian | Groq `llama-3.3-70b-versatile` | `ru-RU` | Russian browser voice only |
+| English | Groq `openai/gpt-oss-120b` | `en-US` | `en-US` browser voice |
+| Russian | Groq `openai/gpt-oss-120b` | `ru-RU` | Russian browser voice only |
 
 Users choose a language for each session in interview setup. The value is saved
 with the interview, so later profile changes cannot alter questions, hints,
@@ -54,3 +54,18 @@ Exercise provider outage and missing-voice behavior and explicitly switch back
 to English. Russian curated fallback is intentionally unavailable: provider
 failure must return an error rather than exposing the English bank. Issue #63
 remains open until this end-to-end review passes.
+
+## Provider repair (2026-10-20)
+
+The retired/unavailable llama model was replaced in the preview allowlist by
+`openai/gpt-oss-120b`, verified against this account's live model catalog. GPT-OSS
+requests use low reasoning effort and at least 2,048 completion tokens so
+reasoning does not consume the entire visible-output budget. Provider API
+reference: https://console.groq.com/docs/api-reference . This is a provider
+availability fix; Russian remains opt-in pending real-device speech approval.
+
+Live probes after repair returned Russian questions and structured feedback,
+but a synthetic first-repeat coding hint described an unrelated cumulative-sum
+problem. Some generation calls were rejected or unavailable. These are quality
+failures, not reasons to declare the language approved. Provider access is repaired;
+end-to-end semantic review and real-device speech testing are still outstanding.

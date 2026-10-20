@@ -103,33 +103,54 @@ it("offers every supported option and submits the complete custom configuration"
     questionCount: 15,
     type: "Role-specific",
     input: "Text",
-    language: "English",
+    language: "Russian",
     jobDescription: "Quality strategy for a distributed data platform.",
   };
-  const fetch = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ id: "custom-session", setup: customSetup }), { status: 201 }),
-  );
+  const fetch = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(JSON.stringify({ id: "custom-session", setup: customSetup }), { status: 201 }),
+    );
   vi.stubGlobal("fetch", fetch);
   const { client, router } = openStartPage("/setup");
   await screen.findByRole("heading", { name: "Shape your interview." });
   const group = (name: string) =>
     within(screen.getAllByText(name).find((element) => element.tagName === "P")!.parentElement!);
-  expect(group("Interview type").getAllByRole("button").map((button) => button.textContent)).toEqual([
-    "Technical", "Behavioral", "Role-specific",
-  ]);
-  expect(group("Target role").getAllByRole("button").map((button) => button.textContent)).toEqual(targetRoles);
-  expect(group("Starting level").getAllByRole("button").map((button) => button.textContent)).toEqual([
-    "Junior", "Middle", "Senior",
-  ]);
-  expect(group("Mode").getAllByRole("button").map((button) => button.textContent)).toEqual([
-    "Practice", "Real Interview",
-  ]);
-  expect(group("Answer by").getAllByRole("button").map((button) => button.textContent)).toEqual([
-    "Voice", "Text",
-  ]);
-  expect(group("Main questions").getAllByRole("button").map((button) => button.textContent)).toEqual([
-    "5", "10", "15",
-  ]);
+  expect(
+    group("Interview type")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["Technical", "Behavioral", "Role-specific"]);
+  expect(
+    group("Target role")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(targetRoles);
+  expect(
+    group("Starting level")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["Junior", "Middle", "Senior"]);
+  expect(
+    group("Interview language")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["English", "Russian"]);
+  expect(
+    group("Mode")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["Practice", "Real Interview"]);
+  expect(
+    group("Answer by")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["Voice", "Text"]);
+  expect(
+    group("Main questions")
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["5", "10", "15"]);
   for (const button of screen.getAllByRole("button")) {
     expect(button.tagName).toBe("BUTTON");
     expect(button.tabIndex).toBeGreaterThanOrEqual(0);
@@ -138,6 +159,7 @@ it("offers every supported option and submits the complete custom configuration"
   fireEvent.click(group("Interview type").getByRole("button", { name: "Role-specific" }));
   fireEvent.click(group("Target role").getByRole("button", { name: "QA Engineer" }));
   fireEvent.click(group("Starting level").getByRole("button", { name: "Senior" }));
+  fireEvent.click(group("Interview language").getByRole("button", { name: "Russian" }));
   fireEvent.click(group("Mode").getByRole("button", { name: "Real Interview" }));
   fireEvent.click(group("Answer by").getByRole("button", { name: "Text" }));
   fireEvent.click(group("Main questions").getByRole("button", { name: "15" }));
@@ -285,14 +307,18 @@ it.each(["/ready", "/setup"] as const)(
     const fetch = vi.fn().mockImplementation(async () => new Response("[]"));
     vi.stubGlobal("fetch", fetch);
     const { client, router } = openStartPage(path, true);
-    const link = within(await screen.findByRole("navigation")).getByRole("link", { name: "Interview" });
+    const link = within(await screen.findByRole("navigation")).getByRole("link", {
+      name: "Interview",
+    });
     expect(link).toHaveAttribute("href", "/setup");
     fireEvent.click(link);
     await screen.findByRole("heading", { name: "Shape your interview." });
     expect(router.state.location.href).toBe("/setup");
     expect(screen.getByRole("button", { name: "Start interview" })).toBeEnabled();
     expect(fetch.mock.calls.every(([, options]) => options.method === "GET")).toBe(true);
-    expect(client.getQueriesData({ queryKey: ["interview"] }).every(([, data]) => data === undefined)).toBe(true);
+    expect(
+      client.getQueriesData({ queryKey: ["interview"] }).every(([, data]) => data === undefined),
+    ).toBe(true);
     client.clear();
   },
 );
@@ -300,9 +326,15 @@ it.each(["/ready", "/setup"] as const)(
 it.each(["Java Developer", "Python Developer", "C++ Developer"] as const)(
   "offers %s on Setup and sends the selected role to the backend",
   async (role) => {
-    const fetch = vi.fn().mockImplementation(async (_url: string, options: RequestInit) =>
-      new Response(JSON.stringify({ ...createdInterview, setup: JSON.parse(options.body as string) }), { status: 201 }),
-    );
+    const fetch = vi
+      .fn()
+      .mockImplementation(
+        async (_url: string, options: RequestInit) =>
+          new Response(
+            JSON.stringify({ ...createdInterview, setup: JSON.parse(options.body as string) }),
+            { status: 201 },
+          ),
+      );
     vi.stubGlobal("fetch", fetch);
     const { client, router } = openStartPage("/setup");
     const choice = await screen.findByRole("button", { name: role });
@@ -316,14 +348,29 @@ it.each(["Java Developer", "Python Developer", "C++ Developer"] as const)(
   },
 );
 
-it.each(["/setup", "/ready"] as const)("refreshes saved profile preferences after starting from %s", async (path) => {
-  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => new Response(JSON.stringify(createdInterview), { status: 201 })));
-  const { client } = openStartPage(path);
-  client.setQueryData(["profile"], { id: "user", name: "User", targetRole: "Java Developer", level: "Senior" });
-  const invalidate = vi.spyOn(client, "invalidateQueries");
-  fireEvent.click(await screen.findByRole("button", { name: "Start interview" }));
-  await screen.findByText("Live interview");
-  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["profile"] });
-  expect(client.getQueryState(["profile"])?.isInvalidated).toBe(true);
-  client.clear();
-});
+it.each(["/setup", "/ready"] as const)(
+  "refreshes saved profile preferences after starting from %s",
+  async (path) => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockImplementation(
+          async () => new Response(JSON.stringify(createdInterview), { status: 201 }),
+        ),
+    );
+    const { client } = openStartPage(path);
+    client.setQueryData(["profile"], {
+      id: "user",
+      name: "User",
+      targetRole: "Java Developer",
+      level: "Senior",
+    });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    fireEvent.click(await screen.findByRole("button", { name: "Start interview" }));
+    await screen.findByText("Live interview");
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["profile"] });
+    expect(client.getQueryState(["profile"])?.isInvalidated).toBe(true);
+    client.clear();
+  },
+);

@@ -250,7 +250,9 @@ it("saves name, role, and level and updates the shared user cache and avatar", a
   fireEvent.change(screen.getByLabelText("Preferred language"), {
     target: { value: "  Kazakh  " },
   });
-  expect(screen.getByText(/Interviews and feedback are currently in English/)).toBeVisible();
+  expect(
+    screen.getByText(/Choose English or Russian for each interview in the setup screen/),
+  ).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() =>
     expect(update).toHaveBeenCalledExactlyOnceWith({

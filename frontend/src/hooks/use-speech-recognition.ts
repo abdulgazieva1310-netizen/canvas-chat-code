@@ -32,6 +32,8 @@ const errorMessages: Record<string, string> = {
   "service-not-allowed":
     "Speech recognition is blocked by your browser. You can type your answer instead.",
   "audio-capture": "No microphone is available. Check your microphone or type your answer.",
+  "language-not-supported":
+    "Speech recognition does not support the selected language. You can type your answer instead.",
   "no-speech": "No speech was detected. Try the microphone again or type your answer.",
   network: "Speech recognition could not connect. Try again or type your answer.",
 };
@@ -40,6 +42,7 @@ export function useSpeechRecognition(
   enabled: boolean,
   sessionKey: string,
   onTranscript: (text: string) => void,
+  language: "English" | "Russian" = "English",
 ) {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
@@ -72,7 +75,7 @@ export function useSpeechRecognition(
     cancel();
     setError(null);
     return cancel;
-  }, [enabled, sessionKey, cancel]);
+  }, [enabled, sessionKey, language, cancel]);
 
   const start = (draft: string) => {
     const Recognition = recognitionConstructor();
@@ -80,7 +83,7 @@ export function useSpeechRecognition(
     setError(null);
     try {
       const recognition = new Recognition();
-      recognition.lang = "en-US";
+      recognition.lang = language === "Russian" ? "ru-RU" : "en-US";
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.onresult = (event) => {

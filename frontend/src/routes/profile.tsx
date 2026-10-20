@@ -133,8 +133,8 @@ function ProfileForm({ user }: { user: User }) {
         />
       </label>
       <p id="language-note" className="text-sm text-muted-foreground">
-        Your preference is saved for future language support. Interviews and feedback are currently
-        in English.
+        This profile preference is saved for future sessions. Choose English or Russian for each
+        interview in the setup screen; support for other interview languages is not available yet.
       </p>
       <fieldset className="space-y-3 border-t pt-5">
         <legend className="font-semibold">Interviewer appearance</legend>

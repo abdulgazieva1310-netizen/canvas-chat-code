@@ -167,6 +167,51 @@ it("keeps the report readable when private recording playback fails", async () =
   client.clear();
 });
 
+it("shows Russian report labels with Russian session feedback", async () => {
+  const data: InterviewReport = {
+    interview: {
+      id: "session-russian",
+      setup: { ...defaultSetup, language: "Russian" },
+      status: "complete",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      answeredCount: 1,
+      lastFeedback: null,
+      messages: [],
+    },
+    feedback: {
+      interviewId: "session-russian",
+      answeredQuestions: 1,
+      selectedQuestions: 5,
+      overall: 8,
+      scores: null,
+      strengths: ["Вы проверили результат"],
+      gaps: [],
+      questions: [
+        {
+          questionId: "q-1",
+          answerId: "a-1",
+          q: "Расскажите о ситуации?",
+          answer: "Я проверил результат.",
+          score: 8,
+          good: "Вы проверили результат.",
+          miss: "Не указали метрику.",
+          better: "Я проверил изменение метрикой.",
+          practiceTopic: null,
+          practiceTopics: [],
+        },
+      ],
+    },
+  };
+  vi.spyOn(Api, "getReport").mockResolvedValue(data);
+  const { client } = openReport("/report?interviewId=session-russian");
+  expect(await screen.findByRole("heading", { name: "Сильные стороны" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Зоны роста" })).toBeInTheDocument();
+  expect(screen.getByText("Ваш ответ")).toBeInTheDocument();
+  expect(screen.getByText("Что можно улучшить")).toBeInTheDocument();
+  client.clear();
+});
+
 it.each([
   "/report",
   "/report?interviewId=",

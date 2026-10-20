@@ -68,6 +68,13 @@ it.each([false, true])(
   },
 );
 
+it("sets the browser recognition locale for a Russian interview", () => {
+  install();
+  const { result } = renderHook(() => useSpeechRecognition(true, "session", vi.fn(), "Russian"));
+  act(() => result.current.start(""));
+  expect(latest().lang).toBe("ru-RU");
+});
+
 it("keeps typing available when the API is unsupported", () => {
   vi.stubGlobal("SpeechRecognition", undefined);
   vi.stubGlobal("webkitSpeechRecognition", undefined);
@@ -119,20 +126,21 @@ it("aborts and ignores late results after cancellation or unmount", () => {
 it("stops when controls become disabled or the interview changes", () => {
   install();
   const { result, rerender } = renderHook(
-    ({ enabled, id }) => useSpeechRecognition(enabled, id, vi.fn()),
-    { initialProps: { enabled: true, id: "first" } },
+    ({ enabled, id, language }) => useSpeechRecognition(enabled, id, vi.fn(), language),
+    { initialProps: { enabled: true, id: "first", language: "English" as const } },
   );
   act(() => result.current.start(""));
   const first = latest();
-  rerender({ enabled: false, id: "first" });
+  rerender({ enabled: false, id: "first", language: "English" });
   expect(first.abort).toHaveBeenCalledOnce();
   expect(result.current.listening).toBe(false);
   act(() => result.current.start(""));
   expect(FakeRecognition.instances).toHaveLength(1);
-  rerender({ enabled: true, id: "second" });
+  rerender({ enabled: true, id: "second", language: "Russian" });
   act(() => result.current.start(""));
   const second = latest();
-  rerender({ enabled: true, id: "third" });
+  expect(second.lang).toBe("ru-RU");
+  rerender({ enabled: true, id: "third", language: "Russian" });
   expect(second.abort).toHaveBeenCalledOnce();
 });
 

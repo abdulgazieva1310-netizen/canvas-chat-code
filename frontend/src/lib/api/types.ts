@@ -9,6 +9,7 @@ export type Role =
   | "Data Analyst"
   | "DevOps Engineer";
 export type Level = "Junior" | "Middle" | "Senior";
+export type InterviewLanguage = "English" | "Russian";
 
 export interface User {
   id: string;
@@ -41,7 +42,7 @@ export interface InterviewSetup {
   questionCount: 5 | 10 | 15;
   type: "Technical" | "Behavioral" | "Role-specific";
   input: "Voice" | "Text";
-  language: "English";
+  language: InterviewLanguage;
   jobDescription?: string;
   practiceTopic?: string | null;
 }

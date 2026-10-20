@@ -164,7 +164,7 @@ def test_invalid_setup(client, body):
 
 @pytest.mark.parametrize(('field', 'value'), [
     ('role', 'Product Manager'), ('level', 'Expert'), ('mode', 'Interview'),
-    ('questionCount', 7), ('type', 'Culture fit'), ('input', 'Video'), ('language', 'Russian'),
+    ('questionCount', 7), ('type', 'Culture fit'), ('input', 'Video'), ('language', 'Klingon'),
 ])
 def test_setup_rejects_every_unsupported_enum_and_question_count(client, field, value):
     login(client)
@@ -841,7 +841,7 @@ def test_profile_updates_only_authenticated_user(client):
     'Python Developer', 'C++ Developer', 'QA Engineer', 'Data Analyst', 'DevOps Engineer',
 ])
 @pytest.mark.parametrize('level', ['Junior', 'Middle', 'Senior'])
-def test_profile_supports_all_roles_and_levels(client, role, level):
+def test_profile_supports_all_roles_and_levels(client, role, level, monkeypatch):
     login(client)
     response = client.patch('/api/auth/me', json={
         'name': 'Candidate', 'targetRole': role, 'level': level, 'preferredLanguage': '  Russian  '})
@@ -849,7 +849,13 @@ def test_profile_supports_all_roles_and_levels(client, role, level):
     assert response.json()['preferredLanguage'] == 'Russian'
     assert response.json()['targetRole'] == role
     assert response.json()['level'] == level
-    assert client.post('/api/interviews', json=SETUP | {'language': 'Russian'}).status_code == 400
+    from app.services import ai_service
+    monkeypatch.setattr(ai_service, 'provider_supports_language', lambda _language: True)
+    monkeypatch.setattr(ai_service, 'generate_question', lambda *args, **kwargs:
+                        'Расскажите о ситуации, когда вы решили сложную задачу?')
+    interview = client.post('/api/interviews', json=SETUP | {'language': 'Russian'})
+    assert interview.status_code == 201
+    assert interview.json()['setup']['language'] == 'Russian'
 
 
 def test_profile_update_does_not_change_past_interviews(client):

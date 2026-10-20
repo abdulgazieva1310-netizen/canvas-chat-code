@@ -52,6 +52,8 @@ def positive_observation(text):
         value, re.IGNORECASE,
     ):
         return ''
+    if re.search(r'\b(?:не|нет|недостат|ошиб|неверн|пропущ|отсутств|не смог|не удалось)\w*\b', value, re.IGNORECASE):
+        return ''
     return value
 
 
@@ -86,7 +88,7 @@ def practice_topics(missing, suggested=None):
         value = re.sub(r"['\"“”`]", '', value).strip()
         value = re.sub(r'\s+(?:for example|such as|including|that includes|etc\.?|and so on)\b.*$', '', value, flags=re.I)
         key = ' '.join(value.split()).casefold()
-        if (len(value) < 3 or len(value) > 80 or not re.search(r'[a-zA-Z]', value)
+        if (len(value) < 3 or len(value) > 80 or not re.search(r'[a-zA-Zа-яА-ЯёЁ]', value)
                 or re.match(r'^(?:no specific|not applicable|nothing|a description|an explanation|the answer|the candidate)\b', value, re.I)
                 or re.search(r'\b(?:unrelated|irrelevant|gibberish|random token|single token|the question|the response|the answer|was provided|consisted of)\b', value, re.I)
                 or re.search(r'\b(?:is|are|was|were|contains|consists|consisted)\s+(?:not|no|unrelated|irrelevant|a|an)\b', value, re.I)
@@ -164,9 +166,15 @@ def report(interview, evaluations=None):
         feedback.append(QuestionFeedback(questionId=q.id, answerId=a.id, q=q.text, answer=a.text,
             score=round(sum(answer_scores) / len(answer_scores), 1) if answer_scores else None,
             scores=evaluation.category_scores() if evaluation else None,
-            good=positive_observation(evaluation.went_well) if evaluation else 'AI evaluation unavailable for this answer.',
-            miss=evaluation.missing if evaluation else 'This answer has not been scored.',
-            better=evaluation.stronger_answer if evaluation else 'Try another interview when AI evaluation is available.',
+            good=positive_observation(evaluation.went_well) if evaluation else (
+                'Оценка ИИ для этого ответа недоступна.' if interview.setup.language == 'Russian'
+                else 'AI evaluation unavailable for this answer.'),
+            miss=evaluation.missing if evaluation else (
+                'Этот ответ ещё не оценён.' if interview.setup.language == 'Russian'
+                else 'This answer has not been scored.'),
+            better=evaluation.stronger_answer if evaluation else (
+                'Попробуйте ещё раз, когда оценка ИИ будет доступна.' if interview.setup.language == 'Russian'
+                else 'Try another interview when AI evaluation is available.'),
             practiceTopic=topics[0] if topics else None, practiceTopics=topics,
             codingJudge=a.codingJudge))
     answered_main = sum(answer.kind == 'main' for answer in answers)

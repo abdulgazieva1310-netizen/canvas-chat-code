@@ -10,6 +10,7 @@ CODING_ROLES = frozenset({'Java Developer', 'Python Developer', 'C++ Developer',
                           'Backend Developer', 'Full Stack Developer'})
 CODING_LANGUAGES = {'Java Developer': 'Java', 'Python Developer': 'Python', 'C++ Developer': 'C++'}
 Level = Literal['Junior', 'Middle', 'Senior']
+InterviewLanguage = Literal['English', 'Russian']
 
 
 class LoginData(BaseModel):
@@ -56,7 +57,7 @@ class InterviewSetup(BaseModel):
     questionCount: Literal[5, 10, 15]
     type: Literal['Technical', 'Behavioral', 'Role-specific']
     input: Literal['Voice', 'Text']
-    language: Literal['English']
+    language: InterviewLanguage
     jobDescription: str = ""
     practiceTopic: str | None = Field(default=None, min_length=1, max_length=120, pattern=r'\S',
                                      exclude_if=lambda value: value is None)

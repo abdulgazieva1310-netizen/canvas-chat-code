@@ -8,9 +8,11 @@ import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/setup")({
   validateSearch: (search: Record<string, unknown>) => ({
-    practiceTopic: typeof search["practiceTopic"] === "string" ? search["practiceTopic"].trim() : "",
+    practiceTopic:
+      typeof search["practiceTopic"] === "string" ? search["practiceTopic"].trim() : "",
     role:
-      typeof search["role"] === "string" && targetRoles.includes(search["role"] as (typeof targetRoles)[number])
+      typeof search["role"] === "string" &&
+      targetRoles.includes(search["role"] as (typeof targetRoles)[number])
         ? (search["role"] as (typeof targetRoles)[number])
         : undefined,
     interviewType:
@@ -70,7 +72,12 @@ function Choice<T extends string>({
 }
 
 function Setup() {
-  const { practiceTopic, role: targetedRole, interviewType, level: targetedLevel } = Route.useSearch();
+  const {
+    practiceTopic,
+    role: targetedRole,
+    interviewType,
+    level: targetedLevel,
+  } = Route.useSearch();
   const navigate = useNavigate();
   const client = useQueryClient();
   const [setup, setSetup] = useState<InterviewSetup>(() => ({
@@ -117,6 +124,16 @@ function Setup() {
             value={level}
             onChange={update("level")}
           />
+          <Choice
+            label="Interview language"
+            options={["English", "Russian"]}
+            value={setup.language}
+            onChange={update("language")}
+          />
+          <p className="-mt-5 text-sm text-muted-foreground">
+            Russian is a preview requiring server enablement. Questions and coaching use the selected
+            language. Speech recognition and playback depend on browser language support.
+          </p>
           <Choice
             label="Mode"
             options={["Practice", "Real Interview"]}
@@ -177,6 +194,7 @@ function Setup() {
               ["Role", role],
               ["Level", `${level} · adaptive`],
               ["Mode", mode],
+              ["Language", setup.language],
               ["Input", input],
               ["Questions", `${count} + follow-ups`],
             ].map(([k, v]) => (

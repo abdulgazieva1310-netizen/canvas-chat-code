@@ -732,7 +732,7 @@ components:
           $ref: '#/components/schemas/Role'
         level:
           $ref: '#/components/schemas/Level'
-        preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Saved preference; MVP interviews remain in English.}
+        preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Saved profile preference; each interview records its own supported language.}
     ProfileUpdate:
       type: object
       additionalProperties: false
@@ -771,7 +771,7 @@ components:
         questionCount: {type: integer, enum: [5, 10, 15]}
         type: {type: string, enum: [Technical, Behavioral, Role-specific]}
         input: {type: string, enum: [Voice, Text]}
-        language: {type: string, enum: [English]}
+        language: {type: string, enum: [English, Russian]}
         jobDescription: {type: string}
         practiceTopic: {type: string, minLength: 1, maxLength: 120, pattern: '\S', nullable: true, description: Optional evidence-backed topic for Practice sessions; ignored when incompatible with role or type.}
     Message:

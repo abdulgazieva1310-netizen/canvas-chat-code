@@ -104,6 +104,7 @@ function Report() {
       </AppShell>
     );
   const { interview, feedback } = data;
+  const russian = interview.setup.language === "Russian";
   const staticCodeReview =
     interview.setup.type === "Technical" &&
     [
@@ -219,7 +220,9 @@ function Report() {
       </section>
       {staticCodeReview && (
         <p role="note" className="card-surface mt-4 p-4">
-          Static AI code review: submissions are reviewed without compiling or executing them.
+          {russian
+            ? "Проверка кода с помощью ИИ: отправленный код анализируется без компиляции и выполнения."
+            : "Static AI code review: submissions are reviewed without compiling or executing them."}
         </p>
       )}
       {interview.answeredCount === 0 ? (
@@ -233,7 +236,9 @@ function Report() {
       ) : null}
       <div className="mt-8 grid gap-4 md:grid-cols-5">
         <div className="card-surface flex flex-col justify-center p-6 md:col-span-1">
-          <p className="eyebrow">Overall · AI coaching estimate</p>
+          <p className="eyebrow">
+            {russian ? "Общая оценка · рекомендация ИИ" : "Overall · AI coaching estimate"}
+          </p>
           <p className="font-display text-4xl">{feedback.overall ?? "Not scored"}</p>
           <p className="text-xs text-muted-foreground">
             Approximate coaching feedback, not a measure of hiring readiness.
@@ -260,7 +265,7 @@ function Report() {
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div className="card-surface p-6">
-          <h2 className="text-xl">Strengths</h2>
+          <h2 className="text-xl">{russian ? "Сильные стороны" : "Strengths"}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {feedback.strengths.map((text) => (
               <li key={text} className="flex gap-2">
@@ -272,7 +277,7 @@ function Report() {
           {feedback.strengths.length === 0 && (
             <p className="mt-2 text-sm">No supported strengths to report yet.</p>
           )}
-          <h2 className="mt-6 text-xl">Weaknesses</h2>
+          <h2 className="mt-6 text-xl">{russian ? "Зоны роста" : "Weaknesses"}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {feedback.gaps.map((text) => (
               <li key={text} className="flex gap-2">
@@ -286,7 +291,7 @@ function Report() {
           )}
         </div>
         <div className="card-surface p-6 md:col-span-2">
-          <h2 className="text-xl">Question by question</h2>
+          <h2 className="text-xl">{russian ? "Вопросы и ответы" : "Question by question"}</h2>
           <div className="mt-4 divide-y divide-border">
             {qs.map((x, i) => (
               <div key={i} className="py-3">
@@ -294,14 +299,16 @@ function Report() {
                   className="flex w-full items-center justify-between text-left"
                   onClick={() => setOpen(open === i ? -1 : i)}
                 >
-                  <span className="font-medium">Question {i + 1}</span>
+                  <span className="font-medium">
+                    {russian ? `Вопрос ${i + 1}` : `Question ${i + 1}`}
+                  </span>
                   <span className="font-display text-xl">{x.score ?? "Not scored"}</span>
                 </button>
                 {open === i && (
                   <div className="mt-3 space-y-3 text-sm">
                     <MarkdownContent>{x.q}</MarkdownContent>
                     <div>
-                      <p className="font-semibold">Your answer</p>
+                      <p className="font-semibold">{russian ? "Ваш ответ" : "Your answer"}</p>
                       <pre className="mt-1 whitespace-pre-wrap font-mono">{x.answer}</pre>
                       <a
                         href={`#transcript-${x.answerId}`}
@@ -335,15 +342,21 @@ function Report() {
                       </div>
                     )}
                     <div>
-                      <p className="mb-1 font-semibold text-success">Went well</p>
+                      <p className="mb-1 font-semibold text-success">
+                        {russian ? "Что получилось хорошо" : "Went well"}
+                      </p>
                       <MarkdownContent>{x.good}</MarkdownContent>
                     </div>
                     <div>
-                      <p className="mb-1 font-semibold text-destructive">Missing</p>
+                      <p className="mb-1 font-semibold text-destructive">
+                        {russian ? "Что можно улучшить" : "Missing"}
+                      </p>
                       <MarkdownContent>{x.miss}</MarkdownContent>
                     </div>
                     <div className="rounded-lg bg-secondary p-3">
-                      <p className="eyebrow mb-1">Stronger answer</p>
+                      <p className="eyebrow mb-1">
+                        {russian ? "Пример более сильного ответа" : "Stronger answer"}
+                      </p>
                       <MarkdownContent>{x.better}</MarkdownContent>
                     </div>
                     {x.codingJudge && (

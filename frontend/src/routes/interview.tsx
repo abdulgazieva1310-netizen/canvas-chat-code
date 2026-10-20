@@ -310,6 +310,7 @@ function Interview() {
     setSelectedLanguage(null);
   }, [interviewId, defaultLanguage]);
   const codingLanguage = defaultLanguage ? (selectedLanguage ?? defaultLanguage) : undefined;
+  const russian = interview?.setup?.language === "Russian";
   const codeRun = useMutation({
     mutationFn: (code: string) => {
       if (!codingLanguage)
@@ -328,6 +329,7 @@ function Interview() {
     voiceMode && interview?.status === "active" && !busy && !error,
     interviewId,
     setText,
+    interview?.setup.language ?? "English",
   );
   const latestQuestion = [...(interview?.messages ?? [])]
     .reverse()
@@ -336,6 +338,7 @@ function Interview() {
     interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
     latestQuestion?.id ?? "",
     latestQuestion?.text ?? "",
+    interview?.setup.language ?? "English",
   );
   useEffect(() => {
     const startedAt = interview?.startedAt;
@@ -837,15 +840,21 @@ function Interview() {
           {practice && interview.lastAnswerFeedback && (
             <div className="card-surface space-y-3 p-5 text-sm">
               <div>
-                <p className="mb-1 font-semibold">What went well:</p>
+                <p className="mb-1 font-semibold">
+                  {russian ? "Что получилось хорошо:" : "What went well:"}
+                </p>
                 <MarkdownContent>{interview.lastAnswerFeedback.went_well}</MarkdownContent>
               </div>
               <div>
-                <p className="mb-1 font-semibold">What was missing:</p>
+                <p className="mb-1 font-semibold">
+                  {russian ? "Что можно улучшить:" : "What was missing:"}
+                </p>
                 <MarkdownContent>{interview.lastAnswerFeedback.missing}</MarkdownContent>
               </div>
               <div>
-                <p className="mb-1 font-semibold">Stronger answer:</p>
+                <p className="mb-1 font-semibold">
+                  {russian ? "Пример более сильного ответа:" : "Stronger answer:"}
+                </p>
                 <MarkdownContent>{interview.lastAnswerFeedback.stronger_answer}</MarkdownContent>
               </div>
             </div>

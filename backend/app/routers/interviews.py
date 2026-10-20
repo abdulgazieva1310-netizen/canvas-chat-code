@@ -268,13 +268,20 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
             existing = previous(store)
             if existing is not None:
                 return existing
+    if data.language == 'Russian' and not ai_service.provider_supports_language(data.language):
+        raise HTTPException(503, 'Russian interviews are unavailable: enable the Russian preview with the supported provider, or select English.')
     judged_question = None
     if (data.type == 'Technical' and data.role in CODING_ROLES and data.level == 'Junior'
-            and not data.practiceTopic):
+            and not data.practiceTopic and data.language == 'English'):
         judged_question = next((item for item in load_bank() if item.id == 'coding-junior-balanced'), None)
-    first_question = (judged_question.candidate_prompt(data.role) if judged_question else
-        ai_service.generate_question(data.role, data.level, [], interview_type=data.type,
-            job_description=data.jobDescription, practice_topic=data.practiceTopic))
+    if judged_question:
+        first_question = judged_question.candidate_prompt(data.role)
+    else:
+        question_options = {'interview_language': data.language} if data.language != 'English' else {}
+        first_question = ai_service.generate_question(data.role, data.level, [], interview_type=data.type,
+            job_description=data.jobDescription, practice_topic=data.practiceTopic, **question_options)
+    if data.language == 'Russian' and not first_question:
+        raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Select English or try again later.')
     store = request.app.state.store
     try:
         with store.transaction() as repository:
@@ -340,14 +347,19 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
                 raise HTTPException(409, 'The pending question changed. Reload the interview before answering.')
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
+        if interview.setup.language == 'Russian' and not ai_service.provider_supports_language('Russian'):
+            raise HTTPException(503, 'Russian AI services are unavailable. Your answer was not saved; retry later or select English.')
         current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
         main_question_id = current_question_message.mainQuestionId or current_question_message.id
         language = None
         if interview.setup.type == 'Technical' and interview.setup.role in CODING_ROLES:
             language = data.selectedLanguage or {**CODING_LANGUAGES,
                 'Backend Developer': 'Python', 'Full Stack Developer': 'JavaScript'}[interview.setup.role]
-        evaluation = (ai_service.evaluate_answer(current_question, submitted, language=language)
-                      if language else ai_service.evaluate_answer(current_question, submitted))
+        evaluation_options = {'interview_language': interview.setup.language} if interview.setup.language != 'English' else {}
+        evaluation = (ai_service.evaluate_answer(current_question, submitted, language=language, **evaluation_options)
+                      if language else ai_service.evaluate_answer(current_question, submitted, **evaluation_options))
+        if interview.setup.language == 'Russian' and evaluation is None:
+            raise HTTPException(503, 'Russian answer evaluation is temporarily unavailable. Your answer was not saved; retry or select English.')
         setup = interview.setup
         coding_judge = None
         if current_question_message.codingQuestionId:
@@ -359,8 +371,9 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             decision.questionId == main_question_id for decision in interview.difficultyDecisions)
         next_level = current_level if already_adjusted or not is_main_answer else difficulty_transition(
             current_level, evaluation)[0]
+        follow_up_options = {'interview_language': setup.language} if setup.language != 'English' else {}
         follow_up = (ai_service.generate_followup(setup.role, next_level, setup.type,
-            current_question, submitted) if is_main_answer else None)
+            current_question, submitted, **follow_up_options) if is_main_answer else None)
         next_question = None
         if not follow_up:
             answered_after = interview.answeredCount + int(is_main_answer)
@@ -368,9 +381,12 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
                 conversation = [*interview.messages, message(interviewId, 'you', submitted)]
                 used_questions = [item.text for item in interview.messages
                                   if item.sender == 'ai' and item.kind == 'main']
+                question_options = {'interview_language': setup.language} if setup.language != 'English' else {}
                 next_question = ai_service.generate_question(setup.role, next_level, conversation,
                     interview_type=setup.type, job_description=setup.jobDescription,
-                    practice_topic=setup.practiceTopic, used_questions=used_questions)
+                    practice_topic=setup.practiceTopic, used_questions=used_questions, **question_options)
+                if setup.language == 'Russian' and not next_question:
+                    raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Your answer was not saved; retry or select English.')
         return store.answer(interview, data.text, next_question=follow_up or next_question,
             coding_judge=coding_judge,
             evaluation=evaluation, follow_up_parent_id=main_question_id if follow_up else None).model_copy(deep=True)
@@ -383,11 +399,17 @@ def hint(interviewId: str, request: Request, user: CurrentUser):
         interview = store.find(user.id, interviewId)
         if interview.status != 'active' or interview.setup.mode != 'Practice':
             raise HTTPException(409, 'Hints are only available during active Practice interviews.')
+        if interview.setup.language == 'Russian' and not ai_service.provider_supports_language('Russian'):
+            raise HTTPException(503, 'Russian AI hints are unavailable. Try again later or use the transcript.')
         question_index = next(i for i in range(len(interview.messages) - 1, -1, -1)
                               if interview.messages[i].sender == 'ai')
         previous_hints = [m.text for m in interview.messages[question_index + 1:] if m.sender == 'hint']
         generated = ai_service.generate_hint(interview.messages[question_index].text, previous_hints,
-            role=interview.setup.role, level=interview.setup.level, interview_type=interview.setup.type)
+            role=interview.setup.role, level=interview.setup.level, interview_type=interview.setup.type,
+            **({'interview_language': interview.setup.language}
+               if interview.setup.language != 'English' else {}))
+        if interview.setup.language == 'Russian' and not generated:
+            raise HTTPException(503, 'Russian hints are temporarily unavailable. The transcript remains available; try again later.')
         interview.messages.append(message(interviewId, 'hint', generated or
             'AI hints are temporarily unavailable. Please try again shortly.'))
         store.save(interview)

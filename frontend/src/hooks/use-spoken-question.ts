@@ -6,7 +6,12 @@ function synthesis() {
     : undefined;
 }
 
-export function useSpokenQuestion(enabled: boolean, questionId: string, text: string) {
+export function useSpokenQuestion(
+  enabled: boolean,
+  questionId: string,
+  text: string,
+  language: "English" | "Russian" = "English",
+) {
   const [muted, setMuted] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +36,21 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
       return;
     }
     try {
+      const voice = speaker.getVoices().find((voice) =>
+        voice.lang.toLowerCase().replaceAll("_", "-").startsWith(language === "Russian" ? "ru-" : "en-"),
+      );
+      if (
+        language === "Russian" &&
+        !voice
+      ) {
+        setError(
+          "Spoken Russian is unavailable in this browser. Read the transcript and continue by text.",
+        );
+        return;
+      }
       const next = new SpeechSynthesisUtterance(text);
-      next.lang = "en-US";
+      next.lang = language === "Russian" ? "ru-RU" : "en-US";
+      if (voice) next.voice = voice;
       next.onstart = () => setSpeaking(true);
       next.onend = () => setSpeaking(false);
       next.onerror = () => {
@@ -44,7 +62,7 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
     } catch {
       setError("Question playback failed. Read the transcript and continue by text.");
     }
-  }, [stop, text]);
+  }, [language, stop, text]);
 
   useEffect(() => {
     if (!enabled) {
@@ -52,12 +70,13 @@ export function useSpokenQuestion(enabled: boolean, questionId: string, text: st
       lastQuestion.current = "";
       return;
     }
-    if (!questionId || !text || lastQuestion.current === questionId) return;
-    lastQuestion.current = questionId;
+    const playbackKey = `${language}:${questionId}`;
+    if (!questionId || !text || lastQuestion.current === playbackKey) return;
+    lastQuestion.current = playbackKey;
     if (!muted && supported) replay();
     else stop();
     return stop;
-  }, [enabled, questionId, text, muted, replay, stop, supported]);
+  }, [enabled, questionId, text, language, muted, replay, stop, supported]);
 
   useEffect(() => stop, [stop]);
 

@@ -20,6 +20,13 @@ import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpokenQuestion } from "@/hooks/use-spoken-question";
 import { useCameraPreview } from "@/hooks/use-camera-preview";
 import { getInterviewerAvatar, type InterviewerAvatarId } from "@/lib/interviewer-avatar";
+import {
+  clearAnswerDraft,
+  clearInterviewAnswerDrafts,
+  loadAnswerDraft,
+  saveAnswerDraft,
+  type DraftStorageResult,
+} from "@/lib/answer-drafts";
 
 const Interviewer3D = lazy(() =>
   import("@/components/Interviewer3D").then((module) => ({ default: module.Interviewer3D })),
@@ -103,6 +110,12 @@ function Interview() {
   const { interviewId } = Route.useSearch();
   const navigate = useNavigate();
   const client = useQueryClient();
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: Api.getProfile,
+    retry: false,
+    staleTime: 30_000,
+  });
   const queryKey = ["interview", interviewId];
   const {
     data: interview,
@@ -124,6 +137,11 @@ function Interview() {
   const camera = useCameraPreview();
   const cameraVideo = useRef<HTMLVideoElement>(null);
   const [text, setText] = useState("");
+  const [draftExists, setDraftExists] = useState(false);
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [draftStorageStatus, setDraftStorageStatus] = useState<
+    DraftStorageResult | "ready" | "owner-unavailable"
+  >("ready");
   const [sec, setSec] = useState(0);
   const [show3D, setShow3D] = useState(false);
   const [renderFailed, setRenderFailed] = useState(false);
@@ -145,6 +163,11 @@ function Interview() {
     setRecordingConsent(false);
     setRecording(false);
     setRecordingError(null);
+  }, [interviewId]);
+  useEffect(() => {
+    setDraftDirty(false);
+    setDraftExists(false);
+    setDraftStorageStatus("ready");
   }, [interviewId]);
   const stopRecording = useCallback(async () => {
     const recorder = recorderRef.current;
@@ -267,6 +290,9 @@ function Interview() {
   const receive = async (updated: InterviewData) => {
     client.setQueryData(queryKey, updated);
     if (updated.status !== "active") {
+      clearInterviewAnswerDrafts(interviewId, profile?.id);
+      setDraftDirty(false);
+      setDraftExists(false);
       await stopRecording();
       await navigate({ to: "/report", search: { interviewId } });
     }
@@ -277,6 +303,12 @@ function Interview() {
         ? Api.sendMessage(interviewId, value, languageLabels[codingLanguage], latestQuestion?.id)
         : Api.sendMessage(interviewId, value, undefined, latestQuestion?.id),
     onSuccess: async (updated) => {
+      if (profile?.id && latestQuestion?.id) {
+        clearAnswerDraft(profile.id, interviewId, latestQuestion.id);
+      }
+      setDraftDirty(false);
+      setDraftExists(false);
+      setDraftStorageStatus("ready");
       setText("");
       await receive(updated);
     },
@@ -285,6 +317,9 @@ function Interview() {
     mutationFn: () => Api.endInterview(interviewId),
     onSuccess: async (updated) => {
       camera.stop();
+      clearInterviewAnswerDrafts(interviewId, profile?.id);
+      setDraftDirty(false);
+      setDraftExists(false);
       await receive(updated);
     },
   });
@@ -311,6 +346,9 @@ function Interview() {
   }, [interviewId, defaultLanguage]);
   const codingLanguage = defaultLanguage ? (selectedLanguage ?? defaultLanguage) : undefined;
   const russian = interview?.setup?.language === "Russian";
+  const latestQuestion = [...(interview?.messages ?? [])]
+    .reverse()
+    .find((item) => item.from === "ai");
   const codeRun = useMutation({
     mutationFn: (code: string) => {
       if (!codingLanguage)
@@ -321,19 +359,72 @@ function Interview() {
   const resetCodeRun = codeRun.reset;
   const busy = answer.isPending || end.isPending || hint.isPending || codeRun.isPending;
   useEffect(() => {
-    setText(codingLanguage ? codeTemplates[codingLanguage] : "");
     resetCodeRun();
-  }, [interviewId, interview?.answeredCount, codingLanguage, resetCodeRun]);
+  }, [interviewId, latestQuestion?.id, resetCodeRun]);
+  useEffect(() => {
+    if (!interview || !latestQuestion?.id) return;
+    if (interview.status !== "active") {
+      clearInterviewAnswerDrafts(interviewId, profile?.id);
+      setDraftDirty(false);
+      setDraftExists(false);
+      setText("");
+      return;
+    }
+    if (!profile?.id) {
+      setDraftStorageStatus("owner-unavailable");
+      return;
+    }
+    if (draftDirty) return;
+
+    const loaded = loadAnswerDraft(profile.id, interviewId, latestQuestion.id);
+    if (!loaded.available) {
+      setDraftStorageStatus("unavailable");
+      setDraftExists(false);
+      setText(codingLanguage ? codeTemplates[codingLanguage] : "");
+      return;
+    }
+    setDraftStorageStatus("ready");
+    if (loaded.draft) {
+      setText(loaded.draft.text);
+      if (loaded.draft.codingLanguage) setSelectedLanguage(loaded.draft.codingLanguage);
+      setDraftExists(true);
+    } else {
+      setText(codingLanguage ? codeTemplates[codingLanguage] : "");
+      setDraftExists(false);
+    }
+  }, [codingLanguage, draftDirty, interview?.status, interviewId, latestQuestion?.id, profile?.id]);
+  useEffect(() => {
+    if (!draftDirty || !profile?.id || interview?.status !== "active" || !latestQuestion?.id)
+      return;
+    const result = saveAnswerDraft(
+      profile.id,
+      interviewId,
+      latestQuestion.id,
+      text,
+      codingLanguage ?? null,
+    );
+    setDraftStorageStatus(result === "saved" || result === "cleared" ? "ready" : result);
+    setDraftExists(result === "saved");
+  }, [
+    codingLanguage,
+    draftDirty,
+    interview?.status,
+    interviewId,
+    latestQuestion?.id,
+    profile?.id,
+    text,
+  ]);
+  const changeAnswerText = useCallback((value: string) => {
+    setText(value);
+    setDraftDirty(true);
+  }, []);
   const voiceMode = interview?.setup?.input === "Voice" && !codingLanguage;
   const speech = useSpeechRecognition(
     voiceMode && interview?.status === "active" && !busy && !error,
     interviewId,
-    setText,
+    changeAnswerText,
     interview?.setup?.language ?? "English",
   );
-  const latestQuestion = [...(interview?.messages ?? [])]
-    .reverse()
-    .find((item) => item.from === "ai");
   const spoken = useSpokenQuestion(
     interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
     latestQuestion?.id ?? "",
@@ -499,104 +590,143 @@ function Interview() {
             </p>
           )}
           {interview.status === "active" ? (
-            <div
-              className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
-            >
-              {codingLanguage && (
-                <p className="text-sm font-medium">
-                  {setup.role.replace(" Developer", "")} code · AI review (code is not executed)
-                </p>
-              )}
-              {voiceMode && (
-                <button
-                  type="button"
-                  disabled={!speech.supported || busy || interview.status !== "active"}
-                  onClick={() => {
-                    spoken.stop();
-                    if (speech.listening) speech.stop();
-                    else speech.start(text);
-                  }}
-                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50 ${speech.listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
-                  aria-label={speech.listening ? "Stop microphone" : "Start microphone"}
-                  aria-pressed={speech.listening}
-                >
-                  {speech.listening ? (
-                    <MicOff aria-hidden="true" size={20} />
-                  ) : (
-                    <Mic aria-hidden="true" size={20} />
-                  )}
-                </button>
-              )}
-              {codingLanguage ? (
-                <>
-                  <label className="text-sm font-medium">
-                    Language
-                    <select
-                      aria-label="Coding language"
-                      value={codingLanguage}
-                      disabled={busy || interview.status !== "active"}
-                      onChange={(event) =>
-                        setSelectedLanguage(event.target.value as CodingLanguage)
-                      }
-                      className="ml-3 rounded border border-input bg-background px-3 py-2"
-                    >
-                      {Object.entries(languageLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+            <>
+              <div
+                className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
+              >
+                {codingLanguage && (
+                  <p className="text-sm font-medium">
+                    {setup.role.replace(" Developer", "")} code · AI review (code is not executed)
+                  </p>
+                )}
+                {voiceMode && (
                   <button
                     type="button"
-                    className="btn btn-ghost"
-                    disabled={busy || !text.trim() || interview.status !== "active"}
-                    onClick={() => codeRun.mutate(text)}
-                  >
-                    {codeRun.isPending ? "Running…" : "Run code"}
-                  </button>
-                  <CodeEditor
-                    key={`${interviewId}-${interview.answeredCount}`}
-                    language={codingLanguage}
-                    path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
-                    value={text}
-                    readOnly={busy || interview.status !== "active"}
-                    onChange={(value) => {
-                      setText(value);
-                      codeRun.reset();
+                    disabled={!speech.supported || busy || interview.status !== "active"}
+                    onClick={() => {
+                      spoken.stop();
+                      if (speech.listening) speech.stop();
+                      else speech.start(text);
                     }}
+                    className={`grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-50 ${speech.listening ? "bg-destructive text-destructive-foreground" : "bg-muted"}`}
+                    aria-label={speech.listening ? "Stop microphone" : "Start microphone"}
+                    aria-pressed={speech.listening}
+                  >
+                    {speech.listening ? (
+                      <MicOff aria-hidden="true" size={20} />
+                    ) : (
+                      <Mic aria-hidden="true" size={20} />
+                    )}
+                  </button>
+                )}
+                {codingLanguage ? (
+                  <>
+                    <label className="text-sm font-medium">
+                      Language
+                      <select
+                        aria-label="Coding language"
+                        value={codingLanguage}
+                        disabled={busy || interview.status !== "active"}
+                        onChange={(event) => {
+                          setSelectedLanguage(event.target.value as CodingLanguage);
+                          setDraftDirty(true);
+                        }}
+                        className="ml-3 rounded border border-input bg-background px-3 py-2"
+                      >
+                        {Object.entries(languageLabels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busy || !text.trim() || interview.status !== "active"}
+                      onClick={() => codeRun.mutate(text)}
+                    >
+                      {codeRun.isPending ? "Running…" : "Run code"}
+                    </button>
+                    <CodeEditor
+                      key={`${interviewId}-${interview.answeredCount}`}
+                      language={codingLanguage}
+                      path={`interview-${interviewId}-question-${interview.answeredCount}.${codingLanguage === "python" ? "py" : codingLanguage}`}
+                      value={text}
+                      readOnly={busy || interview.status !== "active"}
+                      onChange={(value) => {
+                        changeAnswerText(value);
+                        codeRun.reset();
+                      }}
+                    />
+                    {codeRun.data && <CodeExecutionResult result={codeRun.data} />}
+                    {codeRun.error && (
+                      <p className="text-sm text-destructive" role="alert">
+                        Could not run code: {codeRun.error.message}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <input
+                    disabled={busy || interview.status !== "active"}
+                    value={text}
+                    onChange={(e) => {
+                      speech.cancel();
+                      changeAnswerText(e.target.value);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && send()}
+                    placeholder={
+                      speech.listening ? "Listening… or type your answer" : "Type your answer"
+                    }
+                    aria-label="Your answer"
+                    className="flex-1 bg-transparent px-2 text-sm outline-none"
                   />
-                  {codeRun.data && <CodeExecutionResult result={codeRun.data} />}
-                  {codeRun.error && (
-                    <p className="text-sm text-destructive" role="alert">
-                      Could not run code: {codeRun.error.message}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <input
-                  disabled={busy || interview.status !== "active"}
-                  value={text}
-                  onChange={(e) => {
-                    speech.cancel();
-                    setText(e.target.value);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && send()}
-                  placeholder={
-                    speech.listening ? "Listening… or type your answer" : "Type your answer"
-                  }
-                  aria-label="Your answer"
-                  className="flex-1 bg-transparent px-2 text-sm outline-none"
-                />
+                )}
+                <button
+                  disabled={busy || !text.trim() || interview.status !== "active"}
+                  onClick={send}
+                  className="btn btn-primary"
+                >
+                  {answer.isPending ? "Sending…" : "Send"}
+                </button>
+                {(draftExists || (draftDirty && !!text)) && (
+                  <button
+                    type="button"
+                    disabled={busy || interview.status !== "active"}
+                    className="btn btn-ghost whitespace-nowrap"
+                    onClick={() => {
+                      if (profile?.id && latestQuestion?.id) {
+                        clearAnswerDraft(profile.id, interviewId, latestQuestion.id);
+                      }
+                      setDraftDirty(false);
+                      setDraftExists(false);
+                      setDraftStorageStatus("ready");
+                      setText(codingLanguage ? codeTemplates[codingLanguage] : "");
+                    }}
+                  >
+                    Discard draft
+                  </button>
+                )}
+              </div>
+              {draftStorageStatus === "unavailable" && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Draft recovery is unavailable in this browser. You can keep typing and send your
+                  answer.
+                </p>
               )}
-              <button
-                disabled={busy || !text.trim() || interview.status !== "active"}
-                onClick={send}
-                className="btn btn-primary"
-              >
-                {answer.isPending ? "Sending…" : "Send"}
-              </button>
-            </div>
+              {draftStorageStatus === "owner-unavailable" && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Draft recovery could not confirm this account. You can keep typing and send your
+                  answer.
+                </p>
+              )}
+              {draftStorageStatus === "too-large" && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  This answer is too large for draft recovery. You can keep typing and send it while
+                  this tab remains open.
+                </p>
+              )}
+            </>
           ) : (
             <div role="status" className="card-surface mt-6 p-4">
               <p className="font-medium">This interview has ended.</p>

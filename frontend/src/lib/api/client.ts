@@ -1,4 +1,5 @@
 import { getAuthorization, saveAuthorization } from "./session";
+import { clearInterviewAnswerDrafts } from "@/lib/answer-drafts";
 import type {
   Interview,
   DashboardSummary,
@@ -84,7 +85,7 @@ async function request<T>(
     );
   }
   if (response.status === 204) return undefined as T;
-  if (responseType === "blob") return await response.blob() as T;
+  if (responseType === "blob") return (await response.blob()) as T;
   const data = (await response.json()) as T;
   if (path === "/auth/login" || path === "/auth/register") {
     pendingStarts.clear();
@@ -100,14 +101,20 @@ const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 export const Api = {
   async deleteAccount(password: string) {
     await request<void>("/auth/me", { password, confirmation: "DELETE" }, "DELETE");
-    pendingStarts.clear(); rememberStarts(); saveAuthorization(null);
+    pendingStarts.clear();
+    rememberStarts();
+    saveAuthorization(null);
   },
   exportAccount: () => request<Blob>("/auth/me/export", undefined, "GET", { responseType: "blob" }),
-  saveStudyQuestion: (interviewId: string, questionId: string) => request<StudyQuestion>("/study/questions", {interviewId, questionId}),
+  saveStudyQuestion: (interviewId: string, questionId: string) =>
+    request<StudyQuestion>("/study/questions", { interviewId, questionId }),
   getStudyQuestions: (page = 1) => request<StudyPage>(`/study/questions?page=${page}`),
-  updateStudyQuestion: (id: string, note: string) => request<StudyQuestion>(`/study/questions/${encodeURIComponent(id)}`, {note}, "PATCH"),
-  deleteStudyQuestion: (id: string) => request<void>(`/study/questions/${encodeURIComponent(id)}`, undefined, "DELETE"),
-  exportReport: (id: string) => request<Blob>(`${interviewPath(id)}/report/export`, undefined, "GET", { responseType: "blob" }),
+  updateStudyQuestion: (id: string, note: string) =>
+    request<StudyQuestion>(`/study/questions/${encodeURIComponent(id)}`, { note }, "PATCH"),
+  deleteStudyQuestion: (id: string) =>
+    request<void>(`/study/questions/${encodeURIComponent(id)}`, undefined, "DELETE"),
+  exportReport: (id: string) =>
+    request<Blob>(`${interviewPath(id)}/report/export`, undefined, "GET", { responseType: "blob" }),
   getDashboardSummary: () => request<DashboardSummary>("/dashboard/summary"),
   getProfile: () => request<User>("/auth/me"),
   updateProfile: (data: ProfileUpdate) => request<User>("/auth/me", data, "PATCH"),
@@ -154,7 +161,10 @@ export const Api = {
     return interview;
   },
   getInterview: (id: string) => request<Interview>(interviewPath(id)),
-  deleteInterview: (id: string) => request<void>(interviewPath(id), undefined, "DELETE"),
+  async deleteInterview(id: string) {
+    await request<void>(interviewPath(id), undefined, "DELETE");
+    clearInterviewAnswerDrafts(id);
+  },
   resumeInterview: (id: string) =>
     request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
   sendMessage: (id: string, text: string, selectedLanguage?: string, expectedQuestionId?: string) =>

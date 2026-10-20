@@ -12,6 +12,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { useEffect } from "react";
 import { Route } from "@/routes/interview";
 import { Api } from "@/lib/api/client";
+import { loadAnswerDraft, saveAnswerDraft } from "@/lib/answer-drafts";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { Interview } from "@/lib/api/types";
 import type { BrowserSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -60,11 +61,20 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  sessionStorage.clear();
   localStorage.clear();
 });
 
 function openInterview(url = "/interview?interviewId=session-123") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(["profile"], {
+    id: "owner-123",
+    name: "Test User",
+    email: "test@example.com",
+    targetRole: "Backend Developer",
+    level: "Middle",
+    preferredLanguage: "English",
+  });
   const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Outlet });
   const interview = createRoute({
     getParentRoute: () => root,
@@ -402,6 +412,30 @@ it("preserves typed text and re-enables input after a failed send", async () => 
   expect(input).toHaveValue("Keep my answer");
   expect(input).toBeEnabled();
   expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  expect(loadAnswerDraft("owner-123", "session-123", "question-2").draft?.text).toBe(
+    "Keep my answer",
+  );
+  client.clear();
+});
+
+it("restores an owner and question scoped draft and lets the user discard it", async () => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+  });
+  saveAnswerDraft("owner-123", "session-123", "question-2", "Saved Ω answer", null);
+  const client = openInterview();
+
+  const input = await screen.findByPlaceholderText("Type your answer");
+  await waitFor(() => expect(input).toHaveValue("Saved Ω answer"));
+  expect(screen.getByRole("button", { name: "Discard draft" })).toBeVisible();
+  expect(loadAnswerDraft("another-owner", "session-123", "question-2").draft).toBeNull();
+  expect(loadAnswerDraft("owner-123", "session-123", "another-question").draft).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Discard draft" }));
+  expect(input).toHaveValue("");
+  expect(loadAnswerDraft("owner-123", "session-123", "question-2").draft).toBeNull();
   client.clear();
 });
 
@@ -701,7 +735,7 @@ it("shows an actionable permission denial and sends only reviewed text", async (
 });
 
 it("starts camera preview only after opt-in and releases its track when the interview ends", async () => {
-  const track = { stop: vi.fn() };
+  const track = Object.assign(new EventTarget(), { stop: vi.fn() });
   const stream = { getTracks: () => [track] } as unknown as MediaStream;
   const getUserMedia = vi.fn().mockResolvedValue(stream);
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
@@ -784,7 +818,7 @@ it("requires explicit retention consent before capturing and saves the recording
 });
 
 it("releases camera tracks when leaving the interview route", async () => {
-  const track = { stop: vi.fn() };
+  const track = Object.assign(new EventTarget(), { stop: vi.fn() });
   const stream = { getTracks: () => [track] } as unknown as MediaStream;
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(stream) } });
   vi.spyOn(Api, "getInterview").mockResolvedValue({

@@ -57,6 +57,20 @@ export function useCameraPreview() {
         return;
       }
       streamRef.current = next;
+      const trackEnded = () => {
+        if (
+          !mountedRef.current ||
+          requestRef.current !== requestId ||
+          streamRef.current !== next
+        ) {
+          return;
+        }
+        streamRef.current = null;
+        stopTracks(next);
+        setStream(null);
+        setError("The camera disconnected. Reconnect it or continue with text or voice.");
+      };
+      next.getTracks().forEach((track) => track.addEventListener("ended", trackEnded, { once: true }));
       setStream(next);
     } catch (reason) {
       if (mountedRef.current && requestRef.current === requestId) setError(cameraError(reason));

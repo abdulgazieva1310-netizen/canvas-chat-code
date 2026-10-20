@@ -8,7 +8,8 @@ afterEach(() => {
 });
 
 function cameraStream() {
-  const track = { stop: vi.fn() };
+  const track = new EventTarget() as EventTarget & { stop: ReturnType<typeof vi.fn> };
+  track.stop = vi.fn();
   const stream = { getTracks: () => [track] } as unknown as MediaStream;
   return { stream, track };
 }
@@ -58,6 +59,20 @@ it("explains when browser camera access is unavailable", async () => {
   await act(async () => result.current.start());
   expect(result.current.error).toContain("unavailable in this browser");
   expect(result.current.stream).toBeNull();
+});
+
+it("clears the preview and explains when the camera device is lost", async () => {
+  const { stream, track } = cameraStream();
+  installCamera(vi.fn().mockResolvedValue(stream));
+  const { result } = renderHook(() => useCameraPreview());
+  await act(async () => result.current.start());
+  expect(result.current.stream).toBe(stream);
+
+  act(() => track.dispatchEvent(new Event("ended")));
+
+  expect(result.current.stream).toBeNull();
+  expect(result.current.error).toContain("camera disconnected");
+  expect(track.stop).toHaveBeenCalledOnce();
 });
 
 it("stops a stream that resolves after the user cancels the permission request", async () => {

@@ -148,6 +148,52 @@ test("private evaluation feedback can be saved, edited, and removed", async ({ p
   expect(saved).toBeNull();
 });
 
+test("applying a saved job target fills Setup for review without starting", async ({ page }) => {
+  const target = { id: "target-1", title: "QA opening", company: "Example", role: "QA Engineer",
+    description: "Build a reliable test strategy.", createdAt: "2026-10-20T00:00:00Z", updatedAt: "2026-10-20T00:00:00Z" };
+  let starts = 0;
+  await page.route("**/api/job-targets", async (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { items: [target], limit: 20 } });
+    return route.fulfill({ status: 201, json: target });
+  });
+  await page.route("**/api/interviews", async (route) => {
+    if (route.request().method() === "POST") starts += 1;
+    await route.fulfill({ json: active });
+  });
+  await page.goto("/setup");
+  await page.getByRole("button", { name: "Apply to Setup" }).click();
+  await expect(page.getByLabel("Job description")).toHaveValue(target.description);
+  await expect(page.getByText("QA Engineer", { exact: true }).first()).toBeVisible();
+  expect(starts).toBe(0);
+  await page.getByRole("button", { name: "Start interview" }).click();
+  await expect.poll(() => starts).toBe(1);
+});
+
+test("job target save retries without losing editor text", async ({ page }) => {
+  let attempts = 0;
+  const saved = { id: "target-1", title: "QA role", company: null, role: "QA Engineer",
+    description: "Unicode: тест", createdAt: "2026-10-20T00:00:00Z", updatedAt: "2026-10-20T00:00:00Z" };
+  let created: typeof saved | null = null;
+  await page.route("**/api/job-targets", async (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { items: created ? [created] : [], limit: 20 } });
+    attempts += 1;
+    if (attempts === 1) return route.fulfill({ status: 503, json: { message: "Temporarily unavailable" } });
+    created = saved;
+    return route.fulfill({ status: 201, json: saved });
+  });
+  await page.goto("/setup");
+  await page.getByRole("button", { name: "Add job target" }).click();
+  await page.getByLabel("Title").fill("QA role");
+  await page.getByRole("combobox").first().selectOption("QA Engineer");
+  await page.getByLabel(/Job description/).first().fill(saved.description);
+  await page.getByRole("button", { name: "Save target" }).click();
+  await expect(page.getByRole("alert")).toContainText("Temporarily unavailable");
+  await expect(page.getByLabel(/Job description/).first()).toHaveValue(saved.description);
+  await page.getByRole("button", { name: "Retry save" }).click();
+  await expect(page.locator("article").filter({ hasText: "QA role" })).toContainText("QA Engineer");
+  expect(attempts).toBe(2);
+});
+
 for (const width of [375, 1280]) {
   test(`saved report comparison is readable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({width,height:900});

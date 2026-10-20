@@ -7,7 +7,7 @@ from app.main import create_app
 from app import account_deletion
 from app.database import (Base, UserRecord, TokenRecord, PasswordResetRecord, InterviewRecord,
     InterviewMediaRecord, InterviewMediaConsentRecord, StudyQuestionRecord, AnswerEvaluationRecord,
-    EvaluationFeedbackRecord, InterviewStartRecord, MediaCleanupRecord)
+    EvaluationFeedbackRecord, JobTargetRecord, InterviewStartRecord, MediaCleanupRecord)
 from app.media_storage import media_path
 from app.services import ai_service
 from app.services.email_service import LocalMailbox
@@ -32,6 +32,8 @@ def test_account_deletion_reauth_revocation_isolation_and_durable_cleanup(tmp_pa
             session.add(EvaluationFeedbackRecord(answer_id=answer_id,owner_id=owner,interview_id=interview['id'],
                 question_id=interview['messages'][0]['id'],rating='helpful',category=None,comment='Private',
                 provenance=None,updated_at=1000))
+            session.add(JobTargetRecord(id='target',owner_id=owner,title='Target',company=None,role='QA Engineer',
+                description='Private description',created_at=1000,updated_at=1000))
         client.post('/api/study/questions',json={'interviewId':interview['id'],'questionId':interview['messages'][0]['id']})
         client.post('/api/auth/password-reset/request',json={'email':'owner@example.com'})
         reset=parse_qs(urlparse(mailbox.messages[-1]['link']).query)['token'][0]
@@ -60,7 +62,7 @@ def test_account_deletion_reauth_revocation_isolation_and_durable_cleanup(tmp_pa
             assert session.get(UserRecord,owner) is None and session.get(UserRecord,other) is not None
             for model in [TokenRecord,PasswordResetRecord,InterviewRecord,InterviewMediaRecord,
                           InterviewMediaConsentRecord,StudyQuestionRecord,AnswerEvaluationRecord,EvaluationFeedbackRecord,
-                          InterviewStartRecord]:
+                          InterviewStartRecord,JobTargetRecord]:
                 # Other account's login token is the only surviving child row.
                 rows=session.scalars(select(model)).all()
                 assert len(rows)==(1 if model is TokenRecord else 0)

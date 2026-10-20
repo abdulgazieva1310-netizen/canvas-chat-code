@@ -91,6 +91,18 @@ class EvaluationFeedbackRecord(Base):
     updated_at: Mapped[float] = mapped_column(Float)
 
 
+class JobTargetRecord(Base):
+    __tablename__ = 'job_targets'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    company: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    role: Mapped[str] = mapped_column(String(40))
+    description: Mapped[str] = mapped_column(String(8000))
+    created_at: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[float] = mapped_column(Float)
+
+
 class InterviewMediaConsentRecord(Base):
     __tablename__ = 'interview_media_consents'
     interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), primary_key=True)

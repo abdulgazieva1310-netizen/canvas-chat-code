@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
-from .routers import auth, dashboard, evaluation_feedback, interviews, study
+from .routers import auth, dashboard, evaluation_feedback, interviews, job_targets, study
 from .store import Store
 from .services.email_service import email_delivery, password_reset_url
 
@@ -79,6 +79,7 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
     app.include_router(dashboard.router, prefix='/api')
     app.include_router(study.router, prefix='/api')
     app.include_router(evaluation_feedback.router, prefix='/api')
+    app.include_router(job_targets.router, prefix='/api')
     return app
 
 

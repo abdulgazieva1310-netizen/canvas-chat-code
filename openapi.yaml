@@ -529,11 +529,77 @@ paths:
           description: Missing or inaccessible interview
         '409':
           description: Interview is still active
+  /job-targets:
+    get:
+      operationId: listJobTargets
+      summary: List private saved job targets
+      responses:
+        '200':
+          description: Targets owned by the authenticated user
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobTargetList'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      operationId: createJobTarget
+      summary: Save a job target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JobTargetInput'}
+      responses:
+        '201':
+          description: Created target
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobTarget'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {description: Owner already has 20 targets}
+        '400': {description: Invalid target fields}
+  /job-targets/{id}:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: string}}
+    get:
+      operationId: getJobTarget
+      summary: Read one owned job target
+      responses:
+        '200':
+          description: Saved target
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobTarget'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      operationId: updateJobTarget
+      summary: Replace an owned job target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JobTargetInput'}
+      responses:
+        '200':
+          description: Updated target
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobTarget'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '400': {description: Invalid target fields}
+    delete:
+      operationId: deleteJobTarget
+      summary: Delete an owned job target
+      responses:
+        '204': {description: Target deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /auth/me/export:
     get:
       operationId: exportAccount
       summary: Download an owner-scoped versioned JSON account archive
-      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, study notes and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
+      description: Consistent read snapshot. Includes public profile, sessions, evaluations, learning plan, study notes, job targets and media metadata; excludes credentials, hidden judge cases, storage paths and raw media. No provider calls. Active Real Interviews must end first. Maximum 10 MiB.
       responses:
         '200':
           description: JSON archive attachment
@@ -541,7 +607,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, media, mediaBytesIncluded]
+                required: [schemaVersion, exportedAt, profile, interviews, evaluations, learningPlan, studyQuestions, evaluationFeedback, jobTargets, media, mediaBytesIncluded]
                 properties:
                   schemaVersion: {type: integer, enum: [1]}
                   exportedAt: {type: string, format: date-time}
@@ -556,6 +622,12 @@ paths:
                   studyQuestions:
                     type: array
                     items: {type: object}
+                  evaluationFeedback:
+                    type: array
+                    items: {$ref: '#/components/schemas/EvaluationFeedback'}
+                  jobTargets:
+                    type: array
+                    items: {$ref: '#/components/schemas/JobTarget'}
                   media:
                     type: array
                     items: {type: object}
@@ -989,7 +1061,7 @@ components:
         type: {type: string, enum: [Technical, Behavioral, Role-specific]}
         input: {type: string, enum: [Voice, Text]}
         language: {type: string, enum: [English, Russian]}
-        jobDescription: {type: string}
+        jobDescription: {type: string, maxLength: 8000}
         practiceTopic: {type: string, minLength: 1, maxLength: 120, pattern: '\S', nullable: true, description: Optional evidence-backed topic for Practice sessions; ignored when incompatible with role or type.}
     Message:
       type: object
@@ -1111,6 +1183,32 @@ components:
         comment: {type: string, nullable: true, maxLength: 1000}
         updatedAt: {type: string, format: date-time, nullable: true}
         provenanceStatus: {type: string, enum: [unknown]}
+    JobTargetInput:
+      type: object
+      additionalProperties: false
+      required: [title, role]
+      properties:
+        title: {type: string, minLength: 1, maxLength: 120}
+        company: {type: string, nullable: true, maxLength: 120}
+        role: {$ref: '#/components/schemas/Role'}
+        description: {type: string, maxLength: 8000}
+    JobTarget:
+      allOf:
+        - {$ref: '#/components/schemas/JobTargetInput'}
+        - type: object
+          required: [id, createdAt, updatedAt]
+          properties:
+            id: {type: string}
+            createdAt: {type: string, format: date-time}
+            updatedAt: {type: string, format: date-time}
+    JobTargetList:
+      type: object
+      required: [items, limit]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/JobTarget'}
+        limit: {type: integer, enum: [20]}
     InterviewReport:
       type: object
       required: [interview, feedback]

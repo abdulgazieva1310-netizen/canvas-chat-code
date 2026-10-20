@@ -58,7 +58,7 @@ class InterviewSetup(BaseModel):
     type: Literal['Technical', 'Behavioral', 'Role-specific']
     input: Literal['Voice', 'Text']
     language: InterviewLanguage
-    jobDescription: str = ""
+    jobDescription: str = Field(default="", max_length=8000)
     practiceTopic: str | None = Field(default=None, min_length=1, max_length=120, pattern=r'\S',
                                      exclude_if=lambda value: value is None)
 

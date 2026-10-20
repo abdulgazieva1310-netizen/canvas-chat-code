@@ -5,6 +5,8 @@ import type {
   DashboardSummary,
   InterviewReport,
   EvaluationFeedback,
+  JobTarget,
+  JobTargetList,
   InterviewMediaList,
   InterviewMediaInfo,
   InterviewSetup,
@@ -216,6 +218,18 @@ export const Api = {
   getHint: (id: string) => request<Interview>(`${interviewPath(id)}/hint`, undefined, "POST"),
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),
+  getEvaluationFeedback: (id: string, answerId: string) =>
+    request<EvaluationFeedback>(`${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`),
+  saveEvaluationFeedback: (id: string, answerId: string, data: Pick<EvaluationFeedback, "rating" | "category" | "comment">) =>
+    request<EvaluationFeedback>(`${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`, data, "PUT"),
+  deleteEvaluationFeedback: (id: string, answerId: string) =>
+    request<void>(`${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`, undefined, "DELETE"),
+  listJobTargets: () => request<JobTargetList>("/job-targets"),
+  createJobTarget: (data: Pick<JobTarget, "title" | "company" | "role" | "description">) =>
+    request<JobTarget>("/job-targets", data, "POST"),
+  updateJobTarget: (id: string, data: Pick<JobTarget, "title" | "company" | "role" | "description">) =>
+    request<JobTarget>(`/job-targets/${encodeURIComponent(id)}`, data, "PUT"),
+  deleteJobTarget: (id: string) => request<void>(`/job-targets/${encodeURIComponent(id)}`, undefined, "DELETE"),
   async getHistory(): Promise<Interview[]> {
     // Existing dashboard/session consumers still need the complete saved history.
     const first = await request<HistoryPage>("/interviews");

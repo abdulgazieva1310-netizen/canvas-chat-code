@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy import select
-from .database import (AnswerEvaluationRecord, EvaluationFeedbackRecord, InterviewRecord,
+from .database import (AnswerEvaluationRecord, EvaluationFeedbackRecord, JobTargetRecord, InterviewRecord,
                        InterviewMediaRecord, StudyQuestionRecord)
 from .models import AnswerEvaluation, Interview
 
@@ -31,6 +31,8 @@ def archive(store, user):
     evaluation_feedback = store.session.scalars(select(EvaluationFeedbackRecord).where(
         EvaluationFeedbackRecord.owner_id == user.id).order_by(EvaluationFeedbackRecord.updated_at,
                                                                 EvaluationFeedbackRecord.answer_id)).all()
+    job_targets = store.session.scalars(select(JobTargetRecord).where(JobTargetRecord.owner_id == user.id)
+                                        .order_by(JobTargetRecord.created_at, JobTargetRecord.id)).all()
     media = store.session.scalars(select(InterviewMediaRecord).where(InterviewMediaRecord.owner_id == user.id)
                                  .order_by(InterviewMediaRecord.id)).all()
     result = {
@@ -48,6 +50,9 @@ def archive(store, user):
                                 'comment': row.comment, 'provenance': row.provenance,
                                 'provenanceStatus': 'unknown', 'updatedAt': row.updated_at}
                                for row in evaluation_feedback],
+        'jobTargets': [{'id': row.id, 'title': row.title, 'company': row.company, 'role': row.role,
+                        'description': row.description, 'createdAt': row.created_at, 'updatedAt': row.updated_at}
+                       for row in job_targets],
         'media': [{'id': row.id, 'interviewId': row.interview_id, 'mediaType': row.media_type,
                    'sizeBytes': row.size_bytes, 'createdAt': row.created_at, 'expiresAt': row.expires_at} for row in media],
         'mediaBytesIncluded': False,

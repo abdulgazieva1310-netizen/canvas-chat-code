@@ -2,10 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
-import { targetRoles, type InterviewSetup } from "@/lib/api/types";
+import { targetRoles, type InterviewLanguage, type InterviewSetup, type Level, type Role } from "@/lib/api/types";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CalendarReminder } from "@/components/CalendarReminder";
+import { JobTargets } from "@/components/JobTargets";
 
 export const Route = createFileRoute("/setup")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -14,19 +15,19 @@ export const Route = createFileRoute("/setup")({
     role:
       typeof search["role"] === "string" &&
       targetRoles.includes(search["role"] as (typeof targetRoles)[number])
-        ? (search["role"] as (typeof targetRoles)[number])
+        ? (search["role"] as Role)
         : undefined,
     interviewType:
       search["interviewType"] === "Technical" ||
       search["interviewType"] === "Behavioral" ||
       search["interviewType"] === "Role-specific"
-        ? search["interviewType"]
+        ? (search["interviewType"] as InterviewSetup["type"])
         : undefined,
     level:
       search["level"] === "Junior" || search["level"] === "Middle" || search["level"] === "Senior"
-        ? search["level"]
+        ? (search["level"] as Level)
         : undefined,
-    language: search["language"] === "Russian" ? "Russian" : search["language"] === "English" ? "English" : undefined,
+    language: search["language"] === "Russian" ? "Russian" as InterviewLanguage : search["language"] === "English" ? "English" as InterviewLanguage : undefined,
   }),
   head: () => ({
     meta: [
@@ -83,14 +84,20 @@ function Setup() {
   } = Route.useSearch();
   const navigate = useNavigate();
   const client = useQueryClient();
-  const [setup, setSetup] = useState<InterviewSetup>(() => ({
-    ...defaultSetup,
-    ...(targetedRole ? { role: targetedRole } : {}),
-    ...(interviewType ? { type: interviewType } : {}),
-    ...(targetedLevel ? { level: targetedLevel } : {}),
-    ...(targetedLanguage ? { language: targetedLanguage } : {}),
-    ...(practiceTopic ? { mode: "Practice" as const, practiceTopic } : {}),
-  }));
+  const [setup, setSetup] = useState<InterviewSetup>(() => {
+    const initial = {
+      ...defaultSetup,
+      ...(targetedRole ? { role: targetedRole } : {}),
+      ...(interviewType ? { type: interviewType } : {}),
+      ...(targetedLevel ? { level: targetedLevel } : {}),
+      ...(targetedLanguage ? { language: targetedLanguage } : {}),
+    } satisfies InterviewSetup;
+    if (practiceTopic) {
+      initial.mode = "Practice";
+      initial.practiceTopic = practiceTopic;
+    }
+    return initial;
+  });
   const { type, role, level, mode, input, questionCount: count } = setup;
   const update =
     <K extends keyof InterviewSetup>(key: K) =>
@@ -108,6 +115,11 @@ function Setup() {
     <AppShell>
       <p className="eyebrow">Custom setup</p>
       <h1 className="mt-2 text-4xl">Shape your interview.</h1>
+      <JobTargets onApply={(target) => setSetup((current) => ({
+        ...current,
+        role: target.role,
+        jobDescription: target.description,
+      }))} />
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         <div className="card-surface space-y-7 p-7 md:col-span-2">
           <Choice
@@ -142,13 +154,11 @@ function Setup() {
             label="Mode"
             options={["Practice", "Real Interview"]}
             value={mode}
-            onChange={(value) =>
-              setSetup((current) => ({
-                ...current,
-                mode: value,
-                ...(value === "Practice" ? {} : { practiceTopic: undefined }),
-              }))
-            }
+            onChange={(value) => setSetup((current) => {
+              const next = { ...current, mode: value };
+              if (value !== "Practice") delete next.practiceTopic;
+              return next;
+            })}
           />
           {mode === "Practice" && (
             <div>
@@ -180,14 +190,17 @@ function Setup() {
             }
           />
           <div>
-            <p className="eyebrow mb-3">Job description (optional)</p>
+            <label htmlFor="job-description" className="eyebrow mb-3 block">Job description (optional)</label>
             <textarea
+              id="job-description"
               value={setup.jobDescription ?? ""}
               onChange={(e) => update("jobDescription")(e.target.value)}
+              maxLength={8000}
               rows={4}
               placeholder="Paste a job posting to tailor questions…"
               className="w-full rounded-lg border border-input bg-background p-3 text-sm"
             />
+            <p className="mt-1 text-right text-xs text-muted-foreground">{(setup.jobDescription ?? "").length} / 8000</p>
           </div>
         </div>
         <aside className="card-surface h-fit p-7 md:sticky md:top-24">

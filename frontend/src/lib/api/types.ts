@@ -169,6 +169,21 @@ export interface EvaluationFeedback {
   provenanceStatus: "unknown";
 }
 
+export interface JobTarget {
+  id: string;
+  title: string;
+  company: string | null;
+  role: Role;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobTargetList {
+  items: JobTarget[];
+  limit: number;
+}
+
 export interface RegisterData {
   name: string;
   email: string;

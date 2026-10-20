@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { DownloadButton } from "@/components/DownloadButton";
+import { DeleteAccount } from "@/components/DeleteAccount";
 import { Api } from "@/lib/api/client";
 import { targetRoles, type Level, type Role, type User } from "@/lib/api/types";
 import {
@@ -42,6 +43,7 @@ function Profile() {
           <p>Download a versioned JSON copy of your profile, interviews, feedback and study notes. Media metadata is included; recording files are excluded. End active Real Interviews first. Archives over 10 MiB cannot be downloaded here.</p>
           <DownloadButton label="Download account archive" filename="interview-mirror-account.json" load={Api.exportAccount} />
         </section>
+        <DeleteAccount />
       </>}
     </AppShell>
   );

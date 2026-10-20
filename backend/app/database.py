@@ -64,6 +64,12 @@ class StudyQuestionRecord(Base):
     saved_at: Mapped[float] = mapped_column(Float)
 
 
+class MediaCleanupRecord(Base):
+    __tablename__ = 'media_cleanup'
+    storage_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    created_at: Mapped[float] = mapped_column(Float)
+
+
 class AnswerEvaluationRecord(Base):
     __tablename__ = 'answer_evaluations'
     answer_id: Mapped[str] = mapped_column(String(36), primary_key=True)

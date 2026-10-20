@@ -163,6 +163,27 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+    delete:
+      operationId: deleteAccount
+      summary: Permanently delete the current account after password reauthentication
+      description: Removes owned database records transactionally, revokes all sessions/reset links and expires the cookie. Private media becomes inaccessible immediately; durable file cleanup is attempted after commit and retried every minute.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, confirmation]
+              properties:
+                password: {type: string, minLength: 1, writeOnly: true}
+                confirmation: {type: string, enum: [DELETE]}
+      responses:
+        '204': {description: Account deleted; file cleanup may remain queued}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /auth/logout:
     post:
       operationId: logout

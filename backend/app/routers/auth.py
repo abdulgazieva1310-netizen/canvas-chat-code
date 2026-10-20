@@ -1,4 +1,6 @@
 from uuid import uuid4
+from typing import Literal
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta, timezone
 import logging
 import secrets
@@ -133,3 +135,24 @@ def export_account(request: Request, user: CurrentUser):
     return Response(payload, media_type='application/json', headers={
         'Content-Disposition': 'attachment; filename="interview-mirror-account.json"',
         'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
+
+
+class DeleteAccount(BaseModel):
+    password: str = Field(min_length=1)
+    confirmation: Literal['DELETE']
+
+
+@router.delete('/me', status_code=204)
+def delete_account(data: DeleteAccount, request: Request, user: CurrentUser):
+    from ..account_deletion import delete_owned_account, retry_media_cleanup
+    with request.app.state.store.transaction() as store:
+        delete_owned_account(store, user.id, data.password)
+    # Database deletion has committed. A file failure must not misreport the committed result.
+    try:
+        retry_media_cleanup(request.app.state.store)
+    except Exception:
+        logging.getLogger(__name__).warning('Account deleted; durable media cleanup will retry')
+    response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
+    response.delete_cookie('session', path='/api', httponly=True,
+        secure=request.app.state.secure_cookies, samesite='lax')
+    return response

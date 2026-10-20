@@ -9,6 +9,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 import os
 from contextlib import asynccontextmanager
 import asyncio
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -26,9 +27,15 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
 
     async def media_reaper():
         while True:
-            await asyncio.sleep(3600)
-            with store.transaction() as repository:
-                interviews.purge_expired_media(repository)
+            await asyncio.sleep(60)
+            try:
+                with store.transaction() as repository:
+                    interviews.purge_expired_media(repository)
+                from .account_deletion import retry_media_cleanup
+                retry_media_cleanup(store)
+            except Exception:
+                logging.getLogger(__name__).warning('Media cleanup deferred; will retry')
+
 
     @asynccontextmanager
     async def lifespan(app):

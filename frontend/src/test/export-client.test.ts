@@ -23,3 +23,14 @@ it("downloads only the current account archive with session credentials", async 
   expect(await blob.text()).toContain('"schemaVersion":1');
   expect(fetch).toHaveBeenCalledWith("http://localhost:8000/api/auth/me/export",expect.objectContaining({credentials:"include",headers:expect.objectContaining({Authorization:"Bearer owner-session"})}));
 });
+it("revokes local credentials only after successful account deletion", async () => {
+  saveAuthorization("Bearer owner-session");
+  const fetch=vi.fn().mockResolvedValueOnce(new Response('{"message":"Incorrect password"}',{status:400}))
+    .mockResolvedValueOnce(new Response(null,{status:204}));
+  vi.stubGlobal("fetch",fetch);
+  await expect(Api.deleteAccount("wrong")).rejects.toMatchObject({status:400});
+  expect(sessionStorage.getItem("interview-mirror.authorization")).toBe("Bearer owner-session");
+  await Api.deleteAccount("correct");
+  expect(sessionStorage.getItem("interview-mirror.authorization")).toBeNull();
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({password:"correct",confirmation:"DELETE"});
+});

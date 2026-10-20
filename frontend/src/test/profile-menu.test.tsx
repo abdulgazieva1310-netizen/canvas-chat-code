@@ -358,3 +358,33 @@ it("shows saved profile edits when returning to the real dashboard", async () =>
   expect(screen.getByText("Target: Senior Java Developer · English")).toBeInTheDocument();
   client.clear();
 });
+
+it("requires confirmation for deletion, supports cancel/retry and clears private data on success", async () => {
+  saveAuthorization("Bearer owner-token");
+  const deletion=vi.spyOn(Api,"deleteAccount").mockRejectedValueOnce(new Error("Current password is incorrect"))
+    .mockImplementationOnce(async()=>{saveAuthorization(null);});
+  const {client,router}=openPage("/profile",true);
+  client.setQueryData(["interview","private"],{id:"private"});
+  await screen.findByRole("button",{name:"Delete my account"});
+  fireEvent.click(screen.getByRole("button",{name:"Delete my account"}));
+  expect(screen.getByRole("button",{name:"Permanently delete account"})).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"wrong"}});
+  fireEvent.change(screen.getByLabelText("Type DELETE to confirm"),{target:{value:"DELETE"}});
+  fireEvent.click(screen.getByRole("button",{name:"Cancel deletion"}));
+  expect(deletion).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button",{name:"Delete my account"}));
+  expect(screen.getByLabelText("Current password")).toHaveValue("");
+  fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"wrong"}});
+  fireEvent.change(screen.getByLabelText("Type DELETE to confirm"),{target:{value:"DELETE"}});
+  fireEvent.click(screen.getByRole("button",{name:"Permanently delete account"}));
+  await screen.findByRole("alert");
+  expect(getAuthorization()).toBe("Bearer owner-token");
+  expect(client.getQueryData(["interview","private"])).toEqual({id:"private"});
+  fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"correct"}});
+  fireEvent.click(screen.getByRole("button",{name:"Permanently delete account"}));
+  await screen.findByText("Login page");
+  await waitFor(()=>expect(client.getQueryCache().getAll()).toHaveLength(0));
+  expect(getAuthorization()).toBeNull();
+  expect(router.state.location.pathname).toBe("/login");
+  client.clear();
+});

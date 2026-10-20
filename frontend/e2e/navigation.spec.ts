@@ -38,6 +38,8 @@ test.beforeEach(async ({ page }) => {
       body = { completedCount: 1, recentActivity: [complete], groups: [], strengths: [], weaknesses: [], suggestions: [] };
     else if (path === "/api/interviews")
       body = { items: [complete, active], total: 2, page: 1, pageSize: 20 };
+    else if (path.endsWith("/media"))
+      body = { retentionDays: 30, media: [] };
     else if (path.endsWith("/report"))
       body = {
         interview: complete,

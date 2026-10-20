@@ -51,8 +51,9 @@ inputs and expected outputs remain server-side.
 
 The execution service is called once per reviewed case using the currently
 supported isolated runner languages: Python, Java, C++, JavaScript, and
-TypeScript. The runner retains its existing CPU, memory, process, filesystem,
-network, source-size, output-size, and timeout limits. Compilation errors,
+TypeScript. The runner retains its CPU, memory, process, filesystem, network,
+source-size, and output-size limits, with a 12-second per-command wall-clock
+deadline to accommodate the supported compilers in the constrained container. Compilation errors,
 runtime errors, timeouts, unavailable runner infrastructure, and incorrect
 outputs keep distinct judge statuses. Static AI coaching still runs when
 automated execution is unavailable.

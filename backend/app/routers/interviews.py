@@ -81,7 +81,7 @@ def judge_code(language, code, judge_key):
     for category, private_input, expected in cases:
         try:
             response = httpx.post(f'{url}/run', json={'language': language, 'code': code, 'stdin': private_input},
-                headers={'Authorization': f'Bearer {token}'}, timeout=httpx.Timeout(12.0, connect=2.0))
+                headers={'Authorization': f'Bearer {token}'}, timeout=httpx.Timeout(19.0, connect=2.0))
             response.raise_for_status()
             result = CodeRunResult.model_validate(response.json())
         except (httpx.HTTPError, ValueError):

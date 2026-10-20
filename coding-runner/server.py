@@ -45,13 +45,13 @@ def run_container(language, source, stdin=""):
         IMAGE, "python3", "/runner/execute.py", language,
     ]
     try:
-        completed = subprocess.run(command, input=json.dumps({"stdin": stdin}).encode(), capture_output=True, timeout=9, check=False)
+        completed = subprocess.run(command, input=json.dumps({"stdin": stdin}).encode(), capture_output=True, timeout=16, check=False)
     except subprocess.TimeoutExpired:
         try:
             subprocess.run(["docker", "kill", name], capture_output=True, timeout=2, check=False)
         except (OSError, subprocess.SubprocessError):
             pass
-        return result("timeout", stderr="Execution exceeded the 8 second limit.")
+        return result("timeout", stderr="Execution exceeded the 16 second limit.")
     except (OSError, subprocess.SubprocessError):
         return result("unavailable", stderr="The isolated execution service could not start a container.")
     finally:

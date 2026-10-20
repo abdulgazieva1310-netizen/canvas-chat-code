@@ -9,7 +9,10 @@ import sys
 import time
 
 MAX_OUTPUT = 12 * 1024
-COMMAND_TIMEOUT = 5.5
+# Compilation can take several seconds in the deliberately CPU-limited
+# executor, especially for Java and TypeScript. Keep a hard bound while
+# allowing the supported toolchains to initialize on slower runner hosts.
+COMMAND_TIMEOUT = 12.0
 
 
 def run(command, stdin=b""):

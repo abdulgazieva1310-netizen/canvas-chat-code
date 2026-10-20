@@ -65,7 +65,7 @@ def test_execution_uses_restricted_disposable_container(http_server):
     for flag in ["-i", "--rm", "--network=none", "--read-only", "--cap-drop=ALL", "--memory=256m", "--cpus=0.5", "--pids-limit=32"]:
         assert flag in command
     assert any(arg.startswith("type=bind,src=") and arg.endswith(",readonly") for arg in command)
-    assert docker_run.call_args_list[0].kwargs["timeout"] == 9
+    assert docker_run.call_args_list[0].kwargs["timeout"] == 16
     assert not list(server.SOURCE_DIR.iterdir())
 
 

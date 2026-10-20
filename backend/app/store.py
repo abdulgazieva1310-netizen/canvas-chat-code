@@ -20,7 +20,7 @@ from .services.question_bank import BankError, load_bank
 from .models import (CODING_ROLES, AnswerEvaluation, CodingJudgeSummary, DashboardGroup, DashboardSummary, DashboardTrend,
                      DifficultyDecision,
                      EvidenceClaim, EvidenceReference, Feedback, Interview, InterviewSetup, Message,
-                     QuestionFeedback, Scores, User)
+                     PracticeSuggestion, QuestionFeedback, Scores, User)
 from .services.difficulty import transition as difficulty_transition
 from .media_storage import remove_media_file
 
@@ -309,9 +309,10 @@ class Repository:
                 ):
                     for topic in practice_topics(evaluation.missing, evaluation.practice_topic):
                         normalized = ' '.join(topic.split()).casefold()
-                        context = (interview.setup.role, interview.setup.type, interview.setup.level)
+                        context = (interview.setup.role, interview.setup.type, interview.setup.mode,
+                                   interview.setup.level)
                         item = practice_evidence.setdefault((normalized, context),
-                                                            {'topic': topic, 'interviews': {}})
+                                                            {'topic': topic, 'context': context, 'interviews': {}})
                         item['interviews'].setdefault(interview.id, []).append(
                             EvidenceReference(interviewId=interview.id, answerId=answer.id))
                 for field, label in (('went_well', 'strengths'), ('missing', 'weaknesses')):
@@ -352,6 +353,7 @@ class Repository:
 
         weaknesses = common_claims('weaknesses')
         suggestions = []
+        suggestions_by_group = {key: [] for key in grouped}
         for item in practice_evidence.values():
             if len(item['interviews']) < 2:
                 continue
@@ -360,9 +362,19 @@ class Repository:
             latest = max(source_interviews, key=lambda interview: (interview.startedAt, interview.id))
             setup = latest.setup.model_copy(update={'mode': 'Practice', 'practiceTopic': topic})
             sources = [source for refs in item['interviews'].values() for source in refs]
-            suggestions.append({'topic': topic, 'setup': setup, 'sources': sources})
-        suggestions.sort(key=lambda suggestion: (-len({source.interviewId for source in suggestion['sources']}),
-                                                   suggestion['topic'].casefold()))
+            suggestion = {'topic': topic, 'setup': setup, 'sources': sources}
+            suggestions_by_group[item['context']].append(suggestion)
+            suggestions.append(suggestion)
+
+        def rank(suggestion):
+            return (-len({source.interviewId for source in suggestion['sources']}),
+                    suggestion['topic'].casefold())
+
+        for group in groups:
+            key = (group.role, group.type, group.mode, group.level)
+            group.suggestions = [PracticeSuggestion.model_validate(item)
+                                 for item in sorted(suggestions_by_group[key], key=rank)[:3]]
+        suggestions.sort(key=rank)
         return DashboardSummary(completedCount=len(completed), recentActivity=interviews[:10], groups=groups,
             strengths=common_claims('strengths'), weaknesses=weaknesses,
             suggestions=suggestions[:3])

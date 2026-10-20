@@ -440,7 +440,7 @@ paths:
       operationId: getDashboardSummary
       x-implementation-status: implemented
       summary: Get the current user's dashboard summary
-      description: Owner-scoped. Counts include all completed interviews; averages and trends include only completed scored sessions grouped by role, type, mode, and starting level. Recent activity includes labeled incomplete sessions. Null averages and empty trends represent insufficient data. Recurring claims require multiple source answers; suggestions carry those references. New completions and deletions appear on the next read. Order activity by startedAt descending then ID; trend points by date then interviewId.
+      description: Owner-scoped. Counts include all completed interviews; averages and trends include only completed scored sessions grouped by role, type, mode, and starting level. Recent activity includes labeled incomplete sessions. Null averages and empty trends represent insufficient data. Recurring claims require multiple source answers; suggestions carry those references. Each group includes its own recommendations, requiring the same topic in at least two completed scored interviews within that exact role/type/mode/starting-level group. Top-level suggestions remain an account-wide compatibility summary and must not drive a selected-group learning plan. New completions and deletions appear on the next read. Order activity by startedAt descending then ID; trend points by date then interviewId.
       responses:
         '200':
           description: Personal summary with compatible comparison groups
@@ -668,7 +668,7 @@ components:
             $ref: '#/components/schemas/EvidenceReference'
     DashboardGroup:
       type: object
-      required: [role, type, mode, level, scoredCount, overall, scores, trends]
+      required: [role, type, mode, level, scoredCount, overall, scores, trends, suggestions]
       properties:
         role:
           $ref: '#/components/schemas/Role'
@@ -680,6 +680,12 @@ components:
         overall: {type: number, minimum: 1, maximum: 10, nullable: true}
         scores:
           $ref: '#/components/schemas/PlannedScores'
+        suggestions:
+          description: Up to three topics repeated in at least two completed scored interviews within this exact role/type/mode/starting-level group. Practice setup may use Practice mode even when source evidence is from Real Interview mode.
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/PracticeSuggestion'
         trends:
           type: array
           items:

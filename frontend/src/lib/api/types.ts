@@ -225,6 +225,7 @@ export interface DashboardGroup {
   mode: InterviewSetup["mode"];
   level: Level;
   latestInterviewId: string;
+  suggestions: PracticeSuggestion[];
   scoredCount: number;
   overall: number | null;
   scores: PlannedScores;

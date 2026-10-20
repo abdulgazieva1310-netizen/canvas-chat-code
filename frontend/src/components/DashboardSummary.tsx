@@ -50,8 +50,11 @@ export function DashboardSummary() {
     latestReport.data?.feedback.interviewId === latestInterviewId ? latestReport.data : undefined;
   const strengths = uniqueFeedback(report?.feedback.strengths ?? []);
   const weaknesses = uniqueFeedback(report?.feedback.gaps ?? []);
-  const practiceSuggestions = (data.suggestions ?? []).filter(
-    (suggestion) => !dismissedTopics.has(suggestion.topic.toLocaleLowerCase()),
+  const groupKey = JSON.stringify([group?.role, group?.type, group?.mode, group?.level]);
+  const topicKey = (topic: string) => `${groupKey}:${topic.toLocaleLowerCase()}`;
+  const groupSuggestions = group && group.scoredCount >= 2 ? (group.suggestions ?? []) : [];
+  const practiceSuggestions = groupSuggestions.filter(
+    (suggestion) => !dismissedTopics.has(topicKey(suggestion.topic)),
   );
   const label = group ? `${group.role} · ${group.type} · ${group.mode} · ${group.level}` : "";
   const points = group?.trends ?? [];
@@ -220,7 +223,7 @@ export function DashboardSummary() {
           Coaching guidance based on repeated feedback; one-off findings stay out of the plan, and
           this does not predict hiring outcomes.
         </p>
-        {practiceSuggestions.length === 0 && data.suggestions.length > 0 ? (
+        {practiceSuggestions.length === 0 && groupSuggestions.length > 0 ? (
           <p className="mt-3">
             You dismissed the current recommendations. Refresh the plan to review them again.
           </p>
@@ -228,7 +231,7 @@ export function DashboardSummary() {
           <p className="mt-3">
             {data.completedCount === 0
               ? "Complete practice interviews to build a learning plan. We’ll wait for the same improvement area to appear in at least two interviews before recommending a focus."
-              : "There isn’t enough repeated evidence for a personalized plan yet. Keep practicing; a focus will appear when the same improvement area is seen in at least two completed interviews."}
+              : "No repeated topics found for this group yet."}
           </p>
         ) : (
           <ul className="mt-3 space-y-4">
@@ -256,7 +259,7 @@ export function DashboardSummary() {
                   className="btn btn-ghost ml-2"
                   onClick={() =>
                     setDismissedTopics((current) =>
-                      new Set(current).add(suggestion.topic.toLocaleLowerCase()),
+                      new Set(current).add(topicKey(suggestion.topic)),
                     )
                   }
                 >

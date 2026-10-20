@@ -248,6 +248,7 @@ class DashboardGroup(BaseModel):
     overall: float | None
     scores: dict[str, float | None]
     trends: list[DashboardTrend]
+    suggestions: list[PracticeSuggestion] = Field(default_factory=list)
 
 
 class DashboardSummary(BaseModel):

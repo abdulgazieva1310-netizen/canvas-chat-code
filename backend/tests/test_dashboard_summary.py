@@ -94,10 +94,9 @@ def test_dashboard_summary_aggregates_owner_scoped_completed_scored_sessions(cli
     assert summary['strengths'] == [{'text': 'Clear explanations', 'sources': summary['strengths'][0]['sources']}]
     assert len(summary['strengths'][0]['sources']) == 11
     assert len(summary['weaknesses'][0]['sources']) == 11
-    assert summary['suggestions'][0]['topic'] == 'Add concrete examples'
-    assert summary['suggestions'][0]['setup']['mode'] == 'Practice'
-    assert len({source['interviewId'] for source in summary['suggestions'][0]['sources']}) == 2
-    assert len(summary['suggestions'][0]['sources']) == 10
+    # One completed interview per mode cannot form repeated evidence across modes.
+    assert summary['suggestions'] == []
+    assert all(group['suggestions'] == [] for group in summary['groups'])
     assert not any(g['role'] == 'Backend Developer' for g in summary['groups'])
 
     # The same records are private to the first account.
@@ -173,3 +172,76 @@ def test_dashboard_summary_refreshes_after_deletion(client, monkeypatch):
     summary = client.get('/api/dashboard/summary').json()
     assert summary['completedCount'] == 0
     assert interview['id'] not in [item['id'] for item in summary['recentActivity']]
+
+
+def test_learning_plan_evidence_is_scoped_to_role_type_mode_and_level(client):
+    from datetime import datetime, timezone
+    from app.database import AnswerEvaluationRecord, InterviewRecord
+    from app.models import Interview, InterviewSetup, Message
+
+    owner = login(client).json()['id']
+    instant = datetime(2026, 10, 20, tzinfo=timezone.utc)
+
+    def add(ident, topics, *, role='Backend Developer', kind='Technical', mode='Practice',
+            level='Middle', status='complete', user=owner, scored=True):
+        setup = InterviewSetup(role=role, type=kind, mode=mode, level=level, input='Text',
+                               questionCount=5, language='English')
+        messages = []
+        for index, topic in enumerate(topics):
+            messages.append(Message(id=f'{ident}-q{index}', interviewId=ident,
+                **{'from': 'ai'}, text='A question', createdAt=instant))
+            messages.append(Message(id=f'{ident}-a{index}', interviewId=ident,
+                **{'from': 'you'}, text='An answer', createdAt=instant))
+        interview = Interview(id=ident, setup=setup, status=status, startedAt=instant,
+            answeredCount=len(topics), messages=messages, lastFeedback=None)
+        with client.app.state.store.sessions.begin() as session:
+            session.add(InterviewRecord(id=ident, owner_id=user, started_at=instant.timestamp(),
+                status=status, version=1, payload=interview.model_dump(mode='json', by_alias=True)))
+            session.flush()
+            for index, topic in enumerate(topics):
+                evaluation = AnswerEvaluation(accuracy=7 if scored else None, completeness=None,
+                    clarity=None, structure=None, went_well='Clear reasoning',
+                    missing=topic, practice_topic=topic, stronger_answer='A stronger example.')
+                session.add(AnswerEvaluationRecord(answer_id=f'{ident}-a{index}', interview_id=ident,
+                    question_id=f'{ident}-q{index}', result=evaluation.model_dump(mode='json')))
+
+    # Four topics consume the account-wide top-three limit; another group's plan must still exist.
+    add('backend-1', ['integration', 'dynamic import', 'hashing', 'testing'])
+    add('backend-2', ['integration', 'dynamic import', 'hashing', 'testing'])
+    add('backend-3', ['integration', 'dynamic import', 'hashing', 'testing'])
+    add('data-single', ['integration', 'integration'], role='Data Analyst', kind='Behavioral')
+    add('type-single', ['dynamic import'], kind='Behavioral')
+    add('mode-single', ['integration'], mode='Real Interview')
+    add('level-single', ['integration'], level='Senior')
+    add('data-repeat-1', ['cohort analysis'], role='Data Analyst', kind='Behavioral', level='Junior')
+    add('data-repeat-2', ['Cohort   analysis'], role='Data Analyst', kind='Behavioral', level='Junior')
+    # Two interviews alone do not suffice when their topics differ.
+    add('data-distinct-1', ['sampling'], role='Data Analyst', kind='Behavioral', level='Senior')
+    add('data-distinct-2', ['cohorts'], role='Data Analyst', kind='Behavioral', level='Senior')
+    add('partial', ['integration'], mode='Real Interview', status='incomplete')
+    add('unscored', ['integration'], mode='Real Interview', scored=False)
+    add('active', ['integration'], mode='Real Interview', status='active')
+    other = client.post('/api/auth/register', json={
+        'name': 'Other', 'email': 'other@example.com', 'password': 'secret'}).json()['id']
+    add('foreign', ['integration'], mode='Real Interview', user=other)
+    client.post('/api/auth/login', json={'email': 'demo@example.com', 'password': 'demo-password'})
+    summary = client.get('/api/dashboard/summary').json()
+    groups = {(g['role'], g['type'], g['mode'], g['level']): g for g in summary['groups']}
+    backend = groups[('Backend Developer', 'Technical', 'Practice', 'Middle')]
+    assert len(backend['suggestions']) == 3
+    for suggestion in backend['suggestions']:
+        assert {s['interviewId'] for s in suggestion['sources']} == {'backend-1', 'backend-2', 'backend-3'}
+    data = groups[('Data Analyst', 'Behavioral', 'Practice', 'Junior')]
+    assert [s['topic'] for s in data['suggestions']] == ['cohort analysis']
+    assert {s['interviewId'] for s in data['suggestions'][0]['sources']} == {'data-repeat-1', 'data-repeat-2'}
+    assert 'cohort analysis' not in [s['topic'] for s in summary['suggestions']]
+    for key, group in groups.items():
+        if key not in [('Backend Developer', 'Technical', 'Practice', 'Middle'),
+                       ('Data Analyst', 'Behavioral', 'Practice', 'Junior')]:
+            assert group['suggestions'] == [], key
+    # Real-mode evidence can form a plan, but its Start practice action still starts Practice.
+    add('real-second', ['integration'], mode='Real Interview')
+    groups = client.get('/api/dashboard/summary').json()['groups']
+    real = next(g for g in groups if g['role'] == 'Backend Developer' and g['mode'] == 'Real Interview')
+    assert real['suggestions'][0]['setup']['mode'] == 'Practice'
+    assert {s['interviewId'] for s in real['suggestions'][0]['sources']} == {'mode-single', 'real-second'}

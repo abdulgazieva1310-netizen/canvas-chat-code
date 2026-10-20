@@ -32,11 +32,12 @@ Application startup also applies pending migrations. Use a single SQLite service
 instance; do not share this file across hosts. A different SQLAlchemy URL requires
 an appropriate installed driver and deployment validation.
 
-Interview recordings use `INTERVIEW_MEDIA_DIR` (default: `backend/media-storage`).
+Explicitly consented audio recordings use `INTERVIEW_MEDIA_DIR` (default: `backend/media-storage`).
 Set it to a durable private directory outside frontend/static roots, owned by the
 API service with mode `0700`; recording files are created with mode `0600`. When
 running multiple API workers on one host, point them at the same private mount.
-The API retains recordings for 30 days, removes expired files hourly and when
+The API accepts audio recordings only; local camera preview video is never uploaded or persisted.
+It retains audio recordings for 30 days, removes expired files hourly and when
 media is accessed, supports explicit owner deletion, and limits each interview to three
 uploads of at most 100 MB each. Include the directory in protected backup and
 deletion procedures; do not serve it directly from nginx or the frontend.

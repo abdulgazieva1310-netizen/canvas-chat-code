@@ -4,7 +4,7 @@ from pathlib import Path
 
 RETENTION_DAYS = 30
 MAX_MEDIA_BYTES = 100 * 1024 * 1024
-ALLOWED_MEDIA_TYPES = frozenset({'audio/webm', 'video/webm', 'audio/mp4', 'video/mp4'})
+ALLOWED_MEDIA_TYPES = frozenset({'audio/webm', 'audio/mp4'})
 
 
 def media_root():

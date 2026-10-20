@@ -776,6 +776,8 @@ it("starts camera preview only after opt-in and releases its track when the inte
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
   const active: Interview = { ...incompleteSession(), status: "active", endedAt: null };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+  const consent = vi.spyOn(Api, "setMediaConsent");
+  const upload = vi.spyOn(Api, "uploadInterviewMedia");
   vi.spyOn(Api, "endInterview").mockReturnValue(new Promise(() => {}));
   const client = openInterview();
   expect(await screen.findByText("Camera off")).toBeVisible();
@@ -784,6 +786,8 @@ it("starts camera preview only after opt-in and releases its track when the inte
   expect(await screen.findByText("Camera on")).toBeVisible();
   expect(getUserMedia).toHaveBeenCalledExactlyOnceWith({ audio: false, video: true });
   expect(screen.getByLabelText("Your camera preview")).toHaveAttribute("autoplay");
+  expect(consent).not.toHaveBeenCalled();
+  expect(upload).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "End interview" }));
   expect(track.stop).toHaveBeenCalledOnce();
   client.clear();

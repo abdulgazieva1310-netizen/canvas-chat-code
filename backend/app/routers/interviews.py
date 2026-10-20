@@ -154,7 +154,7 @@ def set_media_consent(interviewId: str, data: MediaConsentRequest, request: Requ
 async def upload_interview_media(interviewId: str, request: Request, user: CurrentUser):
     media_type = request.headers.get('content-type', '').split(';', 1)[0].strip().lower()
     if media_type not in ALLOWED_MEDIA_TYPES:
-        raise HTTPException(415, 'Use a supported WebM or MP4 audio/video recording.')
+        raise HTTPException(415, 'Use a supported WebM or MP4 audio recording. Video uploads are not accepted.')
     content_length = request.headers.get('content-length')
     if content_length:
         try:

@@ -39,6 +39,10 @@ def test_media_requires_consent_and_owner_can_play_and_delete(client):
 
     consent = client.post(f'/api/interviews/{interview_id}/media/consent', json={'consented': True})
     assert consent.status_code == 204
+    video_upload = client.post(f'/api/interviews/{interview_id}/media', content=b'raw-video',
+                               headers={'Content-Type': 'video/webm'})
+    assert video_upload.status_code == 415
+    assert not media_root().exists()
     upload = client.post(f'/api/interviews/{interview_id}/media', content=b'private-recording',
                          headers={'Content-Type': 'audio/webm'})
     assert upload.status_code == 201
@@ -74,7 +78,7 @@ def test_expired_media_is_removed_and_missing_playback_does_not_remove_report(cl
     interview_id = start_interview(client)
     client.post(f'/api/interviews/{interview_id}/media/consent', json={'consented': True})
     item = client.post(f'/api/interviews/{interview_id}/media', content=b'expiring',
-                       headers={'Content-Type': 'video/webm'}).json()
+                       headers={'Content-Type': 'audio/webm'}).json()
     path = media_path(item['id'])
     with client.app.state.store.transaction() as store:
         record = store.session.get(InterviewMediaRecord, item['id'])

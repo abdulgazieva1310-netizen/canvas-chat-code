@@ -147,7 +147,6 @@ function Interview() {
   const [renderFailed, setRenderFailed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [avatarId, setAvatarId] = useState<InterviewerAvatarId>("classic");
-  const [recordingMode, setRecordingMode] = useState<"audio" | "video">("audio");
   const [recordingConsent, setRecordingConsent] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingStarting, setRecordingStarting] = useState(false);
@@ -200,14 +199,14 @@ function Interview() {
       camera.stop();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: recordingMode === "video",
+        video: false,
       });
       if (!recordingMountedRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      const preferredType = recordingMode === "video" ? "video/webm" : "audio/webm";
-      const fallbackType = recordingMode === "video" ? "video/mp4" : "audio/mp4";
+      const preferredType = "audio/webm";
+      const fallbackType = "audio/mp4";
       const mimeType = MediaRecorder.isTypeSupported(preferredType)
         ? preferredType
         : MediaRecorder.isTypeSupported(fallbackType)
@@ -265,7 +264,7 @@ function Interview() {
     } finally {
       if (recordingMountedRef.current) setRecordingStarting(false);
     }
-  }, [camera, interviewId, recordingConsent, recordingMode, recordingStarting]);
+  }, [camera, interviewId, recordingConsent, recordingStarting]);
   useEffect(() => {
     recordingMountedRef.current = true;
     return () => {
@@ -824,8 +823,9 @@ function Interview() {
             <section className="card-surface space-y-3 p-5" aria-label="Recording controls">
               <h2 className="text-lg">Save a recording</h2>
               <p className="text-sm text-muted-foreground">
-                Optional. With your consent, this device records the selected audio or audio and
-                video, then uploads it for private playback. Recordings are deleted after 30 days.
+                Optional. With your consent, this device records audio only, then uploads it for
+                private playback. Recordings are deleted after 30 days. Camera preview video is
+                never included.
                 Your transcript and report remain available if recording or upload fails.
               </p>
               <label className="flex items-start gap-2 text-sm">
@@ -848,20 +848,6 @@ function Interview() {
                 <span>
                   I consent to storing my recording for up to 30 days for private playback.
                 </span>
-              </label>
-              <label className="block text-sm">
-                Recording type
-                <select
-                  className="input mt-1 w-full"
-                  value={recordingMode}
-                  disabled={recording || recordingStarting || recordingUpload}
-                  onChange={(event) =>
-                    setRecordingMode(event.currentTarget.value as "audio" | "video")
-                  }
-                >
-                  <option value="audio">Audio only</option>
-                  <option value="video">Audio and video</option>
-                </select>
               </label>
               {interview.status === "active" && (
                 <button

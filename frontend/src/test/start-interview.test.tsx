@@ -95,6 +95,26 @@ it.each(["/setup", "/ready"] as const)(
   },
 );
 
+it("offers an opt-in local camera preview before starting an interview", async () => {
+  const track = { stop: vi.fn(), addEventListener: vi.fn() };
+  const stream = { getTracks: () => [track] } as unknown as MediaStream;
+  const getUserMedia = vi.fn().mockResolvedValue(stream);
+  vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  openStartPage("/setup");
+  const button = await screen.findByRole("button", { name: "Enable camera" });
+  expect(screen.getByText("Camera off")).toBeVisible();
+  expect(getUserMedia).not.toHaveBeenCalled();
+  fireEvent.click(button);
+  expect(await screen.findByText("Camera on")).toBeVisible();
+  expect(screen.getByLabelText("Your camera preview")).toHaveAttribute("autoplay");
+  expect(getUserMedia).toHaveBeenCalledExactlyOnceWith({ audio: false, video: true });
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Stop camera" }));
+  expect(track.stop).toHaveBeenCalledOnce();
+});
+
 it("offers every supported option and submits the complete custom configuration", async () => {
   const customSetup: InterviewSetup = {
     role: "QA Engineer",

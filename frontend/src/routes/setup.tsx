@@ -3,11 +3,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import { targetRoles, type InterviewLanguage, type InterviewSetup, type Level, type Role } from "@/lib/api/types";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CalendarReminder } from "@/components/CalendarReminder";
 import { JobTargets } from "@/components/JobTargets";
 import { SetupPresets } from "@/components/SetupPresets";
+import { useCameraPreview } from "@/hooks/use-camera-preview";
+import { Camera, CameraOff } from "lucide-react";
 
 export const Route = createFileRoute("/setup")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -76,6 +78,11 @@ function Choice<T extends string>({
 }
 
 function Setup() {
+  const camera = useCameraPreview();
+  const cameraVideo = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (cameraVideo.current && camera.stream) cameraVideo.current.srcObject = camera.stream;
+  }, [camera.stream]);
   const {
     practiceTopic,
     role: targetedRole,
@@ -241,6 +248,24 @@ function Setup() {
               ? "Hints and feedback after each answer."
               : "No hints. Feedback at the end only."}
           </p>
+          <section className="mt-5 space-y-3" aria-label="Optional camera preview">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-medium">Camera preview (optional)</h3>
+              <span aria-live="polite" className="text-xs">
+                {camera.stream ? "Camera on" : camera.pending ? "Waiting for permission…" : "Camera off"}
+              </span>
+            </div>
+            {camera.stream && <video ref={cameraVideo} autoPlay muted playsInline aria-label="Your camera preview" className="aspect-video w-full rounded-lg bg-muted object-cover" />}
+            {camera.error && <p role="alert" className="text-xs">{camera.error}</p>}
+            <button type="button" className="btn btn-ghost w-full" aria-pressed={!!camera.stream}
+              onClick={() => camera.stream || camera.pending ? camera.stop() : void camera.start()}>
+              {camera.stream ? <CameraOff aria-hidden="true" size={18} /> : <Camera aria-hidden="true" size={18} />}
+              {camera.stream ? "Stop camera" : camera.pending ? "Cancel camera request" : "Enable camera"}
+            </button>
+            <p className="text-xs text-muted-foreground">
+              The preview is local to this device. Video is not recorded, sent, or analyzed. Camera access does not enable the microphone; voice input is controlled separately.
+            </p>
+          </section>
           {start.error && <p role="alert">Could not start interview: {start.error.message}</p>}
           <button
             disabled={start.isPending}

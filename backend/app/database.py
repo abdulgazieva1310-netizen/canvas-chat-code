@@ -78,6 +78,19 @@ class AnswerEvaluationRecord(Base):
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
+class EvaluationFeedbackRecord(Base):
+    __tablename__ = 'evaluation_feedback'
+    answer_id: Mapped[str] = mapped_column(ForeignKey('answer_evaluations.answer_id'), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), index=True)
+    question_id: Mapped[str] = mapped_column(String(36))
+    rating: Mapped[str] = mapped_column(String(20))
+    category: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    comment: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    updated_at: Mapped[float] = mapped_column(Float)
+
+
 class InterviewMediaConsentRecord(Base):
     __tablename__ = 'interview_media_consents'
     interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), primary_key=True)

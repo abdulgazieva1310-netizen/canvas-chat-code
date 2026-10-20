@@ -115,6 +115,39 @@ test("authentication and recovery links remain reachable", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /password/i })).toBeVisible();
 });
 
+test("private evaluation feedback can be saved, edited, and removed", async ({ page }) => {
+  await page.route("**/api/interviews/complete/report", (route) => route.fulfill({ json: {
+    interview: complete,
+    feedback: { interviewId: complete.id, answeredQuestions: 1, selectedQuestions: 5, overall: 7,
+      scores: { accuracy: 7, completeness: 7, clarity: 7, structure: 7 }, strengths: [], gaps: [],
+      questions: [{ questionId: "question", answerId: "answer", q: "Question?", answer: "Answer",
+        score: 7, good: "Good", miss: "Missing", better: "Better" }] },
+  } }));
+  let saved: Record<string, unknown> | null = null;
+  await page.route("**/api/interviews/complete/answers/answer/feedback", async (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: saved ?? {
+      answerId: "answer", rating: null, category: null, comment: null, updatedAt: null, provenanceStatus: "unknown",
+    } });
+    if (route.request().method() === "PUT") {
+      saved = { answerId: "answer", ...route.request().postDataJSON(), updatedAt: new Date().toISOString(), provenanceStatus: "unknown" };
+      return route.fulfill({ json: saved });
+    }
+    saved = null;
+    return route.fulfill({ status: 204, body: "" });
+  });
+  await page.goto("/report?interviewId=complete");
+  await expect(page.getByRole("button", { name: "Needs review" })).toBeVisible();
+  await page.getByRole("button", { name: "Needs review" }).click();
+  await page.getByLabel("Category").selectOption("incorrect");
+  await page.getByLabel(/Comment/).fill("The rationale did not match my answer.");
+  await page.getByRole("button", { name: "Save feedback" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Feedback saved." })).toBeVisible();
+  expect(saved).toMatchObject({ rating: "needs_review", category: "incorrect", comment: "The rationale did not match my answer." });
+  await page.getByRole("button", { name: "Remove feedback" }).click();
+  await expect(page.getByRole("button", { name: "Save feedback" })).toBeDisabled();
+  expect(saved).toBeNull();
+});
+
 for (const width of [375, 1280]) {
   test(`saved report comparison is readable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({width,height:900});

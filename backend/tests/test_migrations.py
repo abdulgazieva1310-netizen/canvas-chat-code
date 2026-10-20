@@ -10,7 +10,7 @@ def test_empty_database_migrates_and_matches_models(tmp_path):
     engine = database_engine(f'sqlite:///{tmp_path / "fresh.db"}')
     upgrade_database(engine)
     with engine.connect() as connection:
-        assert connection.scalar(text('select version_num from alembic_version')) == '0006'
+        assert connection.scalar(text('select version_num from alembic_version')) == '0007'
         assert compare_metadata(MigrationContext.configure(connection), Base.metadata) == []
     upgrade_database(engine)
     engine.dispose()
@@ -21,7 +21,8 @@ def test_existing_records_survive_adoption_and_reopening(tmp_path):
     engine = database_engine(url)
     Base.metadata.create_all(engine, tables=[table for table in Base.metadata.sorted_tables
                                              if table.name not in ('password_resets', 'interview_starts',
-                                                                   'interview_media', 'interview_media_consents', 'study_questions', 'media_cleanup')])
+                                                                   'interview_media', 'interview_media_consents', 'study_questions', 'media_cleanup',
+                                                                   'evaluation_feedback')])
     with engine.begin() as connection:
         connection.execute(Base.metadata.tables['users'].insert(), {
             'id': 'owner', 'email': 'owner@example.com', 'password_hash': 'stored-hash',
@@ -47,7 +48,8 @@ def test_existing_records_survive_adoption_and_reopening(tmp_path):
         for table in Base.metadata.sorted_tables:
             assert len(connection.execute(table.select()).all()) == (
                 0 if table.name in ('password_resets', 'interview_starts',
-                                    'interview_media', 'interview_media_consents', 'study_questions', 'media_cleanup') else 1)
+                                    'interview_media', 'interview_media_consents', 'study_questions', 'media_cleanup',
+                                    'evaluation_feedback') else 1)
         assert connection.execute(Base.metadata.tables['interviews'].select()).one().payload == {
             'messages': [{'text': 'Saved answer'}]}
     reopened.dispose()

@@ -456,6 +456,57 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/InvalidState'
+  /interviews/{interviewId}/answers/{answerId}/feedback:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+      - {in: path, name: answerId, required: true, schema: {type: string}}
+    get:
+      operationId: getEvaluationFeedback
+      summary: Read private feedback for a saved answer evaluation
+      description: Owner-scoped. Requires an ended interview and a saved evaluation. Never changes the score or calls AI.
+      responses:
+        '200':
+          description: Existing feedback or an empty feedback value
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EvaluationFeedback'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/InvalidState'}
+    put:
+      operationId: saveEvaluationFeedback
+      summary: Create or update private evaluation feedback
+      description: Owner-scoped, idempotent by answer. Plain-text comment up to 1000 characters. Needs-review ratings require a category.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [rating]
+              properties:
+                rating: {type: string, enum: [helpful, needs_review]}
+                category: {type: string, nullable: true, enum: [incorrect, unclear, irrelevant, wrong_language, other]}
+                comment: {type: string, nullable: true, maxLength: 1000}
+      responses:
+        '200':
+          description: Saved private feedback
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EvaluationFeedback'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/InvalidState'}
+        '422': {description: 'Invalid rating, category, or comment'}
+    delete:
+      operationId: deleteEvaluationFeedback
+      summary: Remove private feedback for a saved answer evaluation
+      responses:
+        '204': {description: Feedback removed or already absent}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/InvalidState'}
   /interviews/{interviewId}/report/export:
     parameters:
       - $ref: '#/components/parameters/InterviewId'
@@ -1050,6 +1101,16 @@ components:
         good: {type: string}
         miss: {type: string}
         better: {type: string}
+    EvaluationFeedback:
+      type: object
+      required: [answerId, rating, category, comment, updatedAt, provenanceStatus]
+      properties:
+        answerId: {type: string}
+        rating: {type: string, nullable: true, enum: [helpful, needs_review]}
+        category: {type: string, nullable: true, enum: [incorrect, unclear, irrelevant, wrong_language, other]}
+        comment: {type: string, nullable: true, maxLength: 1000}
+        updatedAt: {type: string, format: date-time, nullable: true}
+        provenanceStatus: {type: string, enum: [unknown]}
     InterviewReport:
       type: object
       required: [interview, feedback]

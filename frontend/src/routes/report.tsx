@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { DownloadButton } from "@/components/DownloadButton";
 import { SaveQuestionButton } from "@/components/SaveQuestionButton";
+import { EvaluationFeedback } from "@/components/EvaluationFeedback";
 
 export const Route = createFileRoute("/report")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -363,6 +364,7 @@ function Report() {
                       </p>
                       <MarkdownContent>{x.better}</MarkdownContent>
                     </div>
+                    <EvaluationFeedback interviewId={interviewId} answerId={x.answerId} />
                     {x.codingJudge && (
                       <div className="rounded-lg border p-3" role="status">
                         <p className="font-semibold">

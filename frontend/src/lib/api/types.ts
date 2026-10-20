@@ -160,6 +160,15 @@ export interface InterviewReport {
   feedback: Feedback;
 }
 
+export interface EvaluationFeedback {
+  answerId: string;
+  rating: "helpful" | "needs_review" | null;
+  category: "incorrect" | "unclear" | "irrelevant" | "wrong_language" | "other" | null;
+  comment: string | null;
+  updatedAt: string | null;
+  provenanceStatus: "unknown";
+}
+
 export interface RegisterData {
   name: string;
   email: string;

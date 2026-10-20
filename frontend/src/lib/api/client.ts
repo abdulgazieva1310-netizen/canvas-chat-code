@@ -4,6 +4,7 @@ import type {
   Interview,
   DashboardSummary,
   InterviewReport,
+  EvaluationFeedback,
   InterviewMediaList,
   InterviewMediaInfo,
   InterviewSetup,
@@ -238,6 +239,7 @@ export const Api = {
       "minScore",
       "maxScore",
       "search",
+      "searchMode",
       "page",
       "pageSize",
     ] as const) {

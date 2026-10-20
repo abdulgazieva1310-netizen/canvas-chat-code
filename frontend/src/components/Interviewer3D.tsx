@@ -3,7 +3,7 @@ import * as THREE from "three";
 import type { InterviewerAvatarId } from "@/lib/interviewer-avatar";
 
 type Props = {
-  speaking: boolean;
+  state: "idle" | "listening" | "speaking";
   reducedMotion: boolean;
   avatarId: InterviewerAvatarId;
   onFailure: () => void;
@@ -16,10 +16,10 @@ const clothingColors: Record<InterviewerAvatarId, number> = {
 };
 
 /** A small procedural interviewer. It has no camera, network, or session-state access. */
-export function Interviewer3D({ speaking, reducedMotion, avatarId, onFailure }: Props) {
+export function Interviewer3D({ state, reducedMotion, avatarId, onFailure }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const speakingRef = useRef(speaking);
-  speakingRef.current = speaking;
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   useEffect(() => {
     const parent = host.current;
@@ -100,9 +100,14 @@ export function Interviewer3D({ speaking, reducedMotion, avatarId, onFailure }: 
     if (!reducedMotion) {
       renderer.setAnimationLoop(() => {
         phase += 0.16;
-        const active = speakingRef.current;
-        mouth.scale.y = active ? 0.15 + Math.abs(Math.sin(phase)) * 0.62 : 0.16;
-        group.rotation.y = active ? Math.sin(phase * 0.18) * 0.025 : 0;
+        const currentState = stateRef.current;
+        mouth.scale.y = currentState === "speaking" ? 0.15 + Math.abs(Math.sin(phase)) * 0.62 : 0.16;
+        group.rotation.y =
+          currentState === "speaking"
+            ? Math.sin(phase * 0.18) * 0.025
+            : currentState === "listening"
+              ? Math.sin(phase * 0.12) * 0.035
+              : 0;
         renderer.render(scene, camera);
       });
     }
@@ -128,5 +133,12 @@ export function Interviewer3D({ speaking, reducedMotion, avatarId, onFailure }: 
     };
   }, [avatarId, onFailure, reducedMotion]);
 
-  return <div ref={host} className="h-56 w-full overflow-hidden rounded-lg" aria-hidden="true" />;
+  return (
+    <div
+      ref={host}
+      className="h-56 w-full overflow-hidden rounded-lg"
+      aria-hidden="true"
+      data-state={state}
+    />
+  );
 }

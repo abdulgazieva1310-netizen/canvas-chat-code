@@ -918,13 +918,16 @@ function Interview() {
                     }
                   >
                     <Interviewer3D
-                      speaking={spoken.speaking}
+                      state={spoken.speaking ? "speaking" : speech.listening ? "listening" : "idle"}
                       reducedMotion={reducedMotion}
                       avatarId={avatarId}
                       onFailure={fail3D}
                     />
                   </Suspense>
                 </ThreeDFallbackBoundary>
+                <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+                  Interviewer {spoken.speaking ? "speaking" : speech.listening ? "listening" : "idle"}.
+                </p>
                 {reducedMotion && (
                   <p className="text-xs text-muted-foreground">
                     Still avatar shown to respect your reduced-motion setting.

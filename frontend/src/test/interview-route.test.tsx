@@ -33,12 +33,12 @@ vi.mock("@/components/MonacoEditor.client", () => ({
 
 vi.mock("@/components/Interviewer3D", () => ({
   Interviewer3D: ({
-    speaking,
+    state,
     reducedMotion,
     avatarId,
     onFailure,
   }: {
-    speaking: boolean;
+    state: "idle" | "listening" | "speaking";
     reducedMotion: boolean;
     avatarId: string;
     onFailure: () => void;
@@ -49,7 +49,8 @@ vi.mock("@/components/Interviewer3D", () => ({
     return (
       <div
         data-testid="interviewer-3d"
-        data-speaking={speaking}
+        data-state={state}
+        data-speaking={state === "speaking"}
         data-reduced-motion={reducedMotion}
         data-avatar={avatarId}
       />
@@ -581,6 +582,7 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
     constructor(readonly text: string) {}
   }
   const speak = vi.fn();
+  vi.stubGlobal("SpeechRecognition", RoomRecognition);
   vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
   vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });
   window.localStorage.setItem("interview-mirror-avatar", "sage");
@@ -592,12 +594,17 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   fireEvent.change(answer, { target: { value: "Draft answer" } });
   fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
   const avatar = await screen.findByTestId("interviewer-3d");
+  expect(avatar).toHaveAttribute("data-state", "idle");
   expect(avatar).toHaveAttribute("data-speaking", "false");
   expect(avatar).toHaveAttribute("data-avatar", "sage");
   act(() => speak.mock.calls[0][0].onstart());
+  expect(avatar).toHaveAttribute("data-state", "speaking");
   expect(avatar).toHaveAttribute("data-speaking", "true");
   fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
-  await waitFor(() => expect(avatar).toHaveAttribute("data-speaking", "false"));
+  await waitFor(() => expect(avatar).toHaveAttribute("data-state", "idle"));
+  fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));
+  await waitFor(() => expect(avatar).toHaveAttribute("data-state", "listening"));
+  expect(screen.getByText("Interviewer listening.")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Leave 3D interviewer" }));
   expect(screen.queryByTestId("interviewer-3d")).toBeNull();
   expect(answer).toHaveValue("Draft answer");

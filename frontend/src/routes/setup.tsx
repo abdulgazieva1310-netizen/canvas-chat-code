@@ -5,6 +5,7 @@ import { defaultSetup } from "@/lib/api/default-setup";
 import { targetRoles, type InterviewSetup } from "@/lib/api/types";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { CalendarReminder } from "@/components/CalendarReminder";
 
 export const Route = createFileRoute("/setup")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/setup")({
       search["level"] === "Junior" || search["level"] === "Middle" || search["level"] === "Senior"
         ? search["level"]
         : undefined,
+    language: search["language"] === "Russian" ? "Russian" : search["language"] === "English" ? "English" : undefined,
   }),
   head: () => ({
     meta: [
@@ -77,6 +79,7 @@ function Setup() {
     role: targetedRole,
     interviewType,
     level: targetedLevel,
+    language: targetedLanguage,
   } = Route.useSearch();
   const navigate = useNavigate();
   const client = useQueryClient();
@@ -85,6 +88,7 @@ function Setup() {
     ...(targetedRole ? { role: targetedRole } : {}),
     ...(interviewType ? { type: interviewType } : {}),
     ...(targetedLevel ? { level: targetedLevel } : {}),
+    ...(targetedLanguage ? { language: targetedLanguage } : {}),
     ...(practiceTopic ? { mode: "Practice" as const, practiceTopic } : {}),
   }));
   const { type, role, level, mode, input, questionCount: count } = setup;
@@ -220,6 +224,7 @@ function Setup() {
           </button>
         </aside>
       </div>
+      <CalendarReminder setup={setup} />
     </AppShell>
   );
 }

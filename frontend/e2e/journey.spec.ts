@@ -146,3 +146,50 @@ test('optional 3D interviewer works at desktop and mobile sizes without requesti
   expect(mobileLayout.scrollWidth, JSON.stringify(mobileLayout)).toBeLessThanOrEqual(mobileLayout.width);
   expect(await page.evaluate(() => (window as typeof window & { __cameraRequestCount?: number }).__cameraRequestCount)).toBe(0);
 });
+
+test('downloads a private-safe calendar reminder that returns to Setup without starting an interview', async ({ page }) => {
+  await register(page, 'calendar');
+  let starts = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/api/interviews') && request.method() === 'POST') starts++;
+  });
+  await page.goto('/setup?role=QA+Engineer&interviewType=Behavioral&level=Junior&language=Russian');
+  await page.getByLabel('Local date and time').fill('2030-05-06T14:30');
+  await page.getByLabel('Time zone').selectOption('UTC');
+  await page.getByLabel('Duration').selectOption('45');
+  const downloadPromise = page.waitForEvent('download');
+  const downloadButton = page.getByRole('button', { name: 'Download calendar reminder' });
+  await downloadButton.focus();
+  await page.keyboard.press('Enter');
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^interview-practice-2030-05-06\.ics$/);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  const content = Buffer.concat(chunks).toString('utf8');
+  const unfolded = content.replace(/\r\n /g, '');
+  expect(unfolded).toContain('BEGIN:VCALENDAR');
+  expect(unfolded).toContain('BEGIN:VEVENT');
+  expect(unfolded).toContain('END:VEVENT');
+  expect(unfolded).toContain('END:VCALENDAR');
+  expect(unfolded).toContain('DTSTART:20300506T143000Z');
+  expect(unfolded).toContain('DTEND:20300506T151500Z');
+  expect(unfolded).toContain('SUMMARY:Interview practice reminder');
+  expect(unfolded).not.toMatch(/transcript|score|email|job description|bearer|token/i);
+  const setupLink = unfolded.match(/^URL:(.*)$/m)?.[1];
+  expect(setupLink).toBeTruthy();
+  const setup = new URL(setupLink!);
+  expect(setup.pathname).toBe('/setup');
+  expect(Object.fromEntries(setup.searchParams)).toEqual({
+    role: 'QA Engineer',
+    interviewType: 'Behavioral',
+    level: 'Junior',
+    language: 'Russian',
+  });
+  expect(starts).toBe(0);
+
+  await page.goto(`${setup.pathname}${setup.search}`);
+  await expect(page.getByRole('button', { name: 'Start interview', exact: true })).toBeVisible();
+  expect(page.getByRole('button', { name: 'Russian', exact: true })).toHaveAttribute('data-active', 'true');
+  expect(starts).toBe(0);
+});

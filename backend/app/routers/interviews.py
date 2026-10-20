@@ -436,3 +436,18 @@ def get_report(interviewId: str, request: Request, user: CurrentUser):
         if interview.status == 'active':
             raise HTTPException(409, 'End the interview before viewing its report.')
         return InterviewReport(interview=interview.model_copy(deep=True), feedback=store.report(interview))
+
+
+@router.get('/{interviewId}/report/export')
+def export_report(interviewId: str, request: Request, user: CurrentUser):
+    from ..report_export import markdown_report
+    with request.app.state.store.transaction() as store:
+        interview = store.find(user.id, interviewId)
+        if interview.status == 'active':
+            raise HTTPException(409, 'End the interview before exporting its report.')
+        text = markdown_report(interview, store.report(interview))
+        # Date-only filenames never include user-controlled IDs or names.
+        filename = f'interview-report-{interview.startedAt:%Y-%m-%d}.md'
+    return Response(text, media_type='text/markdown', headers={
+        'Content-Disposition': f'attachment; filename="{filename}"', 'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff'})

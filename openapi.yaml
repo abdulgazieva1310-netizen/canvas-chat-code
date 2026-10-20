@@ -435,6 +435,28 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/InvalidState'
+  /interviews/{interviewId}/report/export:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    get:
+      operationId: exportReport
+      summary: Download a saved report as Markdown
+      description: Owner-scoped, read-only saved transcript and feedback. Active sessions return 409. No AI calls or raw media. Unicode and code formatting are preserved.
+      responses:
+        '200':
+          description: Markdown attachment with a safe date-based filename
+          headers:
+            Content-Disposition:
+              schema: {type: string}
+          content:
+            text/markdown:
+              schema: {type: string}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Missing or inaccessible interview
+        '409':
+          description: Interview is still active
   /dashboard/summary:
     get:
       operationId: getDashboardSummary

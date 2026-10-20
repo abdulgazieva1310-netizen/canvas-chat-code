@@ -48,7 +48,8 @@ async function request<T>(
   {
     notifyUnauthorized = true,
     idempotencyKey,
-  }: { notifyUnauthorized?: boolean; idempotencyKey?: string } = {},
+    responseType = "json",
+  }: { notifyUnauthorized?: boolean; idempotencyKey?: string; responseType?: "json" | "blob" } = {},
 ): Promise<T> {
   const isAuthRequest =
     path === "/auth/login" || path === "/auth/register" || path.startsWith("/auth/password-reset/");
@@ -57,7 +58,7 @@ async function request<T>(
     method,
     credentials: "include",
     headers: {
-      Accept: "application/json",
+      Accept: responseType === "blob" ? "*/*" : "application/json",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       ...(authorization ? { Authorization: authorization } : {}),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
@@ -81,6 +82,7 @@ async function request<T>(
     );
   }
   if (response.status === 204) return undefined as T;
+  if (responseType === "blob") return await response.blob() as T;
   const data = (await response.json()) as T;
   if (path === "/auth/login" || path === "/auth/register") {
     pendingStarts.clear();
@@ -94,6 +96,7 @@ async function request<T>(
 const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 
 export const Api = {
+  exportReport: (id: string) => request<Blob>(`${interviewPath(id)}/report/export`, undefined, "GET", { responseType: "blob" }),
   getDashboardSummary: () => request<DashboardSummary>("/dashboard/summary"),
   getProfile: () => request<User>("/auth/me"),
   updateProfile: (data: ProfileUpdate) => request<User>("/auth/me", data, "PATCH"),

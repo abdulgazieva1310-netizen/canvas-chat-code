@@ -4,6 +4,7 @@ import { Api } from "@/lib/api/client";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { DownloadButton } from "@/components/DownloadButton";
 
 export const Route = createFileRoute("/report")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -143,6 +144,7 @@ function Report() {
           </h1>
         </div>
         <div className="flex gap-3">
+          <DownloadButton label="Download Markdown report" filename="interview-report.md" load={() => Api.exportReport(interviewId)} />
           <Link to="/ready" search={{ retryId: interview.id }} className="btn btn-ghost">
             Retry
           </Link>

@@ -15,6 +15,7 @@ def test_login_reload_expiry_and_generic_credentials(tmp_path, monkeypatch):
         def now(cls, tz=None):
             return instant
     monkeypatch.setattr(auth, 'datetime', Clock)
+    monkeypatch.setattr('app.store.now', lambda: instant)
     app = create_app(database_url=f'sqlite:///{tmp_path / "sessions.db"}')
     with TestClient(app) as client:
         bad = client.post('/api/auth/login', json={'email': 'demo@example.com', 'password': 'wrong'})

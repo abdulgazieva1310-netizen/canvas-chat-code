@@ -241,3 +241,13 @@ export interface DashboardSummary {
   weaknesses: EvidenceClaim[];
   suggestions: PracticeSuggestion[];
 }
+
+export interface StudyQuestion {
+  id: string;
+  interviewId: string;
+  questionId: string;
+  prompt: string;
+  note: string;
+  savedAt: string;
+}
+export interface StudyPage { items: StudyQuestion[]; total: number; page: number; pageSize: number; }

@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import StaleDataError
 
 from .database import (AnswerEvaluationRecord, InterviewMediaConsentRecord, InterviewMediaRecord,
-                       InterviewRecord, TokenRecord, UserRecord, database_engine)
+                       InterviewRecord, StudyQuestionRecord, TokenRecord, UserRecord, database_engine)
 from .migrate import upgrade_database
 
 from fastapi import HTTPException
@@ -416,6 +416,7 @@ class Repository:
 
     def delete(self, user_id, ident):
         self.find(user_id, ident)  # Ownership check and row lock before deleting children.
+        self.session.execute(delete(StudyQuestionRecord).where(StudyQuestionRecord.interview_id == ident))
         self.session.execute(delete(AnswerEvaluationRecord).where(
             AnswerEvaluationRecord.interview_id == ident))
         recordings = self.session.scalars(select(InterviewMediaRecord).where(

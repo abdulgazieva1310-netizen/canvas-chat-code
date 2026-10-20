@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-from sqlalchemy import JSON, Float, ForeignKey, Integer, String, create_engine, event
+from sqlalchemy import JSON, Float, ForeignKey, Integer, String, UniqueConstraint, create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.pool import StaticPool
@@ -51,6 +51,17 @@ class InterviewRecord(Base):
     payload: Mapped[dict] = mapped_column(JSON)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     __mapper_args__ = {'version_id_col': version}
+
+
+class StudyQuestionRecord(Base):
+    __tablename__ = 'study_questions'
+    __table_args__ = (UniqueConstraint('owner_id', 'interview_id', 'question_id', name='uq_study_question'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey('users.id'), index=True)
+    interview_id: Mapped[str] = mapped_column(ForeignKey('interviews.id'), index=True)
+    question_id: Mapped[str] = mapped_column(String(36))
+    note: Mapped[str] = mapped_column(String(4000))
+    saved_at: Mapped[float] = mapped_column(Float)
 
 
 class AnswerEvaluationRecord(Base):

@@ -457,6 +457,68 @@ paths:
           description: Missing or inaccessible interview
         '409':
           description: Interview is still active
+  /study/questions:
+    get:
+      operationId: listStudyQuestions
+      summary: List private saved questions
+      parameters:
+        - {in: query, name: page, schema: {type: integer, minimum: 1, default: 1}}
+        - {in: query, name: pageSize, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        '200':
+          description: Owner-scoped questions ordered by savedAt descending then ID
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyPage'}
+    post:
+      operationId: saveStudyQuestion
+      summary: Idempotently save an answered question from an ended report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [interviewId, questionId]
+              properties:
+                interviewId: {type: string, minLength: 1}
+                questionId: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: Existing or newly saved question; existing note retained
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyQuestion'}
+        '404': {description: Missing or inaccessible reported question}
+        '409': {description: Interview is active}
+  /study/questions/{id}:
+    parameters:
+      - {in: path, name: id, required: true, schema: {type: string}}
+    patch:
+      operationId: updateStudyNote
+      summary: Update an owned plain-text note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: {type: string, maxLength: 4000}
+      responses:
+        '200':
+          description: Updated saved question
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StudyQuestion'}
+        '404': {description: Missing or inaccessible saved question}
+    delete:
+      operationId: removeStudyQuestion
+      summary: Remove an owned saved question
+      responses:
+        '204': {description: Removed}
+        '404': {description: Missing or inaccessible saved question}
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -675,6 +737,26 @@ components:
           uniqueItems: true
           items:
             $ref: '#/components/schemas/EvidenceReference'
+    StudyQuestion:
+      type: object
+      required: [id, interviewId, questionId, prompt, note, savedAt]
+      properties:
+        id: {type: string}
+        interviewId: {type: string}
+        questionId: {type: string}
+        prompt: {type: string}
+        note: {type: string, maxLength: 4000}
+        savedAt: {type: string, format: date-time}
+    StudyPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/StudyQuestion'}
+        total: {type: integer, minimum: 0}
+        page: {type: integer, minimum: 1}
+        pageSize: {type: integer, minimum: 1, maximum: 100}
     PracticeSuggestion:
       type: object
       required: [topic, setup, sources]

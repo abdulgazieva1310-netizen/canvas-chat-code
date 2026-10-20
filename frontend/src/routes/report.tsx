@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { DownloadButton } from "@/components/DownloadButton";
+import { SaveQuestionButton } from "@/components/SaveQuestionButton";
 
 export const Route = createFileRoute("/report")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -309,6 +310,7 @@ function Report() {
                 {open === i && (
                   <div className="mt-3 space-y-3 text-sm">
                     <MarkdownContent>{x.q}</MarkdownContent>
+                    <SaveQuestionButton interviewId={interviewId} questionId={x.questionId} />
                     <div>
                       <p className="font-semibold">{russian ? "Ваш ответ" : "Your answer"}</p>
                       <pre className="mt-1 whitespace-pre-wrap font-mono">{x.answer}</pre>

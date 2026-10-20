@@ -14,6 +14,7 @@ describe("App routing", () => {
     "/interview",
     "/report",
     "/history",
+    "/study",
     "/profile",
     "/login",
     "/register",

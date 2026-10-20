@@ -11,6 +11,7 @@ const steps = [
   { to: "/interview", label: "Interview" },
   { to: "/report", label: "Report" },
   { to: "/history", label: "History" },
+  { to: "/study", label: "Study" },
   { to: "/profile", label: "Profile" },
 ] as const;
 

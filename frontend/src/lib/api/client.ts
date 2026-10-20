@@ -13,6 +13,8 @@ import type {
   ProfileUpdate,
   RegisterData,
   User,
+  StudyPage,
+  StudyQuestion,
 } from "./types";
 
 const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api").replace(
@@ -96,6 +98,10 @@ async function request<T>(
 const interviewPath = (id: string) => `/interviews/${encodeURIComponent(id)}`;
 
 export const Api = {
+  saveStudyQuestion: (interviewId: string, questionId: string) => request<StudyQuestion>("/study/questions", {interviewId, questionId}),
+  getStudyQuestions: (page = 1) => request<StudyPage>(`/study/questions?page=${page}`),
+  updateStudyQuestion: (id: string, note: string) => request<StudyQuestion>(`/study/questions/${encodeURIComponent(id)}`, {note}, "PATCH"),
+  deleteStudyQuestion: (id: string) => request<void>(`/study/questions/${encodeURIComponent(id)}`, undefined, "DELETE"),
   exportReport: (id: string) => request<Blob>(`${interviewPath(id)}/report/export`, undefined, "GET", { responseType: "blob" }),
   getDashboardSummary: () => request<DashboardSummary>("/dashboard/summary"),
   getProfile: () => request<User>("/auth/me"),

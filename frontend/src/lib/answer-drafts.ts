@@ -2,7 +2,7 @@ import type { CodingLanguage } from "@/components/CodeEditor";
 
 const prefix = "interview-mirror.answer-draft.v1:";
 const expiryMs = 24 * 60 * 60 * 1000;
-const maxBytes = 64 * 1024;
+const maxBytes = 100 * 1024;
 const languages = new Set<CodingLanguage>(["python", "java", "cpp", "javascript", "typescript"]);
 
 export interface AnswerDraft {
@@ -76,14 +76,16 @@ export function saveAnswerDraft(
       store.removeItem(key);
       return "cleared";
     }
-    if (new Blob([text]).size > maxBytes) {
+    const serialized = JSON.stringify({
+      text,
+      codingLanguage,
+      updatedAt: Date.now(),
+    } satisfies AnswerDraft);
+    if (new Blob([serialized]).size > maxBytes) {
       store.removeItem(key);
       return "too-large";
     }
-    store.setItem(
-      key,
-      JSON.stringify({ text, codingLanguage, updatedAt: Date.now() } satisfies AnswerDraft),
-    );
+    store.setItem(key, serialized);
     return "saved";
   } catch {
     try {

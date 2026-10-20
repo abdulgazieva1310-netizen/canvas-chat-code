@@ -47,9 +47,9 @@ it("clears drafts on logout and account deletion auth cleanup", () => {
 });
 
 it("reports oversize and quota failures without throwing", () => {
-  expect(saveAnswerDraft("owner-a", "interview-a", "question-a", "x".repeat(65 * 1024), null)).toBe(
-    "too-large",
-  );
+  expect(
+    saveAnswerDraft("owner-a", "interview-a", "question-a", "x".repeat(101 * 1024), null),
+  ).toBe("too-large");
 
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
     throw new DOMException("Quota exceeded", "QuotaExceededError");

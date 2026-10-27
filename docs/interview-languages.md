@@ -51,6 +51,24 @@ at the AI service boundary. Calling these services directly with a disabled,
 unknown, or unallowlisted non-English combination returns no generated content
 without sending a provider request. HTTP callers retain their explicit errors.
 
+Russian generated questions, follow-ups, hints, and evaluations additionally
+undergo a provider-based semantic review against their question/answer context.
+Malformed, negative, or unavailable review results reject the content and retain
+the existing explicit failure/skip behavior. This adds a provider round trip per
+generated item. Russian generation and review allow up to 30 seconds of read
+inactivity per request; several requests may occur in one interview operation.
+Question and hint generation use a 4,096-token completion budget to reduce
+reasoning-related truncation. These are bounded requests, not automatic retries.
+
+Code-review examples may contain English keywords and identifiers. Russian
+comments or docstrings count as localized coaching when the other feedback
+fields are Russian; source code is preserved. Preview strengths retain only
+Russian excerpts actually present in the candidate's answer; unsupported
+paraphrases and code-only strengths are omitted rather than presented as
+demonstrated achievements. Non-coding improved answers are
+requested as prose. Runtime semantic review remains probabilistic and must not
+be treated as a substitute for the release quality review below.
+
 Russian is an opt-in preview, not a quality-approved release language. The
 server requires `ENABLE_RUSSIAN_INTERVIEWS=true` in addition to the configured
 model and key. English remains available without this flag. The matrix above

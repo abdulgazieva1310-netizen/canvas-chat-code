@@ -103,6 +103,7 @@ def test_groq_prompts_and_validates_russian_questions_hints_followups_and_feedba
          'practice_topic': 'Проверка гипотез'},
         'Сначала уточните ожидаемое поведение до проверки.',
     ]
+    responses = [item for response in responses for item in (response, {'valid': True})]
     prompts = []
 
     class Response:

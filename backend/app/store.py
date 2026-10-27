@@ -58,6 +58,8 @@ def positive_observation(text):
 
 
 def practice_topics(missing, suggested=None):
+    if not suggested and missing.strip().rstrip('.').casefold() == 'конкретных пробелов не выявлено':
+        return []
     if re.search(r'\b(?:no relevant information|no answer was provided|not answered)\b', missing, re.I):
         return []
     candidates = [suggested] if suggested else []

@@ -163,7 +163,8 @@ function ProfileForm({ user }: { user: User }) {
       </label>
       <p id="language-note" className="text-sm text-muted-foreground">
         This profile preference is saved for future sessions. Choose English or Russian for each
-        interview in the setup screen; support for other interview languages is not available yet.
+        interview in the setup screen. A Russian preference does not enable the preview on the server;
+        it must also be enabled there. Other interview languages are not available yet.
       </p>
       <fieldset className="space-y-3 border-t pt-5">
         <legend className="font-semibold">Interviewer appearance</legend>

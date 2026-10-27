@@ -22,6 +22,34 @@ security:
   - sessionCookie: []
   - bearerAuth: []
 paths:
+  /interview-languages:
+    get:
+      operationId: listInterviewLanguages
+      summary: List interview language availability and provider capabilities
+      security: []
+      responses:
+        '200':
+          description: Configuration availability, not a live provider or browser health check
+          headers:
+            Cache-Control:
+              schema: {type: string, enum: [no-store]}
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [language, available, releaseStatus, provider, model, recognitionLocale, synthesisLocale, curatedFallback, unavailableReason]
+                  properties:
+                    language: {type: string, enum: [English, Russian]}
+                    available: {type: boolean}
+                    releaseStatus: {type: string, enum: [released, preview]}
+                    provider: {type: string}
+                    model: {type: string}
+                    recognitionLocale: {type: string}
+                    synthesisLocale: {type: string}
+                    curatedFallback: {type: boolean}
+                    unavailableReason: {type: string, nullable: true}
   /auth/password-reset/request:
     post:
       operationId: requestPasswordReset

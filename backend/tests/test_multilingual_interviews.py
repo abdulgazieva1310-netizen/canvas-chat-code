@@ -134,6 +134,7 @@ def test_groq_prompts_and_validates_russian_questions_hints_followups_and_feedba
             prompts.append(json['messages'][0]['content'])
             return Response(responses.pop(0))
 
+    monkeypatch.setenv('ENABLE_RUSSIAN_INTERVIEWS', 'true')
     monkeypatch.setenv('AI_API_KEY', 'test-provider-key')
     monkeypatch.setenv('AI_MODEL', 'openai/gpt-oss-120b')
     monkeypatch.setattr(ai_service.httpx, 'Client', Client)
@@ -199,6 +200,45 @@ def test_question_and_hint_failures_do_not_mix_languages(client, monkeypatch):
 def test_russian_guard_rejects_english_with_token_cyrillic_and_preserves_code():
     assert not ai_service.has_russian_text('Explain the design and provide examples. Да.')
     assert ai_service.has_russian_text('Объясните решение и оцените сложность. ```python\ndef solve(items):\n return sorted(items)\n```')
+
+
+@pytest.mark.parametrize('language', ['Russian', 'Klingon'])
+def test_unavailable_language_never_calls_provider_directly(monkeypatch, language):
+    monkeypatch.setenv('AI_API_KEY', 'test-key')
+    monkeypatch.delenv('ENABLE_RUSSIAN_INTERVIEWS', raising=False)
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail('Unavailable language must not reach the provider')
+
+    monkeypatch.setattr(ai_service.httpx, 'Client', unexpected_call)
+    assert ai_service.generate_question('QA Engineer', 'Middle', [], interview_language=language) is None
+    assert ai_service.generate_followup('QA Engineer', 'Middle', 'Behavioral', 'Question', 'Answer',
+                                        interview_language=language) is None
+    assert ai_service.evaluate_answer('Question', 'Answer', interview_language=language) is None
+    assert ai_service.generate_hint('Question', [], role='QA Engineer', level='Middle',
+                                   interview_type='Behavioral', interview_language=language) is None
+
+
+def test_language_capabilities_expose_configuration_without_secrets(client, monkeypatch):
+    monkeypatch.delenv('ENABLE_RUSSIAN_INTERVIEWS', raising=False)
+    monkeypatch.setenv('AI_API_KEY', 'private-test-key')
+    monkeypatch.setenv('AI_MODEL', 'openai/gpt-oss-120b')
+    response = client.get('/api/interview-languages')
+    assert response.status_code == 200
+    assert response.headers['cache-control'] == 'no-store'
+    english, russian = response.json()
+    assert english['available'] and english['curatedFallback']
+    assert english['releaseStatus'] == 'released'
+    assert russian['releaseStatus'] == 'preview' and not russian['available']
+    assert russian['recognitionLocale'] == russian['synthesisLocale'] == 'ru-RU'
+    assert not russian['curatedFallback']
+    assert 'Select English' in russian['unavailableReason']
+    assert 'private-test-key' not in response.text
+    monkeypatch.setenv('ENABLE_RUSSIAN_INTERVIEWS', 'true')
+    enabled = client.get('/api/interview-languages').json()[1]
+    assert enabled['available'] and enabled['unavailableReason'] is None
+    monkeypatch.setenv('AI_MODEL', 'unreviewed-model')
+    assert not client.get('/api/interview-languages').json()[1]['available']
 
 
 def test_reasoning_model_receives_visible_output_budget_without_affecting_other_models(monkeypatch):

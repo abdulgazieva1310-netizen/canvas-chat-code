@@ -65,6 +65,8 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
     Accepts the existing wire models. Hints are omitted from the conversation,
     and diagnostic logs redact the API key before printing provider errors.
     """
+    if interview_language != 'English' and not provider_supports_language(interview_language):
+        return None
     raw_key = os.getenv('AI_API_KEY')
     key = (raw_key or '').strip()
     masked_key = None if raw_key is None else (
@@ -196,6 +198,8 @@ def _compatible_question(content: str, role: str, interview_type: str,
 def generate_followup(role: str, level: str, interview_type: str, question: str,
                       answer: str, *, interview_language: str = 'English') -> str | None:
     """Ask one focused clarification of a main answer; None safely skips it."""
+    if interview_language != 'English' and not provider_supports_language(interview_language):
+        return None
     raw_key = os.getenv('AI_API_KEY')
     key = (raw_key or '').strip()
     if not key or key == 'your_api_key_here':
@@ -248,6 +252,8 @@ def generate_followup(role: str, level: str, interview_type: str, question: str,
 def evaluate_answer(question: str, user_answer: str, *, language: str | None = None,
                     interview_language: str = 'English') -> AnswerEvaluation | None:
     """Validate structured Groq feedback; unavailable evaluations are never invented."""
+    if interview_language != 'English' and not provider_supports_language(interview_language):
+        return None
     raw_key = os.getenv('AI_API_KEY')
     key = (raw_key or '').strip()
     if not key or key == 'your_api_key_here':
@@ -341,6 +347,8 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
 def generate_hint(question: str, previous_hints: Sequence[str], *, role: str, level: str,
                   interview_type: str, interview_language: str = 'English') -> str | None:
     """Give a progressive hint for the current question without revealing a solution."""
+    if interview_language != 'English' and not provider_supports_language(interview_language):
+        return None
     key = os.getenv('AI_API_KEY', '').strip()
     if not key or key == 'your_api_key_here':
         return None

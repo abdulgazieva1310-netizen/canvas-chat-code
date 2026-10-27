@@ -38,6 +38,19 @@ feedback, browser locale selection, and the no-English-voice fallback.
 
 ## Release status
 
+`GET /api/interview-languages` exposes the maintained matrix without authentication
+or credentials. Each entry includes configuration availability, release status,
+provider/model, recognition and synthesis locales, curated fallback availability,
+and a reason when unavailable. Responses use `Cache-Control: no-store` because
+server configuration can change. `available` describes server configuration,
+not live provider health or installed browser voices; Russian remains a preview
+even when enabled. English remains selectable through its curated fallback.
+
+Question generation, follow-ups, hints, and evaluation also enforce the matrix
+at the AI service boundary. Calling these services directly with a disabled,
+unknown, or unallowlisted non-English combination returns no generated content
+without sending a provider request. HTTP callers retain their explicit errors.
+
 Russian is an opt-in preview, not a quality-approved release language. The
 server requires `ENABLE_RUSSIAN_INTERVIEWS=true` in addition to the configured
 model and key. English remains available without this flag. The matrix above

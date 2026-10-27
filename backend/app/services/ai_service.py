@@ -1,9 +1,13 @@
 """Groq question generation; None tells callers to use their fixture fallback."""
 import json
+import ast
+import io
 import logging
 import os
 import re
 import traceback
+import time
+import tokenize
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -47,6 +51,28 @@ def model_options(token_limit: int) -> dict:
     return options
 
 
+def _post_completion(client, **kwargs):
+    """Honor a bounded provider throttling delay once; do not retry other errors."""
+    response = client.post(API_URL, **kwargs)
+    if response.status_code != 429:
+        return response
+    delay = None
+    try:
+        delay = float(getattr(response, 'headers', {}).get('retry-after', ''))
+    except (TypeError, ValueError):
+        try:
+            message = response.json()['error']['message']
+            match = re.search(r'try again in\s+([\d.]+)\s*(ms|s|m)\b', message, re.I)
+            if match:
+                delay = float(match[1]) * {'ms': .001, 's': 1, 'm': 60}[match[2].lower()]
+        except (TypeError, ValueError, KeyError):
+            pass
+    if delay is None or not 0 <= delay <= 30:
+        return response
+    time.sleep(delay + .05)
+    return client.post(API_URL, **kwargs)
+
+
 def has_russian_text(value: str) -> bool:
     # Ignore source code; a stray Cyrillic word must not validate English prose.
     prose = re.sub(r'```.*?```|`[^`]*`', '', value, flags=re.S)
@@ -55,17 +81,36 @@ def has_russian_text(value: str) -> bool:
     return bool(russian) and len(russian) >= len(latin)
 
 
-def has_russian_code_feedback(value: str) -> bool:
+def has_russian_code_feedback(value: str, coding_language: str | None = None) -> bool:
     """Code identifiers are not English coaching; accept localized annotations.
 
-    Still require Russian prose somewhere, either outside source code or in
-    comments/docstrings. Semantic review separately checks relevance.
+    Accept localized prose/annotations or a source-only example in the selected
+    coding language. Semantic review separately checks relevance.
     """
     if has_russian_text(value):
         return True
-    annotations = re.findall(
-        r'\#[^\n]*|//[^\n]*|/\*[\s\S]*?\*/|"""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\'', value)
-    return any(has_russian_text(annotation) for annotation in annotations)
+    fenced = re.fullmatch(r'\s*```[\w+]*\s*\n(.*?)\n?```\s*', value, flags=re.S)
+    source = fenced.group(1) if fenced else value
+    if coding_language == 'Python':
+        try:
+            tree = ast.parse(source)
+            annotations = [token.string for token in tokenize.generate_tokens(io.StringIO(source).readline)
+                           if token.type == tokenize.COMMENT]
+            annotations.extend(doc for node in ast.walk(tree)
+                               if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                               if (doc := ast.get_docstring(node)))
+            if annotations:
+                return any(has_russian_text(annotation) for annotation in annotations)
+            return bool(tree.body)
+        except (SyntaxError, ValueError, tokenize.TokenError):
+            return False
+    comment_pattern = r'//[^\n]*|/\*[\s\S]*?\*/'
+    if coding_language is None:
+        comment_pattern += r'|\#[^\n]*|"""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\''
+    annotations = re.findall(comment_pattern, source)
+    if annotations:
+        return any(has_russian_text(annotation) for annotation in annotations)
+    return bool(fenced and coding_language in {'Java', 'C++', 'JavaScript', 'TypeScript'})
 
 
 def _russian_content_is_relevant(kind: str, context: dict, content) -> bool:
@@ -77,9 +122,9 @@ def _russian_content_is_relevant(kind: str, context: dict, content) -> bool:
     response = None
     try:
         with httpx.Client(timeout=httpx.Timeout(30.0, connect=3.0)) as client:
-            response = client.post(API_URL, headers={
+            response = _post_completion(client, headers={
                 'Authorization': f"Bearer {os.getenv('AI_API_KEY', '').strip()}"}, json={
-                **model_options(4096), 'temperature': 0,
+                **model_options(2048), 'temperature': 0,
                 'response_format': {'type': 'json_object'},
                 'messages': [
                     {'role': 'system', 'content': (
@@ -99,7 +144,12 @@ def _russian_content_is_relevant(kind: str, context: dict, content) -> bool:
                         'disagreement. Do not infer achievements from the question or from an ideal '
                         'answer. For hints, reject instructions giving every step of the complete '
                         'algorithm even without source code. Apply each rule only to the supplied '
-                        'content kind. If uncertain about correctness, return false.'
+                        'content kind. An incorrect, irrelevant, or incomplete candidate answer is '
+                        'still evaluable: reject only defects in the generated coaching, not weakness '
+                        'in the candidate answer. stronger_answer is an illustrative hypothetical '
+                        'example, not a claim about what the candidate did. Check that missing does '
+                        'not claim the candidate omitted facts explicitly present in their answer. '
+                        'If uncertain about correctness, return false.'
                     )},
                     {'role': 'user', 'content': json.dumps({
                         'kind': kind, 'context': context, 'content': content}, ensure_ascii=False)},
@@ -206,7 +256,7 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
     try:
         with httpx.Client(timeout=httpx.Timeout(30.0 if interview_language == 'Russian' else 10.0, connect=3.0)) as client:
             print(f'Groq AI_API_KEY={masked_key}; dotenv path={ENV_PATH}; exists={ENV_PATH.is_file()}', flush=True)
-            response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
+            response = _post_completion(client, headers={'Authorization': f'Bearer {key}'}, json={
                 **model_options(4096 if interview_language == 'Russian' else
                                 512 if interview_type == 'Technical' and role in CODING_ROLES else 256),
                 'messages': messages, 'temperature': 0.7,
@@ -281,7 +331,7 @@ def generate_followup(role: str, level: str, interview_type: str, question: str,
     response = None
     try:
         with httpx.Client(timeout=httpx.Timeout(30.0 if interview_language == 'Russian' else 10.0, connect=3.0)) as client:
-            response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
+            response = _post_completion(client, headers={'Authorization': f'Bearer {key}'}, json={
                 **model_options(256),
                 'temperature': 0.5,
                 'messages': [
@@ -321,7 +371,7 @@ def generate_followup(role: str, level: str, interview_type: str, question: str,
 
 
 def evaluate_answer(question: str, user_answer: str, *, language: str | None = None,
-                    interview_language: str = 'English') -> AnswerEvaluation | None:
+                    interview_language: str = 'English', _repair: bool = False) -> AnswerEvaluation | None:
     """Validate structured Groq feedback; unavailable evaluations are never invented."""
     if interview_language != 'English' and not provider_supports_language(interview_language):
         return None
@@ -360,13 +410,18 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
     )
     try:
         with httpx.Client(timeout=httpx.Timeout(30.0 if interview_language == 'Russian' else 10.0, connect=3.0)) as client:
-            response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
+            response = _post_completion(client, headers={'Authorization': f'Bearer {key}'}, json={
                 **model_options(4096),
                 'response_format': {'type': 'json_object'},
                 'temperature': 0.2,
                 'messages': [
                     {'role': 'system', 'content': (
                         'Act as an evidence-based job interviewer and evaluate the candidate answer. '
+                        + ('The previous evaluation failed validation or relevance review. Generate a '
+                           'fresh concise evaluation from the original inputs. Use only the required '
+                           'JSON fields and valid numeric scores. Keep coaching in Russian, do not '
+                           'invent omissions, and label improved examples as hypothetical. '
+                           if _repair else '') +
                         f'{code_rules}'
                         'Return ONLY a JSON object with exactly these required fields: '
                         'accuracy, completeness, clarity, structure (numbers from 1 to 10, or null only when a category is not applicable), '
@@ -418,9 +473,12 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
                 if evaluation.went_well and (evaluation.went_well not in user_answer
                                             or not has_russian_text(evaluation.went_well)):
                     evaluation = evaluation.model_copy(update={'went_well': ''})
+                # An optional untranslated topic must not discard otherwise usable scores.
+                if evaluation.practice_topic and not has_russian_text(evaluation.practice_topic):
+                    evaluation = evaluation.model_copy(update={'practice_topic': None})
                 localized_values = [evaluation.missing]
                 localized_values.extend(value for value in (evaluation.went_well, evaluation.practice_topic) if value)
-                stronger_is_localized = (has_russian_code_feedback(evaluation.stronger_answer) if language
+                stronger_is_localized = (has_russian_code_feedback(evaluation.stronger_answer, language) if language
                                         else has_russian_text(evaluation.stronger_answer))
                 if not stronger_is_localized or not all(has_russian_text(value) for value in localized_values):
                     raise ValueError('Evaluation was not returned in Russian')
@@ -430,6 +488,11 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
                     raise ValueError('Russian evaluation failed semantic verification')
             return evaluation
     except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+        if interview_language == 'Russian' and isinstance(exc, ValueError) and not _repair:
+            # One fresh attempt repairs malformed/localization/relevance output.
+            # Transport/authentication errors and a second rejected response fail clearly.
+            return evaluate_answer(question, user_answer, language=language,
+                                   interview_language=interview_language, _repair=True)
         status = response.status_code if response is not None else 'no response'
         provider_error = response.text if isinstance(exc, httpx.HTTPStatusError) else ''
         diagnostic = (
@@ -437,7 +500,7 @@ def evaluate_answer(question: str, user_answer: str, *, language: str | None = N
             f'HTTP status: {status}\nProvider response: {provider_error}\n'
             f'{traceback.format_exc()}'
         ).replace(key, '[REDACTED]')
-        logger.warning('AI answer evaluation unavailable; answer saved without scores.\n%s', diagnostic)
+        logger.warning('AI answer evaluation unavailable; no usable evaluation returned.\n%s', diagnostic)
         return None
 
 
@@ -452,7 +515,7 @@ def generate_hint(question: str, previous_hints: Sequence[str], *, role: str, le
     response = None
     try:
         with httpx.Client(timeout=httpx.Timeout(30.0 if interview_language == 'Russian' else 10.0, connect=3.0)) as client:
-            response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
+            response = _post_completion(client, headers={'Authorization': f'Bearer {key}'}, json={
                 **model_options(4096 if interview_language == 'Russian' else 300),
                 'temperature': 0.4,
                 'messages': [
@@ -512,7 +575,7 @@ def generate_study_plan(evidence: list[dict], comparison_group: dict) -> StudyPl
     response = None
     try:
         with httpx.Client(timeout=httpx.Timeout(18.0, connect=3.0)) as client:
-            response = client.post(API_URL, headers={'Authorization': f'Bearer {key}'}, json={
+            response = _post_completion(client, headers={'Authorization': f'Bearer {key}'}, json={
                 **model_options(2048),
                 'response_format': {'type': 'json_object'},
                 'temperature': 0.2,

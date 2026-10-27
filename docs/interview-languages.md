@@ -58,7 +58,11 @@ the existing explicit failure/skip behavior. This adds a provider round trip per
 generated item. Russian generation and review allow up to 30 seconds of read
 inactivity per request; several requests may occur in one interview operation.
 Question and hint generation use a 4,096-token completion budget to reduce
-reasoning-related truncation. These are bounded requests, not automatic retries.
+reasoning-related truncation. A 429 response with a provider-specified wait of
+at most 30 seconds is retried once; other transport errors are not retried.
+Russian evaluation may generate one fresh response after schema, localization,
+or relevance rejection. A second rejection still fails clearly without saving
+invented scores. Content review uses a 2,048-token budget to reduce quota usage.
 
 Code-review examples may contain English keywords and identifiers. Russian
 comments or docstrings count as localized coaching when the other feedback
@@ -68,6 +72,12 @@ paraphrases and code-only strengths are omitted rather than presented as
 demonstrated achievements. Non-coding improved answers are
 requested as prose. Runtime semantic review remains probabilistic and must not
 be treated as a substitute for the release quality review below.
+
+Pure Python source and fenced Java/C++/JavaScript/TypeScript examples do not
+need added Russian prose merely to pass localization. Python source is parsed,
+never executed, for this check; English-only comments remain rejected. Optional
+untranslated practice-topic labels are omitted so they cannot discard valid
+scores and localized required feedback.
 
 Russian is an opt-in preview, not a quality-approved release language. The
 server requires `ENABLE_RUSSIAN_INTERVIEWS=true` in addition to the configured

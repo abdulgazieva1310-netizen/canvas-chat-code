@@ -2,8 +2,10 @@ import json
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
 
 from app.services import ai_service
+from app.main import create_app
 from app.store import practice_topics
 
 
@@ -67,7 +69,7 @@ def test_behavioral_command_tutorial_is_not_saved_as_coaching(provider):
     def handler(request):
         payload = json.loads(request.content)
         calls.append(payload)
-        if len(calls) == 1:
+        if len(calls) % 2 == 1:
             prompt = payload['messages'][0]['content']
             assert 'NON-CODING' in prompt and 'not a git merge conflict' in prompt
             return completion({'accuracy': 3, 'completeness': 2, 'clarity': 4, 'structure': 3,
@@ -82,7 +84,7 @@ def test_behavioral_command_tutorial_is_not_saved_as_coaching(provider):
 
     provider(handler)
     assert ai_service.evaluate_answer(question, answer, interview_language='Russian') is None
-    assert len(calls) == 2
+    assert len(calls) == 4
 
 
 def test_off_topic_hint_rejected_and_approved_hint_kept(provider):
@@ -105,11 +107,11 @@ def test_off_topic_hint_rejected_and_approved_hint_kept(provider):
         assert bool(hint) is valid
 
 
-@pytest.mark.parametrize('code', [
-    'def solve(values: list[int]) -> int | None:\n    """Возвращает первое повторяющееся число."""\n    seen = set()\n    for value in values:\n        if value in seen:\n            return value\n        seen.add(value)\n    return None',
-    '```java\n// Возвращает первое повторяющееся число в массиве.\nInteger solve(int[] values) { return null; }\n```',
+@pytest.mark.parametrize('language, code', [
+    ('Python', 'def solve(values: list[int]) -> int | None:\n    """Возвращает первое повторяющееся число."""\n    seen = set()\n    for value in values:\n        if value in seen:\n            return value\n        seen.add(value)\n    return None'),
+    ('Java', '```java\n// Возвращает первое повторяющееся число в массиве.\nInteger solve(int[] values) { return null; }\n```'),
 ])
-def test_russian_coding_annotations_are_not_rejected_as_english(provider, code):
+def test_russian_coding_annotations_are_not_rejected_as_english(provider, language, code):
     calls = []
 
     def handler(request):
@@ -123,7 +125,7 @@ def test_russian_coding_annotations_are_not_rejected_as_english(provider, code):
 
     provider(handler)
     result = ai_service.evaluate_answer('Найдите первое повторяющееся число.', code,
-                                         language='Python', interview_language='Russian')
+                                         language=language, interview_language='Russian')
     assert result is not None and result.stronger_answer == code
     assert len(calls) == 2
 
@@ -160,3 +162,132 @@ def test_russian_strength_cannot_attribute_an_unstated_achievement(provider, obs
     result = ai_service.evaluate_answer('Опишите конфликт приоритетов в команде?',
                                          'Я обсудил причину ошибки с командой. def solve(values):', interview_language='Russian')
     assert result is not None and result.went_well == expected
+
+
+def evaluation_payload(**overrides):
+    return dict(accuracy=8, completeness=8, clarity=8, structure=8, went_well='',
+                missing='Не указаны граничные случаи.',
+                stronger_answer='Сначала уточните граничные случаи и проверьте пустой список.',
+                practice_topic='Граничные случаи') | overrides
+
+
+@pytest.mark.parametrize('first_failure', ['schema', 'language', 'review'])
+def test_russian_evaluation_repairs_rejected_output_once(provider, first_failure):
+    bad = evaluation_payload(missing='') if first_failure == 'schema' else (
+        evaluation_payload(missing='No boundary cases explained.') if first_failure == 'language'
+        else evaluation_payload())
+    responses = [bad] + ([{'valid': False}] if first_failure == 'review' else [])
+    responses += [evaluation_payload(), {'valid': True}]
+    calls = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        calls.append(payload)
+        content = responses.pop(0)
+        if len(responses) == 1:
+            assert 'previous evaluation failed' in payload['messages'][0]['content']
+        return completion(content)
+
+    provider(handler)
+    result = ai_service.evaluate_answer('Объясните решение?', 'Я проверил список.', interview_language='Russian')
+    assert result is not None and result.accuracy == 8
+    assert responses == []
+
+
+def test_second_invalid_evaluation_does_not_retry_forever(provider):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return completion(evaluation_payload(missing=''))
+
+    provider(handler)
+    assert ai_service.evaluate_answer('Вопрос?', 'Ответ.', interview_language='Russian') is None
+    assert len(calls) == 2
+
+
+def test_provider_outage_is_not_retried_as_a_content_repair(provider):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(503)
+
+    provider(handler)
+    assert ai_service.evaluate_answer('Вопрос?', 'Ответ.', interview_language='Russian') is None
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('language, source', [
+    ('Python', 'def solve(values):\n    return len(set(values))'),
+    ('Python', 'def solve(values):\n    return len(values) // 2'),
+    ('Java', '```java\nint solve(int[] values) { return values.length; }\n```'),
+    ('C++', '```cpp\nint solve(vector<int> values) { return values.size(); }\n```'),
+    ('C++', '```cpp\n#include <vector>\nint solve(std::vector<int> values) { return values.size(); }\n```'),
+])
+def test_code_only_example_and_optional_english_topic_do_not_discard_scores(provider, language, source):
+    responses = [evaluation_payload(stronger_answer=source, practice_topic='HashSet'), {'valid': True}]
+
+    def handler(request):
+        return completion(responses.pop(0))
+
+    provider(handler)
+    result = ai_service.evaluate_answer('Подсчитайте уникальные значения.', source,
+                                       language=language, interview_language='Russian')
+    assert result is not None and result.accuracy == 8
+    assert result.stronger_answer == source and result.practice_topic is None
+    assert responses == []
+
+
+def test_endpoint_saves_repaired_scores_and_report_without_duplicate_answers(provider, monkeypatch, tmp_path):
+    monkeypatch.setattr(ai_service, 'generate_question', lambda *a, **kw: 'Как проверить пустой список?')
+    monkeypatch.setattr(ai_service, 'generate_followup', lambda *a, **kw: None)
+    responses = [evaluation_payload(missing=''), evaluation_payload(), {'valid': True}]
+    provider(lambda request: completion(responses.pop(0)))
+    with TestClient(create_app(database_url=f'sqlite:///{tmp_path / "scoring.db"}')) as client:
+        assert client.post('/api/auth/login', json={
+            'email': 'demo@example.com', 'password': 'demo-password'}).status_code == 200
+        interview = client.post('/api/interviews', json={
+            'role': 'QA Engineer', 'level': 'Middle', 'type': 'Behavioral', 'mode': 'Practice',
+            'questionCount': 5, 'input': 'Text', 'language': 'Russian'}).json()
+        response = client.post(f"/api/interviews/{interview['id']}/messages", json={'text': 'Я проверю список.'})
+        assert response.status_code == 200
+        saved = client.get(f"/api/interviews/{interview['id']}").json()
+        assert saved['answeredCount'] == 1
+        assert len([m for m in saved['messages'] if m['from'] == 'you']) == 1
+        assert saved['lastAnswerFeedback']['accuracy'] == 8
+        assert client.post(f"/api/interviews/{interview['id']}/end").status_code == 200
+        report = client.get(f"/api/interviews/{interview['id']}/report").json()
+        assert report['feedback']['overall'] == 8
+        assert report['feedback']['questions'][0]['miss'] == 'Не указаны граничные случаи.'
+        assert responses == []
+
+
+@pytest.mark.parametrize('headers, message, expected', [
+    ({'Retry-After': '0.1'}, 'Rate limited', .15),
+    ({}, 'Please try again in 375ms.', .425),
+    ({}, 'Please try again in 26.235s.', 26.285),
+])
+def test_short_rate_limit_is_retried_without_losing_evaluation(provider, monkeypatch, headers, message, expected):
+    sleeps = []
+    monkeypatch.setattr(ai_service.time, 'sleep', sleeps.append)
+    responses = [httpx.Response(429, headers=headers, json={'error': {'message': message}}),
+                 completion(evaluation_payload()), completion({'valid': True})]
+    provider(lambda request: responses.pop(0))
+    result = ai_service.evaluate_answer('Вопрос?', 'Ответ.', interview_language='Russian')
+    assert result is not None and result.accuracy == 8
+    assert sleeps == [pytest.approx(expected)] and responses == []
+
+
+@pytest.mark.parametrize('delay, attempts', [('0', 2), ('60', 1), ('unknown', 1)])
+def test_rate_limit_retry_is_bounded(provider, monkeypatch, delay, attempts):
+    calls = []
+    monkeypatch.setattr(ai_service.time, 'sleep', lambda _: None)
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(429, headers={'Retry-After': delay}, json={'error': {'message': 'Rate limited'}})
+
+    provider(handler)
+    assert ai_service.evaluate_answer('Вопрос?', 'Ответ.', interview_language='Russian') is None
+    assert len(calls) == attempts

@@ -297,7 +297,7 @@ def test_invalid_evaluation_is_not_scored(monkeypatch, failure, caplog):
         }]})
     mock_provider(monkeypatch, handler)
     assert ai_service.evaluate_answer('Question?', 'Answer') is None
-    assert 'answer saved without scores' in caplog.text
+    assert 'no usable evaluation returned' in caplog.text
     assert 'test-secret' not in caplog.text
 
 

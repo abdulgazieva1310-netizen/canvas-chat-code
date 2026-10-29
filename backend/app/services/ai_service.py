@@ -83,8 +83,19 @@ def _post_completion(client, **kwargs):
 def has_russian_text(value: str) -> bool:
     # Ignore source code; a stray Cyrillic word must not validate English prose.
     prose = re.sub(r'```.*?```|`[^`]*`', '', value, flags=re.S)
+    # A Russian majority must not hide an appended English coaching sentence.
+    # Keep technical names/acronyms valid without treating them as English prose.
+    if re.search(r'\b(?:please\s+(?:explain|describe)|could\s+you|can\s+you|'
+                 r'what\s+is|how\s+(?:would|did|do)|the\s+(?:answer|candidate|solution)|'
+                 r'you\s+should|this\s+(?:answer|solution))\b', prose, re.I):
+        return False
     russian = re.findall(r'[А-Яа-яЁё]{2,}', prose)
-    latin = re.findall(r'[A-Za-z]{2,}', prose)
+    technical_names = {'python', 'java', 'javascript', 'typescript', 'sql', 'nosql',
+                       'api', 'rest', 'graphql', 'http', 'https', 'json', 'xml',
+                       'html', 'css', 'git', 'docker', 'kubernetes', 'react',
+                       'postgresql', 'mysql', 'redis', 'hashmap', 'log'}
+    latin = [word for word in re.findall(r'[A-Za-z]{2,}', prose)
+             if word.casefold() not in technical_names]
     return bool(russian) and len(russian) >= len(latin)
 
 
@@ -303,12 +314,15 @@ def _compatible_question(content: str, role: str, interview_type: str,
     text = content.casefold()
     behavioral_markers = ('tell me about a time', 'describe a time', 'share an example',
                           'specific past experience', 'when have you', 'how did you respond')
+    behavioral_leadins = ()
     if interview_language == 'Russian':
-        behavioral_markers = ('расскажите о случае', 'расскажите о ситуации', 'опишите ситуацию', 'приведите пример',
-                              'расскажите о том, как', 'опишите случай', 'расскажите, как',
+        behavioral_markers = ('расскажите о случае', 'расскажите о ситуации', 'опишите случай',
                               'расскажите о времени', 'вспомните случай', 'вспомните ситуацию')
+        # These also introduce legitimate technical/workflow questions. In particular
+        # "расскажите, как" is a substring of "расскажите, какие проверки...".
+        behavioral_leadins = ('опишите ситуацию', 'приведите пример', 'расскажите о том, как', 'расскажите, как')
     if interview_type == 'Behavioral':
-        return '?' in content and any(marker in text for marker in behavioral_markers)
+        return '?' in content and any(marker in text for marker in (*behavioral_markers, *behavioral_leadins))
     if any(marker in text for marker in behavioral_markers):
         return False
     if interview_type == 'Technical' and role in CODING_ROLES:

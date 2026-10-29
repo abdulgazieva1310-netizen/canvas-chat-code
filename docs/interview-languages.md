@@ -1,5 +1,8 @@
 # Interview language support
 
+The validation matrix, repeatable live-provider command and real-device review
+record are in [Russian language validation](russian-language-validation.md).
+
 The supported language/provider matrix is intentionally small and explicit:
 
 | Interview language | AI provider and model | Recognition locale | Speech playback |

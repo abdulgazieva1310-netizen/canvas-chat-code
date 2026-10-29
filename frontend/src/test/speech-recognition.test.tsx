@@ -75,6 +75,42 @@ it("sets the browser recognition locale for a Russian interview", () => {
   expect(latest().lang).toBe("ru-RU");
 });
 
+it.each(["language-not-supported", "service-not-allowed"])(
+  "preserves Russian transcript and does not switch to English on %s",
+  (error) => {
+    install();
+    const transcript = vi.fn();
+    const { result } = renderHook(() =>
+      useSpeechRecognition(true, "russian", transcript, "Russian"),
+    );
+    act(() => result.current.start("Мой черновик"));
+    act(() => latest().result("Я проверил требования"));
+    act(() => latest().result("Я проверил требования и риски"));
+    expect(transcript).toHaveBeenLastCalledWith("Мой черновик Я проверил требования и риски");
+    act(() => latest().onerror?.({ error }));
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.listening).toBe(false);
+    expect(FakeRecognition.instances.every((instance) => instance.lang === "ru-RU")).toBe(true);
+  },
+);
+
+it("ignores late Russian transcripts after explicitly switching to English", () => {
+  install();
+  const transcript = vi.fn();
+  const { result, rerender } = renderHook(
+    ({ language }: { language: "English" | "Russian" }) =>
+      useSpeechRecognition(true, "same-session", transcript, language),
+    { initialProps: { language: "Russian" as "Russian" | "English" } },
+  );
+  act(() => result.current.start(""));
+  const late = latest().onresult!;
+  rerender({ language: "English" });
+  act(() => late({ results: [[{ transcript: "Поздний результат" }]] }));
+  expect(transcript).not.toHaveBeenCalled();
+  act(() => result.current.start(""));
+  expect(latest().lang).toBe("en-US");
+});
+
 it("keeps typing available when the API is unsupported", () => {
   vi.stubGlobal("SpeechRecognition", undefined);
   vi.stubGlobal("webkitSpeechRecognition", undefined);

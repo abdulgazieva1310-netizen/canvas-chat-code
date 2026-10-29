@@ -179,7 +179,8 @@ def test_profile_changes_do_not_change_saved_session_language(client, monkeypatc
     login(client)
     interview = client.post('/api/interviews', json=setup()).json()
     profile = client.get('/api/auth/me').json()
-    client.patch('/api/auth/me', json={**profile, 'preferredLanguage': 'English'})
+    update = {name: profile[name] for name in ('name', 'targetRole', 'level')}
+    assert client.patch('/api/auth/me', json=update | {'preferredLanguage': 'English'}).status_code == 200
     assert client.get(f"/api/interviews/{interview['id']}").json()['setup']['language'] == 'Russian'
     assert client.post('/api/interviews', json=setup('Klingon')).status_code == 400
 

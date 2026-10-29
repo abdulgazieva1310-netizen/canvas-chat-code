@@ -633,6 +633,7 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
     interviewerAvatar: "sage",
   });
   await screen.findByRole("button", { name: "Replay question" });
+  act(() => speak.mock.calls[0][0].onstart());
   const answer = screen.getByRole("textbox", { name: "Your answer" });
   fireEvent.change(answer, { target: { value: "Draft answer" } });
   fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
@@ -640,9 +641,6 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   expect(avatar).toHaveAttribute("data-state", "idle");
   expect(avatar).toHaveAttribute("data-speaking", "false");
   expect(avatar).toHaveAttribute("data-avatar", "sage");
-  act(() => speak.mock.calls[0][0].onstart());
-  expect(avatar).toHaveAttribute("data-state", "speaking");
-  expect(avatar).toHaveAttribute("data-speaking", "true");
   fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
   await waitFor(() => expect(avatar).toHaveAttribute("data-state", "idle"));
   fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));

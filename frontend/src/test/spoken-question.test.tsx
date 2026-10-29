@@ -96,6 +96,30 @@ it("selects the matching voice and changes playback when session language change
   expect(speak.mock.calls[1]![0].voice).toBe(english);
 });
 
+it("ignores delayed callbacks from canceled playback after the question changes", () => {
+  const speak = vi.fn();
+  vi.stubGlobal("SpeechSynthesisUtterance", FakeUtterance);
+  vi.stubGlobal("speechSynthesis", {
+    speak,
+    cancel: vi.fn(),
+    getVoices: () => [{ lang: "en-US" }],
+  });
+  const { result, rerender } = renderHook(
+    ({ questionId }) => useSpokenQuestion(true, questionId, questionId, "English"),
+    { initialProps: { questionId: "question-1" } },
+  );
+  const previous = speak.mock.calls[0]![0] as FakeUtterance;
+  rerender({ questionId: "question-2" });
+  const current = speak.mock.calls[1]![0] as FakeUtterance;
+  act(() => current.onstart?.());
+  expect(result.current.speaking).toBe(true);
+  act(() => previous.onend?.());
+  expect(result.current.speaking).toBe(true);
+  expect(result.current.error).toBeNull();
+  act(() => current.onend?.());
+  expect(result.current.speaking).toBe(false);
+});
+
 it("uses a compatible system voice and explains when the saved voice is unavailable", () => {
   const speak = vi.fn();
   const available = { lang: "en-US", name: "Available system voice" };

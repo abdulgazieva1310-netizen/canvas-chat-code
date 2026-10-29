@@ -320,6 +320,7 @@ function Interview() {
   const end = useMutation({
     mutationFn: () => Api.endInterview(interviewId),
     onSuccess: async (updated) => {
+      spoken.stop();
       camera.stop();
       clearInterviewAnswerDrafts(interviewId, profile?.id);
       setDraftDirty(false);
@@ -737,6 +738,7 @@ function Interview() {
                       value={text}
                       readOnly={busy || interview.status !== "active"}
                       onChange={(value) => {
+                        spoken.stop();
                         changeAnswerText(value);
                         codeRun.reset();
                       }}
@@ -753,6 +755,7 @@ function Interview() {
                     disabled={busy || interview.status !== "active"}
                     value={text}
                     onChange={(e) => {
+                      spoken.stop();
                       speech.cancel();
                       changeAnswerText(e.target.value);
                     }}

@@ -19,11 +19,13 @@ export function useSpokenQuestion(
   const [error, setError] = useState<string | null>(null);
   const lastQuestion = useRef("");
   const utterance = useRef<SpeechSynthesisUtterance | null>(null);
+  const generation = useRef(0);
   const supported = !!synthesis() && typeof SpeechSynthesisUtterance !== "undefined";
 
   const stop = useCallback(() => {
-    synthesis()?.cancel();
+    generation.current += 1;
     utterance.current = null;
+    synthesis()?.cancel();
     setSpeaking(false);
   }, []);
 
@@ -40,25 +42,29 @@ export function useSpokenQuestion(
     try {
       const voices = speaker.getVoices?.() ?? [];
       const voicePrefix = language === "Russian" ? "ru-" : "en-";
-      const preferredVoice = preferredVoiceName && preferredVoiceLang
-        ? { name: preferredVoiceName, lang: preferredVoiceLang }
-        : null;
+      const preferredVoice =
+        preferredVoiceName && preferredVoiceLang
+          ? { name: preferredVoiceName, lang: preferredVoiceLang }
+          : null;
       const languageVoices = voices.filter((voice) =>
         voice.lang.toLowerCase().replaceAll("_", "-").startsWith(voicePrefix),
       );
-      const voice = preferredVoice && preferredVoice.lang.toLowerCase().replaceAll("_", "-").startsWith(voicePrefix)
-        ? languageVoices.find((item) => item.name === preferredVoice.name && item.lang === preferredVoice.lang)
-        : undefined;
+      const voice =
+        preferredVoice &&
+        preferredVoice.lang.toLowerCase().replaceAll("_", "-").startsWith(voicePrefix)
+          ? languageVoices.find(
+              (item) => item.name === preferredVoice.name && item.lang === preferredVoice.lang,
+            )
+          : undefined;
       const fallbackVoice = voice ?? languageVoices[0];
       if (preferredVoice && !voice) {
-        setError(fallbackVoice
-          ? `Your selected voice is unavailable for this session. Using ${fallbackVoice.name} instead.`
-          : "Your selected voice is unavailable on this device. Using the browser default voice.");
+        setError(
+          fallbackVoice
+            ? `Your selected voice is unavailable for this session. Using ${fallbackVoice.name} instead.`
+            : "Your selected voice is unavailable on this device. Using the browser default voice.",
+        );
       }
-      if (
-        language === "Russian" &&
-        !fallbackVoice
-      ) {
+      if (language === "Russian" && !fallbackVoice) {
         setError(
           preferredVoice
             ? "The selected voice and a Russian system voice are unavailable. Read the transcript and continue by text."
@@ -67,13 +73,25 @@ export function useSpokenQuestion(
         return;
       }
       const next = new SpeechSynthesisUtterance(text);
+      const currentGeneration = generation.current;
       next.lang = language === "Russian" ? "ru-RU" : "en-US";
       if (fallbackVoice) next.voice = fallbackVoice;
-      next.onstart = () => setSpeaking(true);
-      next.onend = () => setSpeaking(false);
+      next.onstart = () => {
+        if (generation.current === currentGeneration && utterance.current === next)
+          setSpeaking(true);
+      };
+      next.onend = () => {
+        if (generation.current === currentGeneration && utterance.current === next) {
+          utterance.current = null;
+          setSpeaking(false);
+        }
+      };
       next.onerror = () => {
-        setSpeaking(false);
-        setError("Question playback failed. Read the transcript and continue by text.");
+        if (generation.current === currentGeneration && utterance.current === next) {
+          utterance.current = null;
+          setSpeaking(false);
+          setError("Question playback failed. Read the transcript and continue by text.");
+        }
       };
       utterance.current = next;
       speaker.speak(next);

@@ -14,6 +14,10 @@ from ..services import ai_service
 router = APIRouter(prefix='/study-plans', tags=['study plans'])
 
 
+def topic_key(topic):
+    return ' '.join(topic.split()).casefold()
+
+
 def group_for(interview):
     setup = interview.setup
     return StudyPlanComparisonGroup(role=setup.role, type=setup.type, mode=setup.mode,
@@ -63,6 +67,22 @@ def build_evidence(store, owner_id, source_ids):
         raise HTTPException(422, 'Select at least two completed reports from one comparison group.')
     if len(evidence) < 2:
         raise HTTPException(422, 'There is not enough actionable scored feedback yet. Complete and score more answers before generating a plan.')
+    topic_reports = {}
+    for item in evidence:
+        for topic in item['practiceTopics']:
+            topic_reports.setdefault(topic_key(topic), set()).add(refs[item['ref']].interviewId)
+    recurring = {topic for topic, reports in topic_reports.items() if len(reports) >= 2}
+    for item in evidence:
+        item['practiceTopics'] = [topic for topic in item['practiceTopics'] if topic_key(topic) in recurring]
+    eligible = [item for item in evidence if item['practiceTopics']]
+    if not eligible:
+        raise HTTPException(422, 'No recurring practice area appears in two selected interviews yet. Complete more interviews in this comparison group and select reports with a shared improvement area.')
+    # Bound provider input without allowing one long report to crowd out others.
+    buckets = [[item for item in eligible if refs[item['ref']].interviewId == interview.id]
+               for interview in interviews]
+    evidence = [item for row in range(max(map(len, buckets)))
+                for bucket in buckets for item in bucket[row:row + 1]][:20]
+    refs = {item['ref']: refs[item['ref']] for item in evidence}
     return interviews, reports, comparison, evidence, refs
 
 
@@ -100,7 +120,13 @@ def generate_items(source_ids, request, user):
     if draft is None:
         raise HTTPException(503, 'The study plan could not be generated. No plan was saved; try again when coaching is available.')
     items = []
+    supplied = {item['ref']: {topic_key(topic) for topic in item['practiceTopics']} for item in evidence}
     for draft_item in draft.items:
+        citations = draft_item.sourceRefs
+        if (len(set(citations)) != len(citations) or not set(citations) <= refs.keys()
+                or len({refs[ref].interviewId for ref in citations}) < 2
+                or not set.intersection(*(supplied[ref] for ref in citations))):
+            raise HTTPException(503, 'The generated goals did not cite a recurring practice area across two reports. No changes were saved; try again.')
         source_refs = [refs[ref] for ref in draft_item.sourceRefs]
         items.append(StudyPlanItem(id=str(uuid4()), topic=draft_item.topic.strip(),
             rationale=draft_item.rationale.strip(), action=draft_item.action.strip(),

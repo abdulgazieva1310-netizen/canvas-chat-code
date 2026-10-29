@@ -845,7 +845,7 @@ paths:
     post:
       operationId: createStudyPlan
       summary: Generate a plan from selected completed, scored reports in one comparison group
-      description: Requires 2–5 reports owned by the current user, all completed, scored and compatible by role, interview type, mode, starting level and language. Provider failure or invalid output saves no plan. AI values are coaching guidance and each item must reference supplied scored feedback.
+      description: Requires 2–5 reports owned by the current user, all completed, scored and compatible by role, interview type, mode, starting level and language. A normalized practice topic must recur in at least two distinct selected interviews. Only recurring evidence is sent to the provider, capped at 20 answers distributed across reports. Each goal must cite a common recurring topic from at least two distinct reports. Provider failure or invalid output saves no plan. AI values are coaching guidance. New completions never refresh saved plans automatically; select new reports to create another plan.
       requestBody:
         required: true
         content:
@@ -879,6 +879,7 @@ paths:
     post:
       operationId: regenerateStudyPlan
       summary: Regenerate an owned plan using its original source reports
+      description: Explicit regeneration rechecks the same recurrence requirements, preserves the original source set and resets item completion on success. It does not add newer reports. Failure leaves the saved plan unchanged.
       responses:
         '200':
           description: Updated plan with unchecked items

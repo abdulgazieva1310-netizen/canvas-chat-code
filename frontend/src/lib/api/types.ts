@@ -24,7 +24,12 @@ export interface User {
 }
 
 export type ProfileUpdate = Pick<User, "name" | "targetRole" | "level"> &
-  Partial<Pick<User, "preferredLanguage" | "interviewerAvatar" | "interviewerVoiceName" | "interviewerVoiceLang">>;
+  Partial<
+    Pick<
+      User,
+      "preferredLanguage" | "interviewerAvatar" | "interviewerVoiceName" | "interviewerVoiceLang"
+    >
+  >;
 
 export const targetRoles: Role[] = [
   "Frontend Developer",
@@ -51,7 +56,15 @@ export interface InterviewSetup {
 }
 
 export type CodeRunStatus =
-  "success" | "compile-error" | "runtime-error" | "timeout" | "output-limit" | "unavailable";
+  | "success"
+  | "passed"
+  | "failed"
+  | "compile-error"
+  | "runtime-error"
+  | "resource-limit"
+  | "timeout"
+  | "output-limit"
+  | "unavailable";
 
 export interface CodeRunRequest {
   language: string;
@@ -80,7 +93,14 @@ export interface Message {
 }
 
 export interface CodingJudgeSummary {
-  status: "passed" | "failed" | "compile-error" | "runtime-error" | "timeout" | "unavailable";
+  status:
+    | "passed"
+    | "failed"
+    | "compile-error"
+    | "runtime-error"
+    | "resource-limit"
+    | "timeout"
+    | "unavailable";
   passed: number;
   total: number;
   summary: string;

@@ -370,6 +370,18 @@ function Interview() {
   const latestQuestion = [...(interview?.messages ?? [])]
     .reverse()
     .find((item) => item.from === "ai");
+  const reviewedSpecs: Record<string, string> = {
+    "coding-junior-balanced": "balanced-brackets-v1",
+    "coding-junior-first-repeat": "first-repeat-v1",
+    "coding-junior-runs": "runs-v1",
+    "coding-junior-merge-sorted": "merge-sorted-v1",
+  };
+  const reviewedExecution =
+    latestQuestion?.codingQuestionVersion === 1 &&
+    latestQuestion?.codingJudgeSpecVersion === 1 &&
+    latestQuestion?.kind !== "follow-up" &&
+    !!latestQuestion?.codingQuestionId &&
+    reviewedSpecs[latestQuestion.codingQuestionId] === latestQuestion.codingJudgeSpecKey;
   const codeRun = useMutation({
     mutationFn: (code: string) => {
       if (!codingLanguage)
@@ -646,7 +658,8 @@ function Interview() {
               >
                 {codingLanguage && (
                   <p className="text-sm font-medium">
-                    {setup.role.replace(" Developer", "")} code · AI review (code is not executed)
+                    {setup.role.replace(" Developer", "")} code · static AI review and isolated
+                    execution for reviewed questions
                   </p>
                 )}
                 {voiceMode && (
@@ -693,11 +706,29 @@ function Interview() {
                     <button
                       type="button"
                       className="btn btn-ghost"
-                      disabled={busy || !text.trim() || interview.status !== "active"}
+                      disabled={
+                        busy || !reviewedExecution || !text.trim() || interview.status !== "active"
+                      }
                       onClick={() => codeRun.mutate(text)}
                     >
-                      {codeRun.isPending ? "Running…" : "Run code"}
+                      {codeRun.isPending ? "Running examples…" : "Run public examples"}
                     </button>
+                    {!reviewedExecution && (
+                      <p className="text-sm text-muted-foreground">
+                        This question has no reviewed execution tests. Submit your answer for static
+                        AI feedback.
+                      </p>
+                    )}
+                    {reviewedExecution && (
+                      <p className="text-sm text-muted-foreground">
+                        Run a complete program that reads standard input and prints the output in
+                        the question's contract.
+                        {codingLanguage === "java" &&
+                          " Java programs must define class Solution."}{" "}
+                        Public examples run here; hidden checks and static AI feedback run when you
+                        submit.
+                      </p>
+                    )}
                     <CodeEditor
                       key={`${interviewId}-${interview.answeredCount}`}
                       language={codingLanguage}
@@ -1063,8 +1094,11 @@ function Interview() {
 function CodeExecutionResult({ result }: { result: CodeRunResult }) {
   const label: Record<CodeRunResult["status"], string> = {
     success: "Run completed",
+    passed: "Public examples passed",
+    failed: "Public examples failed",
     "compile-error": "Compilation failed",
     "runtime-error": "Runtime error",
+    "resource-limit": "Resource limit reached",
     timeout: "Execution timed out",
     "output-limit": "Output limit reached",
     unavailable: "Runner unavailable",

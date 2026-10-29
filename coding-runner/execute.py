@@ -60,7 +60,13 @@ def run(command, stdin=b""):
                 selector.close()
                 return "output-limit", bytes(buffers[process.stdout][:MAX_OUTPUT]), b"Output exceeded the 12 KB limit."
     selector.close()
-    return "success" if process.returncode == 0 else "runtime-error", bytes(buffers[process.stdout]), bytes(buffers[process.stderr])
+    if process.returncode == 0:
+        status = "success"
+    elif process.returncode in {-signal.SIGKILL, -signal.SIGXCPU, -signal.SIGXFSZ}:
+        status = "resource-limit"
+    else:
+        status = "runtime-error"
+    return status, bytes(buffers[process.stdout]), bytes(buffers[process.stderr])
 
 
 def main(language, stdin=b""):

@@ -22,6 +22,7 @@ from ..media_storage import (ALLOWED_MEDIA_TYPES, MAX_MEDIA_BYTES, RETENTION_DAY
 from ..store import answer_text, message, now
 from ..services.difficulty import transition as difficulty_transition
 from ..services import ai_service
+from ..services.coding_specs import JUDGE_CASES, PUBLIC_CASES, reviewed_judge_key
 from ..services.question_bank import load_bank
 
 router = APIRouter(prefix='/interviews', tags=['interviews'])
@@ -33,55 +34,26 @@ JUDGED_QUESTION_BY_ROLE = {
     'C++ Developer': 'coding-junior-merge-sorted',
     'Full Stack Developer': 'coding-junior-first-repeat',
 }
-JUDGE_CASES = {
-    'balanced-brackets-v1': [
-        ('normal', '{}[]\n', 'true\n'),
-        ('normal', '{[}]\n', 'false\n'),
-        ('boundary', '\n', 'true\n'),
-        ('boundary', '(((())))\n', 'true\n'),
-        ('invalid-input', '(a)\n', 'false\n'),
-    ],
-    'first-repeat-v1': [
-        ('normal', '4 4 2 4 2\n', '4\n'),
-        ('normal', '3 1 2 3\n', 'null\n'),
-        ('boundary', '0\n', 'null\n'),
-        ('boundary', '3 -2147483648 0 -2147483648\n', '-2147483648\n'),
-        ('boundary', '2 7 7\n', '7\n'),
-        ('invalid-input', '-1\n', 'null\n'),
-        ('invalid-input', '2 x 1\n', 'null\n'),
-    ],
-    'runs-v1': [
-        ('normal', '4 2 2 3 2\n', '[[2,2],[3,1],[2,1]]\n'),
-        ('normal', '3 5 5 5\n', '[[5,3]]\n'),
-        ('boundary', '0\n', '[]\n'),
-        ('boundary', '2 -2147483648 2147483647\n', '[[-2147483648,1],[2147483647,1]]\n'),
-        ('boundary', '1 0\n', '[[0,1]]\n'),
-        ('invalid-input', '-1\n', '[]\n'),
-        ('invalid-input', '2 1 x\n', '[]\n'),
-    ],
-    'merge-sorted-v1': [
-        ('normal', '2 2 1 3 2 3\n', '[1,2,3,3]\n'),
-        ('normal', '3 0 1 2 3\n', '[1,2,3]\n'),
-        ('boundary', '0 0\n', '[]\n'),
-        ('boundary', '1 1 -2147483648 2147483647\n', '[-2147483648,2147483647]\n'),
-        ('boundary', '2 2 1 1 1 1\n', '[1,1,1,1]\n'),
-        ('invalid-input', '-1 0\n', '[]\n'),
-        ('invalid-input', '2 1 3 1 2\n', '[]\n'),
-    ],
-}
 
-def judge_code(language, code, judge_key):
-    cases = JUDGE_CASES[judge_key]
+def judge_code(language, code, judge_key, *, public_only=False):
+    cases = (PUBLIC_CASES if public_only else JUDGE_CASES).get(judge_key)
+    if not cases or language not in RUNNABLE_LANGUAGES:
+        return {'status': 'unavailable', 'passed': 0, 'total': 1,
+                'summary': 'This question has no reviewed tests. Static AI review remains available.'}
     url = os.getenv('CODING_RUNNER_URL', '').strip().rstrip('/')
     token = os.getenv('CODING_RUNNER_TOKEN', '').strip()
     if not url or not token:
         return {'status': 'unavailable', 'passed': 0, 'total': len(cases),
-                'summary': 'Automated correctness checks are unavailable; AI coaching feedback is still provided.'}
+                'summary': 'Automated correctness checks are unavailable. Static AI review remains available when you submit your answer.'}
     passed = 0
+    deadline = time.monotonic() + 45
     for category, private_input, expected in cases:
+        if time.monotonic() >= deadline:
+            return {'status': 'unavailable', 'passed': passed, 'total': len(cases),
+                    'summary': 'The execution service exceeded its judging budget. Static AI review remains available.'}
         try:
             response = httpx.post(f'{url}/run', json={'language': language, 'code': code, 'stdin': private_input},
-                headers={'Authorization': f'Bearer {token}'}, timeout=httpx.Timeout(19.0, connect=2.0))
+                headers={'Authorization': f'Bearer {token}'}, timeout=httpx.Timeout(min(19.0, max(.1, deadline - time.monotonic())), connect=2.0))
             response.raise_for_status()
             result = CodeRunResult.model_validate(response.json())
         except (httpx.HTTPError, ValueError):
@@ -93,6 +65,9 @@ def judge_code(language, code, judge_key):
         if result.status == 'timeout':
             return {'status': 'timeout', 'passed': passed, 'total': len(cases),
                     'summary': 'The solution exceeded the execution time limit.'}
+        if result.status in {'resource-limit', 'output-limit'}:
+            return {'status': 'resource-limit', 'passed': passed, 'total': len(cases),
+                    'summary': 'The solution exceeded a resource limit.'}
         if result.status == 'unavailable':
             return {'status': 'unavailable', 'passed': passed, 'total': len(cases),
                     'summary': 'Automated correctness checks are temporarily unavailable; AI coaching feedback is still provided.'}
@@ -263,23 +238,19 @@ def run_code(interviewId: str, data: CodeRunRequest, request: Request, user: Cur
         if data.language not in RUNNABLE_LANGUAGES:
             raise HTTPException(422, 'This coding language is not supported by the runner.')
 
-    runner_url = os.getenv('CODING_RUNNER_URL', '').strip().rstrip('/')
-    runner_token = os.getenv('CODING_RUNNER_TOKEN', '').strip()
-    if not runner_url or not runner_token:
-        return CodeRunResult(status='unavailable', stderr='Code runner is not configured. Static AI review remains available when you submit your answer.')
-    try:
-        response = httpx.post(
-            f'{runner_url}/run',
-            json={'language': data.language, 'code': data.code},
-            headers={'Authorization': f'Bearer {runner_token}'},
-            timeout=httpx.Timeout(12.0, connect=2.0),
-        )
-        if response.status_code == 429:
-            return CodeRunResult(status='unavailable', stderr='The code runner is busy. Try again shortly.')
-        response.raise_for_status()
-        return CodeRunResult.model_validate(response.json())
-    except (httpx.HTTPError, ValueError):
-        return CodeRunResult(status='unavailable', stderr='The code runner is temporarily unavailable. Static AI review remains available when you submit your answer.')
+        current = next(m for m in reversed(interview.messages) if m.sender == 'ai')
+        if store.accepted_answer(interviewId, current.id):
+            raise HTTPException(409, 'Request the next question before running more code.')
+        judge_key = reviewed_judge_key(current, data.language)
+        if not judge_key:
+            return CodeRunResult(status='unavailable', stderr='This question has no reviewed execution specification. Static AI review remains available when you submit your answer.')
+
+    checked = judge_code(data.language, data.code, judge_key, public_only=True)
+    # Only bounded summaries are returned. Hidden inputs and program output stay private.
+    return CodeRunResult(status=checked['status'],
+        stdout=(f"{checked['passed']} of {checked['total']} public examples passed."
+                if checked['status'] in {'passed', 'failed'} else ''),
+        stderr=checked['summary'] if checked['status'] not in {'passed', 'failed'} else '')
 
 
 @router.post('', response_model=Interview, response_model_exclude_none=False, status_code=201)
@@ -404,9 +375,10 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             raise HTTPException(503, 'Russian answer evaluation is temporarily unavailable. Your answer was not saved; retry or select English.')
         setup = interview.setup
         coding_judge = None
-        if current_question_message.codingJudgeSpecKey:
-            coding_judge = judge_code(language or data.selectedLanguage or 'Python', data.text,
-                                      current_question_message.codingJudgeSpecKey)
+        judge_language = language or data.selectedLanguage or 'Python'
+        judge_key = reviewed_judge_key(current_question_message, judge_language)
+        if judge_key:
+            coding_judge = judge_code(judge_language, data.text, judge_key)
         if setup.language == 'Russian':
             # Commit scores before any follow-up/question provider request can fail.
             return store.answer(interview, data.text, evaluation=evaluation, coding_judge=coding_judge,

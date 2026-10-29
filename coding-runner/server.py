@@ -3,6 +3,9 @@ import hmac
 import json
 import os
 import re
+import selectors
+import signal
+import time
 import subprocess
 import tempfile
 import threading
@@ -15,13 +18,72 @@ TOKEN = os.getenv("CODING_RUNNER_TOKEN", "")
 SOURCE_DIR = Path(os.getenv("CODING_RUNNER_SOURCE_DIR", "/var/lib/interview-code-runner/submissions"))
 MAX_SOURCE = 50_000
 MAX_RESPONSE = 96 * 1024
+MAX_OUTPUT = 12 * 1024
 EXECUTION_SLOTS = threading.BoundedSemaphore(2)
 LANGUAGES = {"Python", "Java", "C++", "JavaScript", "TypeScript"}
 LANGUAGE_RE = re.compile(r"^(Python|Java|C\+\+|JavaScript|TypeScript)$")
 
 
+class OutputLimitExceeded(Exception):
+    pass
+
+
+def capture_container(command, request, timeout=16):
+    """Drain Docker output with hard memory/time bounds, even if the harness is bypassed."""
+    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, start_new_session=True)
+    buffers = {process.stdout: bytearray(), process.stderr: bytearray()}
+    selector = selectors.DefaultSelector()
+    pending = memoryview(request)
+    deadline = time.monotonic() + timeout
+    try:
+        for stream in buffers:
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ)
+        os.set_blocking(process.stdin.fileno(), False)
+        if pending:
+            selector.register(process.stdin, selectors.EVENT_WRITE)
+        else:
+            process.stdin.close()
+        while selector.get_map() or process.poll() is None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(command, timeout)
+            for key, _ in selector.select(min(remaining, .1)):
+                stream = key.fileobj
+                if stream is process.stdin:
+                    try:
+                        pending = pending[os.write(stream.fileno(), pending[:4096]):]
+                    except BrokenPipeError:
+                        pending = pending[:0]
+                    if not pending:
+                        selector.unregister(stream)
+                        stream.close()
+                    continue
+                chunk = os.read(stream.fileno(), 4096)
+                if not chunk:
+                    selector.unregister(stream)
+                    stream.close()
+                    continue
+                buffers[stream].extend(chunk)
+                if sum(map(len, buffers.values())) > MAX_RESPONSE:
+                    raise OutputLimitExceeded()
+        return subprocess.CompletedProcess(command, process.wait(),
+                                           bytes(buffers[process.stdout]), bytes(buffers[process.stderr]))
+    finally:
+        if process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=2)
+        selector.close()
+        for stream in (process.stdin, process.stdout, process.stderr):
+            stream.close()
+
+
 def result(status, stdout="", stderr=""):
-    return {"status": status, "stdout": stdout[:MAX_RESPONSE], "stderr": stderr[:MAX_RESPONSE]}
+    return {"status": status, "stdout": stdout[:MAX_OUTPUT], "stderr": stderr[:MAX_OUTPUT]}
 
 
 def cleanup_container(name):
@@ -34,18 +96,21 @@ def cleanup_container(name):
 def run_container(language, source, stdin=""):
     name = f"interview-code-{uuid.uuid4().hex}"
     command = [
-        "docker", "run", "-i", "--name", name, "--rm", "--network=none",
+        "docker", "run", "-i", "--name", name, "--rm", "--network=none", "--log-driver=none",
         "--memory=256m", "--memory-swap=256m", "--cpus=0.5", "--pids-limit=32",
         "--read-only", "--tmpfs", "/work:rw,exec,nosuid,nodev,size=32m,uid=65534,gid=65534,mode=0700",
         "--cap-drop=ALL", "--security-opt=no-new-privileges=true",
         "--user=65534:65534", "--ulimit", "cpu=7:7", "--ulimit", "nproc=32:32",
         "--ulimit", "nofile=64:64", "--ulimit", "fsize=1048576:1048576",
+        "--ulimit", "core=0:0",
         "--env", "HOME=/work", "--env", "TMPDIR=/work",
         "--mount", f"type=bind,src={source},dst=/submission/source,readonly",
         IMAGE, "python3", "/runner/execute.py", language,
     ]
     try:
-        completed = subprocess.run(command, input=json.dumps({"stdin": stdin}).encode(), capture_output=True, timeout=16, check=False)
+        completed = capture_container(command, json.dumps({"stdin": stdin}).encode())
+    except OutputLimitExceeded:
+        return result("output-limit", stderr="Output exceeded the 12 KB limit.")
     except subprocess.TimeoutExpired:
         try:
             subprocess.run(["docker", "kill", name], capture_output=True, timeout=2, check=False)
@@ -61,11 +126,22 @@ def run_container(language, source, stdin=""):
         return result("output-limit", stderr="Output exceeded the 12 KB limit.")
     try:
         payload = json.loads(completed.stdout)
+        if not isinstance(payload, dict) or set(payload) != {"status", "stdout", "stderr"}:
+            raise ValueError("invalid executor response")
         status = payload.get("status")
-        if status not in {"success", "compile-error", "runtime-error", "timeout", "output-limit"}:
+        if status not in {"success", "compile-error", "runtime-error", "timeout", "output-limit", "resource-limit"}:
             raise ValueError("invalid execution status")
-        return result(status, payload.get("stdout", ""), payload.get("stderr", ""))
+        stdout, stderr = payload["stdout"], payload["stderr"]
+        if not isinstance(stdout, str) or not isinstance(stderr, str):
+            raise ValueError("invalid executor text")
+        if len(stdout.encode("utf-8")) + len(stderr.encode("utf-8")) > MAX_OUTPUT:
+            return result("output-limit", stderr="Output exceeded the 12 KB limit.")
+        if completed.returncode != 0:
+            raise ValueError("executor did not exit normally")
+        return result(status, stdout, stderr)
     except (json.JSONDecodeError, TypeError, ValueError):
+        if completed.returncode in {-9, 137}:
+            return result("resource-limit", stderr="The container exceeded a resource limit.")
         return result("unavailable", stderr="The isolated execution service failed unexpectedly.")
 
 

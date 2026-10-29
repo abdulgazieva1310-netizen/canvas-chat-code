@@ -351,8 +351,8 @@ paths:
       - $ref: '#/components/parameters/InterviewId'
     post:
       operationId: runCode
-      summary: Run code in the isolated coding runner
-      description: Runs bounded source in a disposable, network-disabled container only for the authenticated owner's active technical coding interview. This does not submit an answer or change interview state. If the runner is unavailable, the response says so and static AI review remains available through sendMessage.
+      summary: Run public examples in the isolated coding runner
+      description: Runs only the public examples of a reviewed, version-matched question specification for the authenticated owner's active technical coding interview. Missing or unreviewed specifications do not invoke execution. Returns passed/failed summaries or bounded execution/infrastructure errors, never hidden inputs or program output. This does not submit an answer or change interview state. Static AI review remains available through sendMessage when execution is unavailable.
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -362,7 +362,7 @@ paths:
               $ref: '#/components/schemas/CodeRunRequest'
       responses:
         '200':
-          description: Bounded compile/runtime result, or an explicit runner-unavailable result
+          description: Public-example pass/fail verdict, resource/compile/runtime error, or runner-unavailable result
           content:
             application/json:
               schema:
@@ -1594,7 +1594,7 @@ components:
       properties:
         status:
           type: string
-          enum: [success, compile-error, runtime-error, timeout, output-limit, unavailable]
+          enum: [success, passed, failed, compile-error, runtime-error, resource-limit, timeout, output-limit, unavailable]
         stdout:
           type: string
           maxLength: 32768

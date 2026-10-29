@@ -17,7 +17,7 @@ import server
 def http_server(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "TOKEN", "t" * 48)
     monkeypatch.setattr(server, "SOURCE_DIR", tmp_path)
-    instance = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    instance = server.BoundedRunnerServer(("127.0.0.1", 0), server.Handler)
     thread = threading.Thread(target=instance.serve_forever, daemon=True)
     thread.start()
     yield f"http://127.0.0.1:{instance.server_port}"
@@ -54,18 +54,17 @@ def test_runner_limits_source_and_rejects_extra_fields(http_server):
 
 
 def test_execution_uses_restricted_disposable_container(http_server):
-    with patch.object(server.subprocess, "run") as docker_run:
-        docker_run.return_value.stdout = b'{"status":"success","stdout":"ok\\n","stderr":""}'
-        docker_run.return_value.stderr = b""
-        docker_run.return_value.returncode = 0
+    with patch.object(server, "capture_container") as capture, patch.object(server, "cleanup_container") as cleanup:
+        capture.return_value = subprocess.CompletedProcess([], 0,
+            b'{"status":"success","stdout":"ok\\n","stderr":""}', b"")
         response = call(http_server, {"language": "Python", "code": "print('ok')"})
     assert response.status_code == 200
     assert response.json()["stdout"] == "ok\n"
-    command = docker_run.call_args_list[0].args[0]
-    for flag in ["-i", "--rm", "--network=none", "--read-only", "--cap-drop=ALL", "--memory=256m", "--cpus=0.5", "--pids-limit=32"]:
+    command = capture.call_args.args[0]
+    for flag in ["-i", "--rm", "--network=none", "--read-only", "--cap-drop=ALL", "--memory=256m", "--cpus=0.5", "--pids-limit=32", "--log-driver=none", "core=0:0", "cpu=7:7"]:
         assert flag in command
     assert any(arg.startswith("type=bind,src=") and arg.endswith(",readonly") for arg in command)
-    assert docker_run.call_args_list[0].kwargs["timeout"] == 16
+    cleanup.assert_called_once_with(command[command.index("--name") + 1])
     assert not list(server.SOURCE_DIR.iterdir())
 
 
@@ -75,9 +74,87 @@ def test_busy_runner_rejects_without_queueing(http_server, monkeypatch):
     assert response.status_code == 429
 
 
+def test_gateway_bounds_output_even_if_executor_harness_is_bypassed():
+    with pytest.raises(server.OutputLimitExceeded):
+        server.capture_container([sys.executable, '-c',
+            "import os\nwhile True: os.write(1, b'x' * 4096)"], b'', timeout=2)
+
+
+def test_gateway_deadline_also_bounds_a_process_that_does_not_read_stdin():
+    with pytest.raises(subprocess.TimeoutExpired):
+        server.capture_container([sys.executable, '-c', 'import time; time.sleep(10)'],
+                                 b'x' * 100_000, timeout=.2)
+
+
+@pytest.mark.parametrize('payload', [[], {'status': 'success', 'stdout': None, 'stderr': ''},
+    {'status': 'success', 'stdout': '', 'stderr': '', 'private': 'unexpected'}])
+def test_invalid_executor_results_are_infrastructure_failures(monkeypatch, tmp_path, payload):
+    monkeypatch.setattr(server, 'capture_container', lambda *a, **kw:
+        subprocess.CompletedProcess([], 0, __import__('json').dumps(payload).encode(), b''))
+    monkeypatch.setattr(server, 'cleanup_container', lambda name: None)
+    assert server.run_container('Python', tmp_path / 'source')['status'] == 'unavailable'
+
+
+def test_gateway_enforces_decoded_output_limit(monkeypatch, tmp_path):
+    payload = {'status': 'success', 'stdout': 'x' * (server.MAX_OUTPUT + 1), 'stderr': ''}
+    monkeypatch.setattr(server, 'capture_container', lambda *a, **kw:
+        subprocess.CompletedProcess([], 0, __import__('json').dumps(payload).encode(), b''))
+    monkeypatch.setattr(server, 'cleanup_container', lambda name: None)
+    assert server.run_container('Python', tmp_path / 'source')['status'] == 'output-limit'
+
+
+@pytest.mark.skipif(os.getenv('CODING_RUNNER_INTEGRATION') != '1', reason='requires Docker')
+def test_real_api_public_examples_and_hidden_judging(http_server, monkeypatch, tmp_path):
+    sys.path.insert(0, str(Path(__file__).parents[1] / 'backend'))
+    from fastapi.testclient import TestClient
+    from app.main import create_app
+    from app.models import AnswerEvaluation
+    from app.services import ai_service
+    monkeypatch.setenv('CODING_RUNNER_URL', http_server)
+    monkeypatch.setenv('CODING_RUNNER_TOKEN', 't' * 48)
+    monkeypatch.setattr(ai_service, 'generate_followup', lambda *a, **kw: None)
+    monkeypatch.setattr(ai_service, 'generate_question', lambda *a, **kw: 'Implement the next algorithm?')
+    monkeypatch.setattr(ai_service, 'evaluate_answer', lambda *a, **kw: AnswerEvaluation(
+        accuracy=7, completeness=7, clarity=7, structure=7, went_well='Clear explanation.',
+        missing='Explain complexity.', stronger_answer='Explain the stack invariant.'))
+    solver = """text = input()
+stack = []
+pairs = {')':'(', ']':'[', '}':'{'}
+ok = True
+for c in text:
+ if c in '([{': stack.append(c)
+ elif not stack or stack.pop() != pairs.get(c): ok = False
+print(str(ok and not stack).lower())
+"""
+    with TestClient(create_app(database_url=f'sqlite:///{tmp_path / "app.db"}')) as client:
+        client.post('/api/auth/login', json={'email':'demo@example.com', 'password':'demo-password'})
+        interview = client.post('/api/interviews', json={'role':'Backend Developer', 'level':'Junior',
+            'mode':'Practice', 'questionCount':5, 'type':'Technical', 'input':'Text', 'language':'English'}).json()
+        path = f"/api/interviews/{interview['id']}"
+        public = client.post(path + '/run', json={'language':'Python', 'code':solver})
+        assert public.status_code == 200 and public.json()['status'] == 'passed'
+        assert '2 of 2' in public.json()['stdout']
+        assert client.get(path).json() == interview
+        submitted = client.post(path + '/messages', json={'text':solver, 'selectedLanguage':'Python',
+            'expectedQuestionId':interview['messages'][0]['id']})
+        assert submitted.status_code == 200
+        assert submitted.json()['lastCodingJudge']['status'] == 'passed'
+        assert submitted.json()['lastCodingJudge']['total'] == 5
+        assert submitted.json()['lastAnswerFeedback']['accuracy'] == 7
+        assert '(a)' not in str(submitted.json()['lastCodingJudge'])
+    # Gateway temporary sources are removed; application data belongs only to the API database.
+    assert not [entry for entry in server.SOURCE_DIR.iterdir() if entry.is_dir()]
+
+
 @pytest.mark.skipif(os.getenv("CODING_RUNNER_INTEGRATION") != "1", reason="requires the executor image and Docker")
 def test_docker_isolation_and_resource_limits(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "SOURCE_DIR", tmp_path)
+    own_containers = set()
+    capture = server.capture_container
+    def track_container(command, *args, **kwargs):
+        own_containers.add(command[command.index('--name') + 1])
+        return capture(command, *args, **kwargs)
+    monkeypatch.setattr(server, 'capture_container', track_container)
     sentinel = Path(tempfile.gettempdir()) / f"runner-host-secret-{os.getpid()}"
     sentinel.write_text("private host content")
     monkeypatch.setenv("AI_API_KEY", "must-not-enter-container")
@@ -128,7 +205,8 @@ print(str(valid and not stack).lower())
         assert execute("Python", "raise RuntimeError('failed')")["status"] == "runtime-error"
         assert execute("Python", "while True: pass")["status"] == "timeout"
         assert execute("Python", "while True: print('x' * 1000)")["status"] == "output-limit"
-        assert execute("Python", "data = bytearray(1024 * 1024 * 1024)")["status"] == "runtime-error"
+        assert execute("Python", "import os,signal; os.kill(os.getpid(), signal.SIGKILL)")["status"] == "resource-limit"
+        assert execute("Python", "data = bytearray(512 * 1024 * 1024)")["status"] == "resource-limit"
         fs = execute("Python", f"from pathlib import Path; print(Path('{sentinel}').exists())")
         assert fs["status"] == "success" and "False" in fs["stdout"]
         readonly = execute("Python", "from pathlib import Path\ntry: Path('/etc/runner-write-test').write_text('x'); print('writable')\nexcept OSError: print('read-only')")
@@ -141,6 +219,16 @@ print(str(valid and not stack).lower())
         assert pids["status"] == "success" and "limited" in pids["stdout"]
         environment = execute("Python", "import os; print('AI_API_KEY' in os.environ)")
         assert environment["status"] == "success" and "False" in environment["stdout"]
+        identity = execute("Python", "import os; print(os.getuid()); print(os.geteuid())")
+        assert identity['status'] == 'success' and identity['stdout'] == '65534\n65534\n'
+        first = execute('Python', "from pathlib import Path; Path('/work/private').write_text('secret')")
+        assert first['status'] == 'success'
+        second = execute('Python', "from pathlib import Path; print(Path('/work/private').exists())")
+        assert second['status'] == 'success' and second['stdout'] == 'False\n'
+        disk = execute('Python', "from pathlib import Path\ntry: Path('/work/large').write_bytes(b'x' * (2 * 1024 * 1024))\nexcept OSError: print('limited')")
+        assert disk['status'] in {'resource-limit', 'success'}
+        if disk['status'] == 'success':
+            assert disk['stdout'] == 'limited\n'
         assert list(tmp_path.iterdir()) == []
         containers = subprocess.run(
             ["docker", "ps", "-a", "--filter", "name=interview-code-", "--format", "{{.Names}}"],
@@ -148,6 +236,6 @@ print(str(valid and not stack).lower())
             text=True,
             check=True,
         )
-        assert not containers.stdout.strip()
+        assert not own_containers.intersection(containers.stdout.splitlines())
     finally:
         sentinel.unlink(missing_ok=True)

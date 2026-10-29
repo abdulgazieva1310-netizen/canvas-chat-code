@@ -81,7 +81,7 @@ def test_judge_reports_compile_error_without_private_case_details(monkeypatch):
 
 
 @pytest.mark.parametrize(('runner_status', 'judge_status'), [
-    ('runtime-error', 'runtime-error'), ('timeout', 'timeout'),
+    ('runtime-error', 'runtime-error'), ('resource-limit', 'resource-limit'), ('timeout', 'timeout'),
 ])
 def test_judge_preserves_runtime_and_timeout_classification(monkeypatch, runner_status, judge_status):
     from app.routers import interviews

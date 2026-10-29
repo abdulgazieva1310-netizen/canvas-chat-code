@@ -107,9 +107,16 @@ class CodeRunRequest(BaseModel):
     language: Literal['Python', 'Java', 'C++', 'JavaScript', 'TypeScript']
     code: str = Field(min_length=1, max_length=50000)
 
+    @field_validator('code')
+    @classmethod
+    def bounded_utf8_source(cls, value):
+        if len(value.encode('utf-8')) > 50000:
+            raise ValueError('Source exceeds the 50 KB UTF-8 limit')
+        return value
+
 
 class CodeRunResult(BaseModel):
-    status: Literal['success', 'compile-error', 'runtime-error', 'timeout', 'output-limit', 'unavailable']
+    status: Literal['success', 'passed', 'failed', 'compile-error', 'runtime-error', 'resource-limit', 'timeout', 'output-limit', 'unavailable']
     stdout: str = Field(default='', max_length=32768)
     stderr: str = Field(default='', max_length=32768)
 
@@ -133,7 +140,7 @@ class InterviewMediaList(BaseModel):
 
 
 class CodingJudgeSummary(BaseModel):
-    status: Literal['passed', 'failed', 'compile-error', 'runtime-error', 'timeout', 'unavailable']
+    status: Literal['passed', 'failed', 'compile-error', 'runtime-error', 'resource-limit', 'timeout', 'unavailable']
     passed: int = Field(ge=0)
     total: int = Field(gt=0)
     summary: str = Field(min_length=1, max_length=500)

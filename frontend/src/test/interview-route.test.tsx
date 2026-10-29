@@ -1270,14 +1270,21 @@ it("retries the next question without resending a saved answer and continues sub
 it("runs the current coding draft and shows bounded execution feedback", async () => {
   const active: Interview = {
     ...incompleteSession(),
+    messages: incompleteSession().messages.map((q) => ({
+      ...q,
+      codingQuestionId: "coding-junior-first-repeat",
+      codingQuestionVersion: 1,
+      codingJudgeSpecKey: "first-repeat-v1",
+      codingJudgeSpecVersion: 1,
+    })),
     status: "active",
     endedAt: null,
     setup: { ...defaultSetup, role: "Python Developer" },
   };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   const run = vi.spyOn(Api, "runCode").mockResolvedValue({
-    status: "success",
-    stdout: "42\n",
+    status: "passed",
+    stdout: "2 of 2 public examples passed.",
     stderr: "",
   });
   const send = vi.spyOn(Api, "sendMessage");
@@ -1291,9 +1298,13 @@ it("runs the current coding draft and shows bounded execution feedback", async (
   );
   const editor = screen.getByRole("textbox", { name: "Code answer" });
   fireEvent.change(editor, { target: { value: "def solve(): return 42" } });
-  fireEvent.click(screen.getByRole("button", { name: "Run code" }));
-  expect(await screen.findByLabelText("Code run result")).toHaveTextContent("Run completed");
-  expect(screen.getByLabelText("Code run result")).toHaveTextContent("42");
+  fireEvent.click(screen.getByRole("button", { name: "Run public examples" }));
+  expect(await screen.findByLabelText("Code run result")).toHaveTextContent(
+    "Public examples passed",
+  );
+  expect(screen.getByLabelText("Code run result")).toHaveTextContent(
+    "2 of 2 public examples passed",
+  );
   expect(run).toHaveBeenCalledExactlyOnceWith(active.id, {
     language: "Python",
     code: "def solve(): return 42",
@@ -1303,7 +1314,26 @@ it("runs the current coding draft and shows bounded execution feedback", async (
   client.clear();
 });
 
+it("disables execution for an unreviewed coding question while retaining static submission", async () => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, role: "Python Developer" },
+  });
+  const run = vi.spyOn(Api, "runCode");
+  const client = openInterview();
+  expect(await screen.findByRole("button", { name: "Run public examples" })).toBeDisabled();
+  expect(screen.getByText(/This question has no reviewed execution tests/)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  expect(run).not.toHaveBeenCalled();
+  client.clear();
+});
+
 it.each([
+  ["passed", "Public examples passed"],
+  ["failed", "Public examples failed"],
+  ["resource-limit", "Resource limit reached"],
   ["compile-error", "Compilation failed"],
   ["runtime-error", "Runtime error"],
   ["timeout", "Execution timed out"],
@@ -1312,6 +1342,13 @@ it.each([
 ] as const)("explains a code-run %s result", async (status, message) => {
   vi.spyOn(Api, "getInterview").mockResolvedValue({
     ...incompleteSession(),
+    messages: incompleteSession().messages.map((q) => ({
+      ...q,
+      codingQuestionId: "coding-junior-first-repeat",
+      codingQuestionVersion: 1,
+      codingJudgeSpecKey: "first-repeat-v1",
+      codingJudgeSpecVersion: 1,
+    })),
     status: "active",
     endedAt: null,
     setup: { ...defaultSetup, role: "Python Developer" },
@@ -1322,8 +1359,8 @@ it.each([
     stderr: "Details",
   });
   const client = openInterview();
-  await screen.findByRole("button", { name: "Run code" });
-  fireEvent.click(screen.getByRole("button", { name: "Run code" }));
+  await screen.findByRole("button", { name: "Run public examples" });
+  fireEvent.click(screen.getByRole("button", { name: "Run public examples" }));
   expect(await screen.findByLabelText("Code run result")).toHaveTextContent(message);
   expect(screen.getByLabelText("Code run result")).toHaveTextContent("Details");
   client.clear();

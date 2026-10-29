@@ -129,15 +129,20 @@ for that account. Password requirements match registration. Request responses ar
 always the same 202 message for known and unknown accounts, including delivery
 failures; failures emit a server warning without credentials or provider details.
 
-`EMAIL_ADAPTER=local` (default) provides an in-memory development mailbox at
-`app.state.mailer.messages`, containing `{to, link}` records. Tests can inject
-`create_app(mailer=LocalMailbox(), ...)`; there is no public mailbox endpoint.
-Local messages disappear on restart. Production must use `EMAIL_ADAPTER=smtp`,
-`SMTP_HOST`, `SMTP_PORT` (587 by default), `SMTP_FROM`, and optional
-`SMTP_USERNAME`/`SMTP_PASSWORD`. Delivery uses STARTTLS and a 10-second socket
-timeout. Set `PASSWORD_RESET_URL` to the trusted HTTPS frontend reset-page URL;
-it is configured by the server, never taken from the request Host header.
-The recovery pages are tracked separately in backlog item 9.
+`EMAIL_ADAPTER=auto` (default) sends through SMTP when `SMTP_HOST` is configured.
+Set `SMTP_HOST`, `SMTP_PORT` (587 by default), `SMTP_USER`, and `SMTP_PASSWORD`.
+`SMTP_FROM` optionally overrides the sender; it otherwise defaults to the user.
+Legacy `SMTP_USERNAME` remains supported. Delivery uses STARTTLS, or implicit
+TLS on port 465, with a 10-second socket timeout.
+
+Without an SMTP host, reset links are logged to the backend console for local
+testing and captured in `app.state.mailer.messages`. `EMAIL_ADAPTER=local` can
+force this behavior. Tests can inject `create_app(mailer=LocalMailbox(), ...)`
+for silent capture; there is no public mailbox endpoint. Set
+`PASSWORD_RESET_URL` to the public HTTPS frontend reset-page URL when deploying;
+the default is `http://localhost:8080/reset-password`. The URL is configured by
+the server, never taken from the request Host header. Restart after configuration
+changes. See [email delivery](../docs/email-delivery.md) for details.
 
 Opening an incomplete interview in the room calls `POST /api/interviews/{id}/resume`
 before enabling input. Resume restores active status and clears `endedAt` while

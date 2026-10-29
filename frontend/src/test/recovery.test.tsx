@@ -61,11 +61,35 @@ it("requests a reset publicly and shows neutral delivery guidance", async () => 
   });
   fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
   expect(await screen.findByRole("status")).toHaveTextContent("If this account exists");
+  expect(screen.getByRole("status")).toHaveTextContent("Reset request received");
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(fetch).toHaveBeenCalledWith(
     expect.stringContaining("/auth/password-reset/request"),
     expect.objectContaining({ body: JSON.stringify({ email: "person@example.com" }) }),
   );
+  client.clear();
+});
+
+it("shows confirmation only after the reset request is accepted", async () => {
+  let accept!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockReturnValue(
+      new Promise<Response>((resolve) => {
+        accept = resolve;
+      }),
+    ),
+  );
+  const { client } = openRecovery();
+  fireEvent.change(await screen.findByLabelText("Email"), {
+    target: { value: "person@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+  expect(await screen.findByRole("button", { name: "Please wait…" })).toBeDisabled();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  accept(new Response('{"message":"Accepted"}', { status: 202 }));
+  expect(await screen.findByRole("status")).toHaveTextContent("Reset request received");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   client.clear();
 });
 

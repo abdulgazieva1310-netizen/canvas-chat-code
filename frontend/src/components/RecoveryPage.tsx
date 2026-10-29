@@ -40,7 +40,7 @@ export function RecoveryPage({
         <p role="status" className="mt-6">
           {resetting
             ? "Your password has been changed. Sign in with your new password."
-            : "If this account exists, a reset link will be sent. Check your inbox and spam folder. If it does not arrive, try again or contact support."}
+            : "Reset request received. If this account exists, check your inbox and spam folder for a password reset link. If it does not arrive, try again or contact support."}
         </p>
       ) : invalidLink ? (
         <p role="alert" className="mt-6">

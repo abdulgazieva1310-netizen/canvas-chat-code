@@ -86,6 +86,7 @@ def test_russian_answer_feedback_and_hint_keep_the_selected_language(client, mon
     answered = client.post(f"/api/interviews/{interview['id']}/messages",
                            json={'text': 'Я системно проверил гипотезу и подтвердил результат.'}).json()
     assert answered['lastAnswerFeedback']['went_well'].startswith('Вы')
+    assert client.post(f"/api/interviews/{interview['id']}/next-question").status_code == 200
     assert followup_calls == ['Russian']
     client.post(f"/api/interviews/{interview['id']}/end")
     report = client.get(f"/api/interviews/{interview['id']}/report").json()
@@ -103,7 +104,8 @@ def test_groq_prompts_and_validates_russian_questions_hints_followups_and_feedba
          'practice_topic': 'Проверка гипотез'},
         'Сначала уточните ожидаемое поведение до проверки.',
     ]
-    responses = [item for response in responses for item in (response, {'valid': True})]
+    responses = [item for index, response in enumerate(responses)
+                 for item in ((response,) if index == 2 else (response, {'valid': True}))]
     prompts = []
 
     class Response:

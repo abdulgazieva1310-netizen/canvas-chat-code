@@ -59,7 +59,13 @@ async function request<T>(
     notifyUnauthorized = true,
     idempotencyKey,
     responseType = "json",
-  }: { notifyUnauthorized?: boolean; idempotencyKey?: string; responseType?: "json" | "blob" } = {},
+    signal,
+  }: {
+    notifyUnauthorized?: boolean;
+    idempotencyKey?: string;
+    responseType?: "json" | "blob";
+    signal?: AbortSignal;
+  } = {},
 ): Promise<T> {
   const isAuthRequest =
     path === "/auth/login" || path === "/auth/register" || path.startsWith("/auth/password-reset/");
@@ -67,6 +73,7 @@ async function request<T>(
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     credentials: "include",
+    ...(signal ? { signal } : {}),
     headers: {
       Accept: responseType === "blob" ? "*/*" : "application/json",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
@@ -124,7 +131,11 @@ export const Api = {
   createStudyPlan: (sourceInterviewIds: string[]) =>
     request<StudyPlan>("/study-plans", { sourceInterviewIds }),
   updateStudyPlanItem: (planId: string, itemId: string, completed: boolean) =>
-    request<StudyPlan>(`/study-plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`, { completed }, "PATCH"),
+    request<StudyPlan>(
+      `/study-plans/${encodeURIComponent(planId)}/items/${encodeURIComponent(itemId)}`,
+      { completed },
+      "PATCH",
+    ),
   regenerateStudyPlan: (planId: string) =>
     request<StudyPlan>(`/study-plans/${encodeURIComponent(planId)}/regenerate`, undefined, "POST"),
   deleteStudyPlan: (planId: string) =>
@@ -183,12 +194,55 @@ export const Api = {
   },
   resumeInterview: (id: string) =>
     request<Interview>(`${interviewPath(id)}/resume`, undefined, "POST"),
-  sendMessage: (id: string, text: string, selectedLanguage?: string, expectedQuestionId?: string) =>
-    request<Interview>(`${interviewPath(id)}/messages`, {
-      text,
-      ...(selectedLanguage ? { selectedLanguage } : {}),
-      ...(expectedQuestionId ? { expectedQuestionId } : {}),
-    }),
+  async sendMessage(
+    id: string,
+    text: string,
+    selectedLanguage?: string,
+    expectedQuestionId?: string,
+  ) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60_000);
+    try {
+      return await request<Interview>(
+        `${interviewPath(id)}/messages`,
+        {
+          text,
+          ...(selectedLanguage ? { selectedLanguage } : {}),
+          ...(expectedQuestionId ? { expectedQuestionId } : {}),
+        },
+        "POST",
+        { signal: controller.signal },
+      );
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new ApiError(
+          408,
+          "Scoring took too long. Your answer is kept. Retry to check whether it was saved.",
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+  async continueInterview(id: string) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60_000);
+    try {
+      return await request<Interview>(`${interviewPath(id)}/next-question`, undefined, "POST", {
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (controller.signal.aborted)
+        throw new ApiError(
+          408,
+          "Your answer is saved. The next question took too long; retry the next question.",
+        );
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  },
   runCode: (id: string, data: CodeRunRequest) =>
     request<CodeRunResult>(`${interviewPath(id)}/run`, data),
   setMediaConsent: (id: string, consented: boolean) =>
@@ -232,23 +286,41 @@ export const Api = {
   endInterview: (id: string) => request<Interview>(`${interviewPath(id)}/end`, undefined, "POST"),
   getReport: (id: string) => request<InterviewReport>(`${interviewPath(id)}/report`),
   getEvaluationFeedback: (id: string, answerId: string) =>
-    request<EvaluationFeedback>(`${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`),
-  saveEvaluationFeedback: (id: string, answerId: string, data: Pick<EvaluationFeedback, "rating" | "category" | "comment">) =>
-    request<EvaluationFeedback>(`${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`, data, "PUT"),
+    request<EvaluationFeedback>(
+      `${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`,
+    ),
+  saveEvaluationFeedback: (
+    id: string,
+    answerId: string,
+    data: Pick<EvaluationFeedback, "rating" | "category" | "comment">,
+  ) =>
+    request<EvaluationFeedback>(
+      `${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`,
+      data,
+      "PUT",
+    ),
   deleteEvaluationFeedback: (id: string, answerId: string) =>
-    request<void>(`${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`, undefined, "DELETE"),
+    request<void>(
+      `${interviewPath(id)}/answers/${encodeURIComponent(answerId)}/feedback`,
+      undefined,
+      "DELETE",
+    ),
   listJobTargets: () => request<JobTargetList>("/job-targets"),
   createJobTarget: (data: Pick<JobTarget, "title" | "company" | "role" | "description">) =>
     request<JobTarget>("/job-targets", data, "POST"),
-  updateJobTarget: (id: string, data: Pick<JobTarget, "title" | "company" | "role" | "description">) =>
-    request<JobTarget>(`/job-targets/${encodeURIComponent(id)}`, data, "PUT"),
-  deleteJobTarget: (id: string) => request<void>(`/job-targets/${encodeURIComponent(id)}`, undefined, "DELETE"),
+  updateJobTarget: (
+    id: string,
+    data: Pick<JobTarget, "title" | "company" | "role" | "description">,
+  ) => request<JobTarget>(`/job-targets/${encodeURIComponent(id)}`, data, "PUT"),
+  deleteJobTarget: (id: string) =>
+    request<void>(`/job-targets/${encodeURIComponent(id)}`, undefined, "DELETE"),
   listSetupPresets: () => request<SetupPresetList>("/setup-presets"),
   createSetupPreset: (data: Omit<SetupPreset, "id" | "createdAt" | "updatedAt">) =>
     request<SetupPreset>("/setup-presets", data, "POST"),
   updateSetupPreset: (id: string, data: Omit<SetupPreset, "id" | "createdAt" | "updatedAt">) =>
     request<SetupPreset>(`/setup-presets/${encodeURIComponent(id)}`, data, "PUT"),
-  deleteSetupPreset: (id: string) => request<void>(`/setup-presets/${encodeURIComponent(id)}`, undefined, "DELETE"),
+  deleteSetupPreset: (id: string) =>
+    request<void>(`/setup-presets/${encodeURIComponent(id)}`, undefined, "DELETE"),
   async getHistory(): Promise<Interview[]> {
     // Existing dashboard/session consumers still need the complete saved history.
     const first = await request<HistoryPage>("/interviews");

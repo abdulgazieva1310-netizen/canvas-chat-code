@@ -3,9 +3,40 @@ import { Api } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   sessionStorage.clear();
 });
+
+it.each(["answer", "next-question"] as const)(
+  "bounds %s requests and permits a safe retry",
+  async (operation) => {
+    vi.useFakeTimers();
+    const fetch = vi.fn().mockImplementation(
+      (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const pending =
+      operation === "answer"
+        ? Api.sendMessage("session", "Мой ответ", undefined, "question-1")
+        : Api.continueInterview("session");
+    const failed = expect(pending).rejects.toThrow(
+      operation === "answer" ? "Your answer is kept" : "Your answer is saved",
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    await failed;
+    expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+    if (operation === "answer")
+      expect(JSON.parse(fetch.mock.calls[0][1].body).expectedQuestionId).toBe("question-1");
+    else expect(fetch.mock.calls[0][0]).toContain("/next-question");
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
 
 it("reuses a start key after a lost response and uses a new key after success", async () => {
   const fetch = vi

@@ -299,6 +299,8 @@ function Interview() {
     }
   };
   const answer = useMutation({
+    retry: false,
+    networkMode: "always",
     mutationFn: (value: string) =>
       codingLanguage
         ? Api.sendMessage(interviewId, value, languageLabels[codingLanguage], latestQuestion?.id)
@@ -325,6 +327,24 @@ function Interview() {
     },
   });
   const hint = useMutation({ mutationFn: () => Api.getHint(interviewId), onSuccess: receive });
+  const waitingForQuestion =
+    interview?.status === "active" &&
+    interview.setup.language === "Russian" &&
+    interview.messages.at(-1)?.from === "you";
+  const pendingAnswerId = waitingForQuestion ? interview?.messages.at(-1)?.id : undefined;
+  const continuedAnswer = useRef<string | undefined>(undefined);
+  const nextQuestion = useMutation({
+    mutationFn: () => Api.continueInterview(interviewId),
+    retry: false,
+    networkMode: "always",
+    onSuccess: receive,
+  });
+  useEffect(() => {
+    if (pendingAnswerId && !answer.isPending && continuedAnswer.current !== pendingAnswerId) {
+      continuedAnswer.current = pendingAnswerId;
+      nextQuestion.mutate();
+    }
+  }, [pendingAnswerId, answer.isPending, nextQuestion.mutate]);
   const codingLanguages: Record<string, CodingLanguage> = {
     "Python Developer": "python",
     "Java Developer": "java",
@@ -358,7 +378,12 @@ function Interview() {
     },
   });
   const resetCodeRun = codeRun.reset;
-  const busy = answer.isPending || end.isPending || hint.isPending || codeRun.isPending;
+  const busy =
+    answer.isPending ||
+    end.isPending ||
+    hint.isPending ||
+    codeRun.isPending ||
+    nextQuestion.isPending;
   useEffect(() => {
     resetCodeRun();
   }, [interviewId, latestQuestion?.id, resetCodeRun]);
@@ -427,7 +452,10 @@ function Interview() {
     interview?.setup?.language ?? "English",
   );
   const spoken = useSpokenQuestion(
-    profileLoaded && interview?.setup?.input === "Voice" && !codingLanguage && interview?.status === "active",
+    profileLoaded &&
+      interview?.setup?.input === "Voice" &&
+      !codingLanguage &&
+      interview?.status === "active",
     latestQuestion?.id ?? "",
     latestQuestion?.text ?? "",
     interview?.setup?.language ?? "English",
@@ -592,7 +620,26 @@ function Interview() {
               {spoken.error}
             </p>
           )}
-          {interview.status === "active" ? (
+          {waitingForQuestion && (
+            <div className="card-surface mt-6 space-y-3 p-4">
+              <p role="status">
+                Your answer and scores are saved.{" "}
+                {nextQuestion.isPending
+                  ? "Preparing the next question…"
+                  : "Continue when the next question is available."}
+              </p>
+              {nextQuestion.error && <p role="alert">{nextQuestion.error.message}</p>}
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => nextQuestion.mutate()}
+              >
+                Retry next question
+              </button>
+            </div>
+          )}
+          {interview.status === "active" && !waitingForQuestion ? (
             <>
               <div
                 className={`card-surface mt-6 flex gap-3 p-3 ${codingLanguage ? "flex-col" : "items-center"}`}
@@ -690,7 +737,7 @@ function Interview() {
                   onClick={send}
                   className="btn btn-primary"
                 >
-                  {answer.isPending ? "Sending…" : "Send"}
+                  {answer.isPending ? "Sending…" : answer.isError ? "Retry answer" : "Send"}
                 </button>
                 {(draftExists || (draftDirty && !!text)) && (
                   <button
@@ -730,7 +777,7 @@ function Interview() {
                 </p>
               )}
             </>
-          ) : (
+          ) : interview.status !== "active" ? (
             <div role="status" className="card-surface mt-6 p-4">
               <p className="font-medium">This interview has ended.</p>
               <Link
@@ -741,7 +788,7 @@ function Interview() {
                 View results
               </Link>
             </div>
-          )}
+          ) : null}
           {voiceMode && !speech.supported && (
             <p className="mt-2 text-sm text-muted-foreground">
               Voice transcription is unavailable in this browser. You can type your answer instead.
@@ -825,8 +872,8 @@ function Interview() {
               <p className="text-sm text-muted-foreground">
                 Optional. With your consent, this device records audio only, then uploads it for
                 private playback. Recordings are deleted after 30 days. Camera preview video is
-                never included.
-                Your transcript and report remain available if recording or upload fails.
+                never included. Your transcript and report remain available if recording or upload
+                fails.
               </p>
               <label className="flex items-start gap-2 text-sm">
                 <input
@@ -916,7 +963,8 @@ function Interview() {
                   </Suspense>
                 </ThreeDFallbackBoundary>
                 <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-                  Interviewer {spoken.speaking ? "speaking" : speech.listening ? "listening" : "idle"}.
+                  Interviewer{" "}
+                  {spoken.speaking ? "speaking" : speech.listening ? "listening" : "idle"}.
                 </p>
                 {reducedMotion && (
                   <p className="text-xs text-muted-foreground">
@@ -999,7 +1047,7 @@ function Interview() {
           )}
           {practice && (
             <button
-              disabled={busy || interview.status !== "active"}
+              disabled={busy || waitingForQuestion || interview.status !== "active"}
               onClick={() => hint.mutate()}
               className="btn btn-accent w-full"
             >

@@ -51,18 +51,38 @@ at the AI service boundary. Calling these services directly with a disabled,
 unknown, or unallowlisted non-English combination returns no generated content
 without sending a provider request. HTTP callers retain their explicit errors.
 
-Russian generated questions, follow-ups, hints, and evaluations additionally
+Russian generated questions, follow-ups, and hints additionally
 undergo a provider-based semantic review against their question/answer context.
 Malformed, negative, or unavailable review results reject the content and retain
 the existing explicit failure/skip behavior. This adds a provider round trip per
 generated item. Russian generation and review allow up to 30 seconds of read
 inactivity per request; several requests may occur in one interview operation.
 Question and hint generation use a 4,096-token completion budget to reduce
-reasoning-related truncation. A 429 response with a provider-specified wait of
-at most 30 seconds is retried once; other transport errors are not retried.
+reasoning-related truncation. Provider 429 responses can be retried at most twice,
+with a combined wait budget of 30 seconds. Fractional delays in the provider body
+take precedence over shorter rounded headers. Other transport errors are not retried.
 Russian evaluation may generate one fresh response after schema, localization,
-or relevance rejection. A second rejection still fails clearly without saving
+or a deterministic context check rejects it. A second rejection fails without saving
 invented scores. Content review uses a 2,048-token budget to reduce quota usage.
+
+Russian scoring uses a concise structured prompt and a 2,048-token first-attempt
+budget, with a larger repair budget when needed. It validates score ranges,
+required feedback and localization locally. It does not make a second AI review
+request: that extra call previously rejected valid feedback and exhausted quotas.
+The preview's human quality checks remain required before release approval.
+
+Answer requests in the frontend time out after 60 seconds and keep the draft.
+After a failure the button becomes an enabled **Retry answer**. Mutations are
+not queued indefinitely when offline or automatically retried. The original
+question ID accompanies retries so an answer accepted before a timeout is not
+saved or scored a second time.
+
+Russian answer submission commits the validated answer and scores immediately.
+When an active transcript ends in a user answer, the frontend separately calls
+`POST /api/interviews/{id}/next-question` to fetch a follow-up/main question or
+finish the interview. This also resumes after reloading a pending interview.
+Question-provider failure cannot roll back scores: the UI shows **Retry next
+question** and lets the user end the interview to review saved results.
 
 Code-review examples may contain English keywords and identifiers. Russian
 comments or docstrings count as localized coaching when the other feedback
@@ -78,12 +98,18 @@ need added Russian prose merely to pass localization. Python source is parsed,
 never executed, for this check; English-only comments remain rejected. Optional
 untranslated practice-topic labels are omitted so they cannot discard valid
 scores and localized required feedback.
+If the ancillary improved-answer example cannot be localized, its text is
+replaced with an explicit Russian unavailable notice while retaining validated
+scores and Russian answer-specific remarks. No fallback numerical scores are
+invented. Missing/unlocalized primary remarks still require a valid provider
+response or a clear retryable error.
 
 Russian is an opt-in preview, not a quality-approved release language. The
 server requires `ENABLE_RUSSIAN_INTERVIEWS=true` in addition to the configured
 model and key. English remains available without this flag. The matrix above
 records implementation targets; browser locales do not certify provider quality.
-No live Groq or real-microphone/listening review has been recorded for this slice.
+Live provider checks are recorded in `docs/qa`; real-microphone/listening quality
+approval has not been recorded for this slice.
 Cyrillic-output checks reject obvious language mismatches but cannot establish
 fluency, accuracy, or the absence of mixed-language content.
 

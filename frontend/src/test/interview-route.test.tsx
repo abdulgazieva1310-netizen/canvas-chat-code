@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createMemoryHistory,
   createRootRouteWithContext,
@@ -11,7 +11,7 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 import { useEffect } from "react";
 import { Route } from "@/routes/interview";
-import { Api } from "@/lib/api/client";
+import { Api, ApiError } from "@/lib/api/client";
 import { loadAnswerDraft, saveAnswerDraft } from "@/lib/answer-drafts";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { Interview } from "@/lib/api/types";
@@ -64,9 +64,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
   sessionStorage.clear();
   localStorage.clear();
+  onlineManager.setOnline(true);
 });
 
-function openInterview(url = "/interview?interviewId=session-123", profileOverrides: Partial<User> = {}) {
+function openInterview(
+  url = "/interview?interviewId=session-123",
+  profileOverrides: Partial<User> = {},
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(["profile"], {
     id: "owner-123",
@@ -413,7 +417,7 @@ it("preserves typed text and re-enables input after a failed send", async () => 
   await screen.findByRole("alert");
   expect(input).toHaveValue("Keep my answer");
   expect(input).toBeEnabled();
-  expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Retry answer" })).toBeEnabled();
   expect(loadAnswerDraft("owner-123", "session-123", "question-2").draft?.text).toBe(
     "Keep my answer",
   );
@@ -588,12 +592,19 @@ it("uses the saved profile voice for question playback", async () => {
   const speak = vi.fn();
   vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
   vi.stubGlobal("speechSynthesis", {
-    speak, cancel: vi.fn(), speaking: false, pending: false, paused: false,
+    speak,
+    cancel: vi.fn(),
+    speaking: false,
+    pending: false,
+    paused: false,
     getVoices: () => [savedVoice],
   });
   const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
-  openInterview(undefined, { interviewerVoiceName: savedVoice.name, interviewerVoiceLang: savedVoice.lang });
+  openInterview(undefined, {
+    interviewerVoiceName: savedVoice.name,
+    interviewerVoiceLang: savedVoice.lang,
+  });
   await waitFor(() => expect(speak).toHaveBeenCalledOnce());
   expect((speak.mock.calls[0]![0] as Utterance).voice).toBe(savedVoice);
 });
@@ -613,8 +624,12 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   vi.spyOn(Api, "getInterview").mockResolvedValue(active);
   const client = openInterview();
   client.setQueryData(["profile"], {
-    id: "owner-123", name: "Test User", email: "test@example.com",
-    targetRole: "Backend Developer", level: "Middle", preferredLanguage: "English",
+    id: "owner-123",
+    name: "Test User",
+    email: "test@example.com",
+    targetRole: "Backend Developer",
+    level: "Middle",
+    preferredLanguage: "English",
     interviewerAvatar: "sage",
   });
   await screen.findByRole("button", { name: "Replay question" });
@@ -1110,6 +1125,145 @@ it("retains the code draft when AI review fails", async () => {
   await screen.findByRole("alert");
   expect(screen.getByRole("textbox", { name: "Code answer" })).toHaveValue(code);
   expect(screen.getByRole("textbox", { name: "Code answer" })).toBeEnabled();
+  client.clear();
+});
+
+it.each([503, 408])(
+  "keeps a Russian answer and enables retry after scoring failure %s",
+  async (status) => {
+    const active: Interview = {
+      ...incompleteSession(),
+      status: "active",
+      endedAt: null,
+      setup: { ...defaultSetup, type: "Behavioral", input: "Text", language: "Russian" },
+    };
+    vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+    const send = vi
+      .spyOn(Api, "sendMessage")
+      .mockRejectedValueOnce(
+        new ApiError(status, "Russian answer evaluation is temporarily unavailable"),
+      )
+      .mockResolvedValueOnce({
+        ...active,
+        answeredCount: 2,
+        lastFeedback: { accuracy: 8, completeness: 8, clarity: 8, structure: 8 },
+      });
+    const client = openInterview();
+    const input = await screen.findByRole("textbox", { name: "Your answer" });
+    fireEvent.change(input, { target: { value: "Я проверил гипотезу и подтвердил результат." } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Russian answer evaluation");
+    expect(input).toHaveValue("Я проверил гипотезу и подтвердил результат.");
+    expect(input).toBeEnabled();
+    const retry = screen.getByRole("button", { name: "Retry answer" });
+    expect(retry).toBeEnabled();
+    fireEvent.click(retry);
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(input).toHaveValue(""));
+    expect(send.mock.calls[0]).toEqual(send.mock.calls[1]);
+    expect(send.mock.calls[0][3]).toBe("question-2");
+    client.clear();
+  },
+);
+
+it("does not leave Send paused and disabled when the browser goes offline", async () => {
+  vi.spyOn(Api, "getInterview").mockResolvedValue({
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, type: "Behavioral", input: "Text", language: "Russian" },
+  });
+  const send = vi.spyOn(Api, "sendMessage").mockRejectedValue(new Error("Network unavailable"));
+  const client = openInterview();
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  onlineManager.setOnline(false);
+  fireEvent.change(input, { target: { value: "Мой ответ" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Network unavailable");
+  expect(send).toHaveBeenCalledOnce();
+  expect(input).toHaveValue("Мой ответ");
+  expect(screen.getByRole("button", { name: "Retry answer" })).toBeEnabled();
+  client.clear();
+});
+
+it("retries the next question without resending a saved answer and continues subsequent answers", async () => {
+  const pending: Interview = {
+    ...incompleteSession(),
+    status: "active",
+    endedAt: null,
+    setup: { ...defaultSetup, type: "Behavioral", input: "Text", language: "Russian" },
+    messages: [
+      ...incompleteSession().messages,
+      {
+        id: "saved-answer",
+        from: "you",
+        text: "Сохранённый ответ",
+        interviewId: "session-123",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  const ready: Interview = {
+    ...pending,
+    messages: [
+      ...pending.messages,
+      {
+        id: "new-question",
+        from: "ai",
+        text: "Следующий вопрос?",
+        interviewId: "session-123",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  const secondPending: Interview = {
+    ...ready,
+    answeredCount: 2,
+    messages: [
+      ...ready.messages,
+      {
+        id: "second-answer",
+        from: "you",
+        text: "Второй ответ",
+        interviewId: "session-123",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  const secondReady: Interview = {
+    ...secondPending,
+    messages: [
+      ...secondPending.messages,
+      {
+        id: "third-question",
+        from: "ai",
+        text: "Третий вопрос?",
+        interviewId: "session-123",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+  vi.spyOn(Api, "getInterview").mockResolvedValue(pending);
+  const send = vi.spyOn(Api, "sendMessage").mockResolvedValue(secondPending);
+  const next = vi
+    .spyOn(Api, "continueInterview")
+    .mockRejectedValueOnce(new Error("Next question unavailable"))
+    .mockResolvedValueOnce(ready)
+    .mockResolvedValueOnce(secondReady);
+  const client = openInterview();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Next question unavailable");
+  expect(screen.getByText(/Your answer and scores are saved/)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Retry next question" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "End interview" })).toBeEnabled();
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Retry next question" }));
+  const input = await screen.findByRole("textbox", { name: "Your answer" });
+  fireEvent.change(input, { target: { value: "Второй ответ" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await screen.findByText("Третий вопрос?");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument());
+  expect(send).toHaveBeenCalledOnce();
+  expect(next).toHaveBeenCalledTimes(3);
   client.clear();
 });
 

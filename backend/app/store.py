@@ -447,7 +447,7 @@ class Repository:
         self.session.delete(self.loaded[ident])
 
     def answer(self, interview, text, next_question=None, evaluation=None, follow_up_parent_id=None,
-               coding_judge=None):
+               coding_judge=None, defer_next_question=False):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
         question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
@@ -473,6 +473,9 @@ class Repository:
         interview.lastFeedback = evaluation.category_scores() if evaluation and interview.setup.mode == 'Practice' else None
         interview.lastAnswerFeedback = evaluation if interview.setup.mode == 'Practice' else None
         interview.lastCodingJudge = answer_message.codingJudge if interview.setup.mode == 'Practice' else None
+        if defer_next_question:
+            self.save(interview)
+            return interview
         if follow_up_parent_id:
             interview.messages.append(message(interview.id, 'ai', next_question, kind='follow-up',
                 main_question_id=follow_up_parent_id))

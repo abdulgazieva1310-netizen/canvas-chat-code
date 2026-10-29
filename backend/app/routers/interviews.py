@@ -387,6 +387,8 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
                 raise HTTPException(409, 'The pending question changed. Reload the interview before answering.')
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
+        if store.accepted_answer(interviewId, current_question_message.id):
+            raise HTTPException(409, 'This answer is already saved. Request the next question before answering again.')
         if interview.setup.language == 'Russian' and not ai_service.provider_supports_language('Russian'):
             raise HTTPException(503, 'Russian AI services are unavailable. Your answer was not saved; retry later or select English.')
         current_question = next(m.text for m in reversed(interview.messages) if m.sender == 'ai')
@@ -405,6 +407,10 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         if current_question_message.codingJudgeSpecKey:
             coding_judge = judge_code(language or data.selectedLanguage or 'Python', data.text,
                                       current_question_message.codingJudgeSpecKey)
+        if setup.language == 'Russian':
+            # Commit scores before any follow-up/question provider request can fail.
+            return store.answer(interview, data.text, evaluation=evaluation, coding_judge=coding_judge,
+                                defer_next_question=True).model_copy(deep=True)
         current_level = interview.effectiveLevel or setup.level
         is_main_answer = current_question_message.kind == 'main'
         already_adjusted = any(
@@ -432,6 +438,42 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             evaluation=evaluation, follow_up_parent_id=main_question_id if follow_up else None).model_copy(deep=True)
 
 
+@router.post('/{interviewId}/next-question', response_model=Interview)
+def next_question(interviewId: str, request: Request, user: CurrentUser):
+    with request.app.state.store.transaction() as store:
+        interview = store.find(user.id, interviewId)
+        if (interview.status != 'active' or not interview.messages
+                or interview.messages[-1].sender != 'you'):
+            return interview.model_copy(deep=True)
+        if interview.setup.language != 'Russian':
+            raise HTTPException(409, 'No question is pending for this interview.')
+        if not ai_service.provider_supports_language('Russian'):
+            raise HTTPException(503, 'Your answer is saved. Russian question services are unavailable; retry later.')
+        setup = interview.setup
+        answered_question = next(m for m in reversed(interview.messages) if m.sender == 'ai')
+        answer = interview.messages[-1]
+        level = interview.effectiveLevel or setup.level
+        followup = (ai_service.generate_followup(setup.role, level, setup.type,
+                    answered_question.text, answer.text, interview_language='Russian')
+                    if answered_question.kind == 'main' else None)
+        if followup:
+            interview.messages.append(message(interview.id, 'ai', followup, kind='follow-up',
+                main_question_id=answered_question.id))
+        elif interview.answeredCount >= setup.questionCount:
+            interview.status = 'complete'
+            interview.endedAt = now()
+        else:
+            generated = ai_service.generate_question(setup.role, level, interview.messages,
+                interview_type=setup.type, job_description=setup.jobDescription,
+                practice_topic=setup.practiceTopic, interview_language='Russian',
+                used_questions=[m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main'])
+            if not generated:
+                raise HTTPException(503, 'Your answer and scores are saved. The next Russian question is unavailable; retry later.')
+            interview.messages.append(message(interview.id, 'ai', generated))
+        store.save(interview)
+        return interview.model_copy(deep=True)
+
+
 @router.post('/{interviewId}/hint', response_model=Interview)
 def hint(interviewId: str, request: Request, user: CurrentUser):
     store = request.app.state.store
@@ -439,6 +481,8 @@ def hint(interviewId: str, request: Request, user: CurrentUser):
         interview = store.find(user.id, interviewId)
         if interview.status != 'active' or interview.setup.mode != 'Practice':
             raise HTTPException(409, 'Hints are only available during active Practice interviews.')
+        if interview.messages and interview.messages[-1].sender == 'you':
+            raise HTTPException(409, 'Your answer is saved. Request the next question before asking for a hint.')
         if interview.setup.language == 'Russian' and not ai_service.provider_supports_language('Russian'):
             raise HTTPException(503, 'Russian AI hints are unavailable. Try again later or use the transcript.')
         question_index = next(i for i in range(len(interview.messages) - 1, -1, -1)

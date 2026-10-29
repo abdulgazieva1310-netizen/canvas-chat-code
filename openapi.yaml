@@ -391,6 +391,9 @@ paths:
         when status becomes complete and endedAt is set. Practice mode returns live
         lastFeedback scores and lastAnswerFeedback text when evaluation succeeds;
         Real Interview mode keeps both null. Unavailable evaluations return null feedback.
+        Russian submissions require validated evaluation, returning 503 without saving on failure.
+        On success, Russian answers and scores commit immediately with the answer as the final
+        transcript message. Call next-question to generate the next exchange or finish the session.
       requestBody:
         required: true
         content:
@@ -427,6 +430,32 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/InvalidState'
+  /interviews/{interviewId}/next-question:
+    parameters:
+      - $ref: '#/components/parameters/InterviewId'
+    post:
+      operationId: continueInterview
+      summary: Continue a Russian interview after a saved answer
+      description: |
+        An active interview ending with a user message has saved scores and awaits a question.
+        Generates one follow-up or next main question, or marks the session complete after the
+        selected main count. A provider failure preserves the saved answer and scores. Retrying
+        after continuation succeeds returns the interview unchanged. Requires ownership.
+      responses:
+        '200':
+          $ref: '#/components/responses/InterviewResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidState'
+        '503':
+          description: Question provider unavailable; the answer and scores remain saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /interviews/{interviewId}/hint:
     parameters:
       - $ref: '#/components/parameters/InterviewId'

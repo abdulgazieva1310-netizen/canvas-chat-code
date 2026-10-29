@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "purpose": "Review cross-language answer evaluation for substance, localization, and score consistency. Synthetic examples are not calibration ground truth.",
+  "cases": [
+    {
+      "id": "en-first-repeat-strong",
+      "pair": "first-repeat-strong",
+      "language": "English",
+      "role": "Python Developer",
+      "interview_type": "Technical",
+      "question": "Implement first_repeat(values): return the first value encountered for its second occurrence, or None. State time and auxiliary-space complexity.",
+      "answer": "I scan left to right and store previously seen values in a hash set. When a value is already present, I return it immediately, so [4, 2, 4, 2] returns 4. If the scan finishes, I return None. Expected time is O(n) and auxiliary space is O(n).",
+      "profile": "strong",
+      "expected": {
+        "substance": "Recognize the correct first-repeat algorithm, example result, termination behavior and O(n) time/space.",
+        "accuracy": "strong-band",
+        "missing": "Do not claim the algorithm, example result or complexity is missing.",
+        "language": "English coaching prose; keep Python/API names and asymptotic notation intact."
+      },
+      "human_checks": ["Feedback addresses the first repeated encounter, not the smallest duplicate.", "Do not require code when the prompt asks for an explanation and implementation approach."]
+    },
+    {
+      "id": "ru-first-repeat-strong",
+      "pair": "first-repeat-strong",
+      "language": "Russian",
+      "role": "Python Developer",
+      "interview_type": "Technical",
+      "question": "Реализуйте first_repeat(values): верните первое значение, которое встретилось повторно при обходе слева направо, или None. Укажите сложность по времени и дополнительной памяти.",
+      "answer": "Я прохожу список слева направо и храню уже встреченные значения в hash set. Если значение уже есть во множестве, сразу возвращаю его: для [4, 2, 4, 2] результат равен 4. Если повторов нет, возвращаю None. Время O(n), дополнительная память O(n).",
+      "profile": "strong",
+      "expected": {
+        "substance": "Recognize the correct first-repeat algorithm, example result, termination behavior and O(n) time/space.",
+        "accuracy": "strong-band",
+        "missing": "Не утверждать, что алгоритм, результат примера или оценка сложности отсутствуют.",
+        "language": "Русский текст обратной связи; названия Python/API и асимптотическую запись сохранить."
+      },
+      "human_checks": ["Сопоставить оценку с английским strong-парным случаем по смыслу, не по дословной формулировке.", "Допустимые названия структур данных на английском не считать смешением предложений."]
+    },
+    {
+      "id": "en-first-repeat-weak",
+      "pair": "first-repeat-weak",
+      "language": "English",
+      "role": "Python Developer",
+      "interview_type": "Technical",
+      "question": "Implement first_repeat(values): return the first value encountered for its second occurrence, or None. State time and auxiliary-space complexity.",
+      "answer": "I sort the values and return the smallest value that appears more than once. For [4, 2, 4, 2] I return 2. If nothing repeats, I return None. Sorting takes O(n log n) time and O(n) extra space.",
+      "profile": "weak",
+      "expected": {
+        "substance": "The approach is incorrect: sorting loses the left-to-right second-occurrence order and returns 2 for the example instead of 4.",
+        "accuracy": "weak-band",
+        "missing": "Identify the order-semantic error and the wrong example result. Do not describe a hash-set solution as implemented.",
+        "language": "English coaching prose; keep identifiers and complexity notation intact."
+      },
+      "human_checks": ["The stated complexity does not make the incorrect algorithm correct.", "Do not penalize a correct observation that sorting is O(n log n); identify the actual contract violation."]
+    },
+    {
+      "id": "ru-first-repeat-weak",
+      "pair": "first-repeat-weak",
+      "language": "Russian",
+      "role": "Python Developer",
+      "interview_type": "Technical",
+      "question": "Реализуйте first_repeat(values): верните первое значение, которое встретилось повторно при обходе слева направо, или None. Укажите сложность по времени и дополнительной памяти.",
+      "answer": "Сначала сортирую значения и возвращаю наименьшее из повторяющихся. Для [4, 2, 4, 2] получится 2. Если повторов нет, возвращаю None. Сортировка занимает O(n log n) времени и O(n) дополнительной памяти.",
+      "profile": "weak",
+      "expected": {
+        "substance": "The approach is incorrect: sorting loses the left-to-right second-occurrence order and returns 2 for the example instead of 4.",
+        "accuracy": "weak-band",
+        "missing": "Указать нарушение порядка первого повтора и неверный результат примера; не приписывать ответу корректное решение через hash set.",
+        "language": "Русский текст обратной связи; идентификаторы и асимптотическую запись сохранить."
+      },
+      "human_checks": ["Сопоставить профиль оценки с английским weak-парным случаем.", "Правильно указанная сложность сортировки не отменяет смысловую ошибку."]
+    },
+    {
+      "id": "en-mixed-technical-terms",
+      "pair": "first-repeat-strong",
+      "language": "English",
+      "role": "Python Developer",
+      "interview_type": "Technical",
+      "question": "Implement first_repeat(values): return the first value encountered for its second occurrence, or None. State time and auxiliary-space complexity.",
+      "answer": "I scan left to right, add each value to a set, and return the value when it is already present. For [4, 2, 4, 2], the answer is 4. The algorithm is O(n) time and O(n) space. Дополнительная проверка сортировки не нужна.",
+      "profile": "strong-with-language-mixing",
+      "expected": {
+        "substance": "Same strong semantic profile as first-repeat-strong; the short Russian sentence does not alter algorithm correctness.",
+        "accuracy": "strong-band",
+        "missing": "Do not turn the language switch into a false algorithmic omission.",
+        "language": "Return coaching in English because the selected session language is English; preserve set, Python identifiers and O(n)."
+      },
+      "human_checks": ["Assess algorithm correctness independently from the language-consistency observation.", "If mentioning mixed language is useful, keep it separate from accuracy/completeness claims."]
+    },
+    {
+      "id": "ru-mixed-technical-terms",
+      "pair": "first-repeat-strong",
+      "language": "Russian",
+      "role": "Python Developer",
+      "interview_type": "Technical",
+      "question": "Реализуйте first_repeat(values): верните первое значение, встретившееся повторно при обходе слева направо, или None. Укажите сложность.",
+      "answer": "Прохожу список слева направо, сохраняю значения в set и возвращаю значение при повторной встрече. Для [4, 2, 4, 2] ответ — 4. Сложность O(n) по времени и O(n) по памяти. A sorted copy would lose the original order.",
+      "profile": "strong-with-language-mixing",
+      "expected": {
+        "substance": "Same strong semantic profile as first-repeat-strong; the English clause correctly explains why sorting would be wrong.",
+        "accuracy": "strong-band",
+        "missing": "Do not mark the sorting caveat absent and do not treat it as evidence that the candidate sorted the input.",
+        "language": "Return coaching in Russian because the selected session language is Russian; preserve set, identifiers and O(n)."
+      },
+      "human_checks": ["The mixed-language sentence is semantically accurate; evaluate content separately from output-localization compliance.", "Do not score the answer as weak solely because one sentence is English."]
+    }
+  ]
+}

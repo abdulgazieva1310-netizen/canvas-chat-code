@@ -115,7 +115,9 @@ def main(language, stdin=b""):
 
 if __name__ == "__main__":
     try:
-        request = json.loads(sys.stdin.buffer.read(8192) or b"{}")
+        # The gateway permits 4 KB of UTF-8 input. JSON escaping can expand
+        # control characters to six bytes each; do not truncate a valid envelope.
+        request = json.loads(sys.stdin.buffer.read(6 * 4096 + 1024) or b"{}")
         stdin = request.get("stdin", "").encode("utf-8")
     except (json.JSONDecodeError, AttributeError, UnicodeEncodeError):
         stdin = b""

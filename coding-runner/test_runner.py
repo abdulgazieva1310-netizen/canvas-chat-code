@@ -26,13 +26,13 @@ def http_server(monkeypatch, tmp_path):
     thread.join(timeout=2)
 
 
-def call(url, payload, token="t" * 48):
+def call(url, payload, token="t" * 48, timeout=2):
     import httpx
     return httpx.post(
         f"{url}/run",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
-        timeout=2,
+        timeout=timeout,
     )
 
 
@@ -72,6 +72,33 @@ def test_busy_runner_rejects_without_queueing(http_server, monkeypatch):
     monkeypatch.setattr(server.EXECUTION_SLOTS, "acquire", lambda blocking=False: False)
     response = call(http_server, {"language": "Python", "code": "print(1)"})
     assert response.status_code == 429
+
+
+def test_two_concurrent_executions_reject_a_third_without_queueing(http_server, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    release = threading.Event()
+    ready = threading.Event()
+    lock = threading.Lock()
+    active = 0
+    def held_execution(*args, **kwargs):
+        nonlocal active
+        with lock:
+            active += 1
+            if active == 2:
+                ready.set()
+        assert release.wait(4)
+        return server.result('success')
+    monkeypatch.setattr(server, 'run_container', held_execution)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(call, http_server, {'language':'Python', 'code':'print(1)'}, timeout=5)
+        second = pool.submit(call, http_server, {'language':'Python', 'code':'print(2)'}, timeout=5)
+        try:
+            assert ready.wait(3)
+            assert call(http_server, {'language':'Python', 'code':'print(3)'}).status_code == 429
+        finally:
+            release.set()
+        assert first.result().status_code == second.result().status_code == 200
+    assert list(server.SOURCE_DIR.iterdir()) == []
 
 
 def test_gateway_bounds_output_even_if_executor_harness_is_bypassed():
@@ -183,6 +210,8 @@ def test_docker_isolation_and_resource_limits(tmp_path, monkeypatch):
             expected = "ok" if language in {"Python", "JavaScript"} else "42"
             assert outcome["status"] == "success", (language, outcome)
             assert expected in outcome["stdout"], (language, outcome)
+        unicode_input = execute('Python', 'import sys; print(len(sys.stdin.read()))', 'я' * 2000)
+        assert unicode_input['status'] == 'success' and unicode_input['stdout'] == '2000\n'
 
         bracket_solver = """text = input()
 stack = []

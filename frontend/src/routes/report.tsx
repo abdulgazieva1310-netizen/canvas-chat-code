@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Api } from "@/lib/api/client";
+import { Api, ApiError } from "@/lib/api/client";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MarkdownContent } from "@/components/MarkdownContent";
@@ -60,6 +60,29 @@ function Report() {
     [playingMedia],
   );
   useEffect(() => {
+    if (!playingMedia || !mediaQuery.data) return;
+    const item = mediaQuery.data.media.find((media) => media.id === playingMedia.id);
+    if (!item) {
+      setPlayingMedia(null);
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout>;
+    const checkExpiry = () => {
+      const remaining = Date.parse(item.expiresAt) - Date.now();
+      if (remaining <= 0) {
+        setPlayingMedia(null);
+        setMediaError(
+          "This recording has expired. Your transcript and report are still available.",
+        );
+        void mediaQuery.refetch();
+      } else {
+        timer = setTimeout(checkExpiry, Math.min(remaining, 2147483647));
+      }
+    };
+    checkExpiry();
+    return () => clearTimeout(timer);
+  }, [playingMedia, mediaQuery.data, mediaQuery.refetch]);
+  useEffect(() => {
     if (!data || !window.location.hash.startsWith("#transcript-")) return;
     let messageId = "";
     try {
@@ -83,7 +106,9 @@ function Report() {
     try {
       const blob = await Api.downloadInterviewMedia(interviewId, mediaId);
       setPlayingMedia({ id: mediaId, url: URL.createObjectURL(blob), type: blob.type });
-    } catch {
+    } catch (error) {
+      setPlayingMedia(null);
+      if (error instanceof ApiError && error.status === 404) void mediaQuery.refetch();
       setMediaError(
         "Recording playback is unavailable. Your transcript and report are still available.",
       );
@@ -97,8 +122,13 @@ function Report() {
       await Api.deleteInterviewMedia(interviewId, mediaId);
       await mediaQuery.refetch();
       if (playingMedia?.id === mediaId) setPlayingMedia(null);
-    } catch {
-      setMediaError("The recording could not be deleted. Please try again.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        if (playingMedia?.id === mediaId) setPlayingMedia(null);
+        void mediaQuery.refetch();
+      } else {
+        setMediaError("The recording could not be deleted. Please try again.");
+      }
     }
   };
   useEffect(() => {

@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, expect, it, vi } from "vitest";
 import { Route } from "@/routes/report";
-import { Api } from "@/lib/api/client";
+import { Api, ApiError } from "@/lib/api/client";
 import { defaultSetup } from "@/lib/api/default-setup";
 import type { InterviewReport } from "@/lib/api/types";
 
@@ -51,50 +51,33 @@ function openReport(url: string) {
   return { router, client };
 }
 
-it("plays and deletes only the owner's saved recording without replacing the report", async () => {
-  const data: InterviewReport = {
-    interview: {
-      id: "session-media",
-      setup: { ...defaultSetup },
-      status: "complete",
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
-      answeredCount: 0,
-      lastFeedback: null,
-      messages: [],
-    },
-    feedback: {
-      interviewId: "session-media",
-      answeredQuestions: 0,
-      selectedQuestions: 5,
-      overall: null,
-      scores: null,
-      strengths: [],
-      gaps: [],
-      questions: [],
-    },
-  };
-  vi.spyOn(Api, "getReport").mockResolvedValue(data);
-  const media = vi.spyOn(Api, "listInterviewMedia").mockResolvedValue({
-    retentionDays: 30,
-    media: [
-      {
-        id: "media-1",
-        mediaType: "audio/webm",
-        sizeBytes: 123,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+it.each(["delete", "expire", "already-deleted"])(
+  "clears private playback on %s without replacing the report",
+  async (action) => {
+    const data: InterviewReport = {
+      interview: {
+        id: "session-media",
+        setup: { ...defaultSetup },
+        status: "complete",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        answeredCount: 0,
+        lastFeedback: null,
+        messages: [],
       },
-    ],
-  });
-  vi.spyOn(Api, "downloadInterviewMedia").mockResolvedValue(
-    new Blob(["audio"], { type: "audio/webm" }),
-  );
-  const deleteMedia = vi.spyOn(Api, "deleteInterviewMedia").mockResolvedValue(undefined);
-  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:recording");
-  vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
-  media
-    .mockResolvedValueOnce({
+      feedback: {
+        interviewId: "session-media",
+        answeredQuestions: 0,
+        selectedQuestions: 5,
+        overall: null,
+        scores: null,
+        strengths: [],
+        gaps: [],
+        questions: [],
+      },
+    };
+    vi.spyOn(Api, "getReport").mockResolvedValue(data);
+    const media = vi.spyOn(Api, "listInterviewMedia").mockResolvedValue({
       retentionDays: 30,
       media: [
         {
@@ -105,22 +88,63 @@ it("plays and deletes only the owner's saved recording without replacing the rep
           expiresAt: new Date(Date.now() + 86400000).toISOString(),
         },
       ],
-    })
-    .mockResolvedValueOnce({ retentionDays: 30, media: [] });
-  const { client } = openReport("/report?interviewId=session-media");
-  fireEvent.click(await screen.findByRole("button", { name: "Play recording" }));
-  await waitFor(() =>
-    expect(screen.getByLabelText("Saved recordings").querySelector("audio")).toHaveAttribute(
-      "src",
-      "blob:recording",
-    ),
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Delete recording" }));
-  await waitFor(() => expect(deleteMedia).toHaveBeenCalledWith("session-media", "media-1"));
-  await waitFor(() => expect(screen.getByText(/No saved recordings/)).toBeInTheDocument());
-  expect(screen.getByRole("heading", { name: /Frontend Developer/ })).toBeInTheDocument();
-  client.clear();
-});
+    });
+    vi.spyOn(Api, "downloadInterviewMedia").mockResolvedValue(
+      new Blob(["audio"], { type: "audio/webm" }),
+    );
+    const deleteMedia = vi.spyOn(Api, "deleteInterviewMedia").mockResolvedValue(undefined);
+    if (action === "already-deleted")
+      deleteMedia.mockRejectedValueOnce(new ApiError(404, "Recording not found."));
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:recording");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    media
+      .mockResolvedValueOnce({
+        retentionDays: 30,
+        media: [
+          {
+            id: "media-1",
+            mediaType: "audio/webm",
+            sizeBytes: 123,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ retentionDays: 30, media: [] });
+    const { client } = openReport("/report?interviewId=session-media");
+    fireEvent.click(await screen.findByRole("button", { name: "Play recording" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Saved recordings").querySelector("audio")).toHaveAttribute(
+        "src",
+        "blob:recording",
+      ),
+    );
+    if (action === "expire") {
+      client.setQueryData(["interview-media", "session-media"], {
+        retentionDays: 30,
+        media: [
+          {
+            id: "media-1",
+            mediaType: "audio/webm",
+            sizeBytes: 123,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() - 1).toISOString(),
+          },
+        ],
+      });
+      expect(await screen.findByRole("alert")).toHaveTextContent(/recording has expired/);
+      expect(deleteMedia).not.toHaveBeenCalled();
+    } else {
+      fireEvent.click(screen.getByRole("button", { name: "Delete recording" }));
+      await waitFor(() => expect(deleteMedia).toHaveBeenCalledWith("session-media", "media-1"));
+    }
+    await waitFor(() => expect(screen.getByText(/No saved recordings/)).toBeInTheDocument());
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:recording"));
+    expect(screen.getByLabelText("Saved recordings").querySelector("audio")).toBeNull();
+    expect(screen.getByRole("heading", { name: /Frontend Developer/ })).toBeInTheDocument();
+    client.clear();
+  },
+);
 
 it("opens the transcript at a searched message and highlights it", async () => {
   const now = new Date().toISOString();
@@ -189,7 +213,7 @@ it("keeps the report readable when private recording playback fails", async () =
     },
   } as InterviewReport;
   vi.spyOn(Api, "getReport").mockResolvedValue(data);
-  vi.spyOn(Api, "listInterviewMedia").mockResolvedValue({
+  vi.spyOn(Api, "listInterviewMedia").mockResolvedValueOnce({
     retentionDays: 30,
     media: [
       {
@@ -201,13 +225,16 @@ it("keeps the report readable when private recording playback fails", async () =
       },
     ],
   });
-  vi.spyOn(Api, "downloadInterviewMedia").mockRejectedValue(new Error("Missing recording"));
+  vi.mocked(Api.listInterviewMedia).mockResolvedValue({ retentionDays: 30, media: [] });
+  vi.spyOn(Api, "downloadInterviewMedia").mockRejectedValue(new ApiError(404, "Missing recording"));
   const { client } = openReport("/report?interviewId=session-media-error");
   fireEvent.click(await screen.findByRole("button", { name: "Play recording" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(
     /transcript and report are still available/,
   );
   expect(screen.getByRole("heading", { name: /Frontend Developer/ })).toBeInTheDocument();
+  expect(await screen.findByText(/No saved recordings/)).toBeVisible();
+  expect(Api.listInterviewMedia).toHaveBeenCalledTimes(2);
   client.clear();
 });
 

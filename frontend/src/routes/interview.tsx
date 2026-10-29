@@ -903,9 +903,9 @@ function Interview() {
               <h2 className="text-lg">Save a recording</h2>
               <p className="text-sm text-muted-foreground">
                 Optional. With your consent, this device records audio only, then uploads it for
-                private playback. Recordings are deleted after 30 days. Camera preview video is
-                never included. Your transcript and report remain available if recording or upload
-                fails.
+                private playback. Recordings expire after 30 days and can be deleted from your
+                report. Camera preview video is never included. Your transcript and report remain
+                available if recording or upload fails.
               </p>
               <label className="flex items-start gap-2 text-sm">
                 <input

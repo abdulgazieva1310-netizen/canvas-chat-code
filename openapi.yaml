@@ -9,7 +9,7 @@ info:
     Successful JSON bodies match the mock's return values directly, without wrappers.
     All interview operations require a session and access only the current user's data.
     Login and registration establish that session. No token field is added to User.
-    Voice input submits browser-transcribed text. No raw audio is stored.
+    Voice input submits browser-transcribed text. Raw audio is retained only through explicit per-interview recording consent; camera preview video is never stored.
     Operations marked x-implementation-status: planned are handoff contracts,
     not currently served endpoints. Existing history returns an array until #40
     migrates all consumers to the documented x-planned-contract envelope.
@@ -831,6 +831,92 @@ paths:
       responses:
         '204': {description: Removed}
         '404': {description: Missing or inaccessible saved question}
+  /interviews/{interviewId}/media/consent:
+    parameters:
+      - {in: path, name: interviewId, required: true, schema: {type: string}}
+    post:
+      operationId: setInterviewMediaConsent
+      summary: Grant or withdraw per-interview recording consent
+      description: Grant only during an active interview. Withdrawal is allowed after ending too; it removes saved recording metadata immediately and queues failed physical deletions for retry. Reports and transcripts remain unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [consented]
+              properties:
+                consented: {type: boolean}
+      responses:
+        '204': {description: Consent updated}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: Cannot grant consent after ending}
+  /interviews/{interviewId}/media:
+    parameters:
+      - {in: path, name: interviewId, required: true, schema: {type: string}}
+    get:
+      operationId: listInterviewMedia
+      summary: List unexpired recordings owned by the current user
+      description: Expired items are excluded even when physical cleanup is delayed. Recordings expire 30 days after upload; playback does not extend retention.
+      responses:
+        '200':
+          description: Private recording metadata only
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [retentionDays, media]
+                properties:
+                  retentionDays: {type: integer, enum: [30]}
+                  media: {type: array, items: {$ref: '#/components/schemas/InterviewMediaInfo'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      operationId: uploadInterviewMedia
+      summary: Upload an explicitly consented private audio recording
+      description: Requires saved consent, nonempty WebM or MP4 audio, maximum 100 MiB per recording and three recordings per interview. Video is rejected. A final upload may finish after the interview ends if consent has not been withdrawn.
+      requestBody:
+        required: true
+        content:
+          audio/webm: {schema: {type: string, format: binary}}
+          audio/mp4: {schema: {type: string, format: binary}}
+      responses:
+        '201':
+          description: Recording saved with a fixed expiry
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/InterviewMediaInfo'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: No consent or recording limit reached}
+        '413': {description: Empty or oversized recording}
+        '415': {description: Unsupported media type; video is not accepted}
+  /interviews/{interviewId}/media/{mediaId}:
+    parameters:
+      - {in: path, name: interviewId, required: true, schema: {type: string}}
+      - {in: path, name: mediaId, required: true, schema: {type: string}}
+    get:
+      operationId: downloadInterviewMedia
+      summary: Retrieve an owned unexpired private recording
+      description: Private no-store response. Expired, missing and inaccessible recordings return 404; transcripts and reports remain available. Delayed physical cleanup never extends playback access.
+      responses:
+        '200':
+          description: Private audio bytes
+          content:
+            audio/webm: {schema: {type: string, format: binary}}
+            audio/mp4: {schema: {type: string, format: binary}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      operationId: deleteInterviewMedia
+      summary: Delete an owned recording without deleting its transcript or report
+      description: Revokes playback access immediately. Failed physical deletion is retained in the durable cleanup queue and retried by the application reaper every minute while running.
+      responses:
+        '204': {description: Recording access removed}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /study-plans:
     get:
       operationId: listStudyPlans
@@ -1325,6 +1411,15 @@ components:
     Level:
       type: string
       enum: [Junior, Middle, Senior]
+    InterviewMediaInfo:
+      type: object
+      required: [id, mediaType, sizeBytes, createdAt, expiresAt]
+      properties:
+        id: {type: string}
+        mediaType: {type: string, enum: [audio/webm, audio/mp4]}
+        sizeBytes: {type: integer}
+        createdAt: {type: string, format: date-time}
+        expiresAt: {type: string, format: date-time}
     User:
       type: object
       required: [id, name, email, targetRole, level, preferredLanguage, interviewerAvatar, interviewerVoiceName, interviewerVoiceLang]

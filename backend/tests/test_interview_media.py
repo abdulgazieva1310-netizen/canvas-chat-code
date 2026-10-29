@@ -3,7 +3,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database import InterviewMediaRecord
+from app.database import InterviewMediaRecord, MediaCleanupRecord
 from app.main import create_app
 from app.media_storage import media_path, media_root
 
@@ -103,6 +103,7 @@ def test_consent_revocation_and_interview_deletion_remove_stored_files(client):
     assert client.post(f'/api/interviews/{interview_id}/media/consent',
                        json={'consented': False}).status_code == 204
     assert not path.exists()
+
     assert client.post(f'/api/interviews/{interview_id}/media', content=b'no-consent',
                        headers={'Content-Type': 'audio/mp4'}).status_code == 409
 
@@ -112,3 +113,49 @@ def test_consent_revocation_and_interview_deletion_remove_stored_files(client):
     path = media_path(item['id'])
     assert client.delete(f'/api/interviews/{interview_id}').status_code == 204
     assert not path.exists()
+
+
+def test_expired_recordings_are_inaccessible_even_when_cleanup_fails(client, monkeypatch):
+    from app.routers import interviews
+    login(client)
+    interview_id = start_interview(client)
+    base = f'/api/interviews/{interview_id}'
+    client.post(base + '/media/consent', json={'consented': True})
+    item = client.post(base + '/media', content=b'expired-private', headers={'Content-Type': 'audio/webm'}).json()
+    with client.app.state.store.transaction() as store:
+        store.session.get(InterviewMediaRecord, item['id']).expires_at = time.time() - 1
+    def unavailable(*args):
+        raise OSError('storage unavailable')
+    monkeypatch.setattr(interviews, 'remove_media_file', unavailable)
+    assert client.get(base + '/media').json()['media'] == []
+    assert client.get(base + f"/media/{item['id']}").status_code == 404
+    assert media_path(item['id']).exists()  # Still awaiting physical cleanup.
+    client.post(base + '/end')
+    assert client.get(base + '/report').status_code == 200
+
+
+@pytest.mark.parametrize('withdraw_consent', [False, True])
+def test_deletion_and_post_interview_withdrawal_survive_storage_failure(client, monkeypatch, withdraw_consent):
+    from app.routers import interviews
+    from app.account_deletion import retry_media_cleanup
+    login(client)
+    interview_id = start_interview(client)
+    base = f'/api/interviews/{interview_id}'
+    client.post(base + '/media/consent', json={'consented': True})
+    item = client.post(base + '/media', content=b'private', headers={'Content-Type': 'audio/webm'}).json()
+    client.post(base + '/end')
+    assert client.post(base + '/media/consent', json={'consented': True}).status_code == 409
+    with monkeypatch.context() as patch:
+        def unavailable(*args):
+            raise OSError('storage unavailable')
+        patch.setattr(interviews, 'remove_media_file', unavailable)
+        response = (client.post(base + '/media/consent', json={'consented': False}) if withdraw_consent
+                    else client.delete(base + f"/media/{item['id']}"))
+        assert response.status_code == 204
+    assert client.get(base + '/media').json()['media'] == []
+    assert client.get(base + f"/media/{item['id']}").status_code == 404
+    assert client.get(base + '/report').status_code == 200
+    with client.app.state.store.transaction() as store:
+        assert store.session.get(MediaCleanupRecord, item['id']) is not None
+    retry_media_cleanup(client.app.state.store)
+    assert not media_path(item['id']).exists()

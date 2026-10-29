@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from ..database import InterviewStartRecord
 
 from ..auth import CurrentUser
-from ..database import InterviewMediaConsentRecord, InterviewMediaRecord
+from ..database import InterviewMediaConsentRecord, InterviewMediaRecord, MediaCleanupRecord
 from ..models import (CODING_LANGUAGES, CODING_ROLES, Answer, CodeRunRequest,
                       CodeRunResult, Interview, InterviewMediaInfo, InterviewMediaList,
                       InterviewReport, InterviewSetup, MediaConsentRequest)
@@ -95,6 +95,16 @@ def purge_expired_media(repository, *, now_timestamp=None):
     return len(expired)
 
 
+def retire_media(repository, record):
+    try:
+        remove_media_file(record.storage_key)
+    except OSError:
+        # Revoke access transactionally even if physical deletion needs retry.
+        if repository.session.get(MediaCleanupRecord, record.storage_key) is None:
+            repository.session.add(MediaCleanupRecord(storage_key=record.storage_key, created_at=time.time()))
+    repository.session.delete(record)
+
+
 def media_info(record):
     return InterviewMediaInfo(id=record.id, mediaType=record.media_type,
         sizeBytes=record.size_bytes,
@@ -106,7 +116,7 @@ def media_info(record):
 def set_media_consent(interviewId: str, data: MediaConsentRequest, request: Request, user: CurrentUser):
     with request.app.state.store.transaction() as store:
         interview = store.find(user.id, interviewId)
-        if interview.status != 'active':
+        if data.consented and interview.status != 'active':
             raise HTTPException(409, 'Recording consent can only be changed during an active interview.')
         existing = store.session.get(InterviewMediaConsentRecord, interviewId)
         if not data.consented:
@@ -114,8 +124,7 @@ def set_media_consent(interviewId: str, data: MediaConsentRequest, request: Requ
                 InterviewMediaRecord.interview_id == interviewId,
                 InterviewMediaRecord.owner_id == user.id)).all()
             for item in records:
-                remove_media_file(item.storage_key)
-                store.session.delete(item)
+                retire_media(store, item)
             if existing:
                 store.session.delete(existing)
             return Response(status_code=204)
@@ -189,7 +198,8 @@ def list_interview_media(interviewId: str, request: Request, user: CurrentUser):
         purge_expired_media(store)
         records = store.session.scalars(select(InterviewMediaRecord).where(
             InterviewMediaRecord.interview_id == interviewId,
-            InterviewMediaRecord.owner_id == user.id).order_by(InterviewMediaRecord.created_at)).all()
+            InterviewMediaRecord.owner_id == user.id,
+            InterviewMediaRecord.expires_at > time.time()).order_by(InterviewMediaRecord.created_at)).all()
         return InterviewMediaList(retentionDays=RETENTION_DAYS,
             media=[media_info(record) for record in records])
 
@@ -203,7 +213,7 @@ def play_interview_media(interviewId: str, mediaId: str, request: Request, user:
             InterviewMediaRecord.id == mediaId,
             InterviewMediaRecord.interview_id == interviewId,
             InterviewMediaRecord.owner_id == user.id))
-        if record is None:
+        if record is None or record.expires_at <= time.time():
             raise HTTPException(404, 'Recording not found.')
         path = media_path(record.storage_key)
         if not path.is_file():
@@ -222,8 +232,7 @@ def delete_interview_media(interviewId: str, mediaId: str, request: Request, use
             InterviewMediaRecord.owner_id == user.id))
         if record is None:
             raise HTTPException(404, 'Recording not found.')
-        remove_media_file(record.storage_key)
-        store.session.delete(record)
+        retire_media(store, record)
     return Response(status_code=204)
 
 

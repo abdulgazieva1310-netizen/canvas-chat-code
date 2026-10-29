@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parents[1] / "backend"))
 
 import server
-from app.routers.interviews import JUDGE_CASES
+from app.services.coding_specs import JUDGE_CASES, PUBLIC_CASES
 
 
 CORRECT = {
@@ -121,6 +121,59 @@ WRONG = {
     "C++": "#include <iostream>\nint main(){std::cout << \"wrong\\n\";}\n",
 }
 
+# Balanced brackets was the original judge; keep it in the same promotion
+# matrix as the newer contracts rather than relying only on mocked execution.
+CORRECT["Python"]["balanced-brackets-v1"] = """import sys
+text = sys.stdin.read().removesuffix('\\n')
+stack = []
+pairs = {')': '(', ']': '[', '}': '{'}
+ok = len(text) <= 100000
+for c in text:
+ if c in '([{': stack.append(c)
+ elif c not in pairs or not stack or stack.pop() != pairs[c]:
+  ok = False
+  break
+print('true' if ok and not stack else 'false')
+"""
+CORRECT["JavaScript"]["balanced-brackets-v1"] = """const text = require('fs').readFileSync(0, 'utf8').replace(/\\n$/, '');
+const stack = [], pairs = {')':'(', ']':'[', '}':'{'};
+let ok = text.length <= 100000;
+for (const c of text) { if ('([{'.includes(c)) stack.push(c); else if (!(c in pairs) || stack.pop() !== pairs[c]) { ok = false; break; } }
+console.log(ok && !stack.length ? 'true' : 'false');
+"""
+CORRECT["TypeScript"]["balanced-brackets-v1"] = """declare function require(name: string): any;
+const text: string = require('fs').readFileSync(0, 'utf8').replace(/\\n$/, '');
+const stack: string[] = [], pairs: Record<string, string> = {')':'(', ']':'[', '}':'{'};
+let ok = text.length <= 100000;
+for (const c of text) { if ('([{'.includes(c)) stack.push(c); else if (!(c in pairs) || stack.pop() !== pairs[c]) { ok = false; break; } }
+console.log(ok && !stack.length ? 'true' : 'false');
+"""
+CORRECT["Java"]["balanced-brackets-v1"] = """import java.util.*;
+class Solution { public static void main(String[] args) throws Exception {
+String text = new String(System.in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+if (text.endsWith("\\n")) text = text.substring(0, text.length()-1);
+Deque<Character> stack = new ArrayDeque<>(); boolean ok = text.length() <= 100000;
+for (char c : text.toCharArray()) {
+ if (c=='(' || c=='[' || c=='{') stack.push(c);
+ else { int i = ")]}".indexOf(c);
+  if (i < 0 || stack.isEmpty() || stack.pop() != "([{".charAt(i)) { ok=false; break; }
+ }
+}
+System.out.println(ok && stack.isEmpty() ? "true" : "false");
+} }
+"""
+CORRECT["C++"]["balanced-brackets-v1"] = """#include <iostream>
+#include <iterator>
+#include <string>
+int main() { std::string text((std::istreambuf_iterator<char>(std::cin)), {}), stack;
+if (!text.empty() && text.back()=='\\n') text.pop_back();
+bool ok=text.size()<=100000;
+for (char c:text) { if (std::string("([{").find(c)!=std::string::npos) stack+=c;
+ else { auto i=std::string(")]}").find(c); if(i==std::string::npos || stack.empty() || stack.back()!=std::string("([{")[i]) {ok=false;break;} stack.pop_back(); }
+}
+std::cout << (ok && stack.empty() ? "true\\n" : "false\\n"); }
+"""
+
 
 def execute(language, source, stdin):
     directory = Path(tempfile.mkdtemp(dir=server.SOURCE_DIR))
@@ -136,10 +189,10 @@ def execute(language, source, stdin):
 
 @pytest.mark.skipif(os.getenv("CODING_RUNNER_INTEGRATION") != "1", reason="requires Docker and the executor image")
 @pytest.mark.parametrize("language", list(CORRECT))
-@pytest.mark.parametrize("judge_key", ["first-repeat-v1", "runs-v1", "merge-sorted-v1"])
+@pytest.mark.parametrize("judge_key", list(JUDGE_CASES))
 def test_known_correct_reference_passes_all_reviewed_cases(language, judge_key, tmp_path, monkeypatch):
     monkeypatch.setattr(server, "SOURCE_DIR", tmp_path)
-    for _category, stdin, expected in JUDGE_CASES[judge_key]:
+    for _category, stdin, expected in (*PUBLIC_CASES[judge_key], *JUDGE_CASES[judge_key]):
         result = execute(language, CORRECT[language][judge_key], stdin)
         assert result["status"] == "success", (language, judge_key, result)
         assert result["stdout"] == expected, (language, judge_key, stdin, result["stdout"], expected)
@@ -148,7 +201,7 @@ def test_known_correct_reference_passes_all_reviewed_cases(language, judge_key, 
 
 @pytest.mark.skipif(os.getenv("CODING_RUNNER_INTEGRATION") != "1", reason="requires Docker and the executor image")
 @pytest.mark.parametrize("language", list(CORRECT))
-@pytest.mark.parametrize("judge_key", ["first-repeat-v1", "runs-v1", "merge-sorted-v1"])
+@pytest.mark.parametrize("judge_key", list(JUDGE_CASES))
 def test_deliberately_incorrect_reference_is_rejected(language, judge_key, tmp_path, monkeypatch):
     monkeypatch.setattr(server, "SOURCE_DIR", tmp_path)
     _category, stdin, expected = JUDGE_CASES[judge_key][0]

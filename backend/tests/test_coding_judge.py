@@ -23,7 +23,7 @@ def test_reviewed_cases_include_normal_boundary_and_invalid_input():
 
 
 @pytest.mark.parametrize('language', ['Python', 'Java', 'C++', 'JavaScript', 'TypeScript'])
-@pytest.mark.parametrize('judge_key', ['first-repeat-v1', 'runs-v1', 'merge-sorted-v1'])
+@pytest.mark.parametrize('judge_key', list(JUDGE_CASES))
 def test_reviewed_question_judges_use_all_cases_without_exposing_them(monkeypatch, language, judge_key):
     from app.routers import interviews
 
@@ -82,6 +82,7 @@ def test_judge_reports_compile_error_without_private_case_details(monkeypatch):
 
 @pytest.mark.parametrize(('runner_status', 'judge_status'), [
     ('runtime-error', 'runtime-error'), ('resource-limit', 'resource-limit'), ('timeout', 'timeout'),
+    ('output-limit', 'resource-limit'),
 ])
 def test_judge_preserves_runtime_and_timeout_classification(monkeypatch, runner_status, judge_status):
     from app.routers import interviews
@@ -94,6 +95,22 @@ def test_judge_preserves_runtime_and_timeout_classification(monkeypatch, runner_
     result = judge_code('Python', 'invalid', 'balanced-brackets-v1')
     assert result['status'] == judge_status
     assert 'private details' not in result['summary']
+
+
+@pytest.mark.parametrize('extra_output', [' ', '\n', 'debug\n'])
+def test_judge_counts_exact_output_mismatches_without_leaking_diagnostics(monkeypatch, extra_output):
+    from app.routers import interviews
+    cases = JUDGE_CASES['first-repeat-v1']
+    outputs = iter([cases[0][2], *(expected + extra_output for _, _, expected in cases[1:])])
+    monkeypatch.setenv('CODING_RUNNER_URL', 'http://runner')
+    monkeypatch.setenv('CODING_RUNNER_TOKEN', 'x' * 32)
+    monkeypatch.setattr(interviews.httpx, 'post', lambda *_a, **_k: SimpleNamespace(
+        raise_for_status=lambda: None, json=lambda: {
+            'status': 'success', 'stdout': next(outputs), 'stderr': 'private diagnostic'}))
+    result = judge_code('Python', 'solution', 'first-repeat-v1')
+    assert result == {'status': 'failed', 'passed': 1, 'total': len(cases),
+        'summary': f'{len(cases) - 1} reviewed correctness check(s) failed. Review the problem contract and boundary cases.'}
+    assert 'private diagnostic' not in str(result)
 
 
 def test_judge_preserves_unavailable_runner_status(monkeypatch):

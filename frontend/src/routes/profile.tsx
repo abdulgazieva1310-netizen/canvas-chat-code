@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { InterviewerPortrait } from "@/components/InterviewerPortrait";
 import { AppShell } from "@/components/AppShell";
 import { DownloadButton } from "@/components/DownloadButton";
 import { DeleteAccount } from "@/components/DeleteAccount";
@@ -8,6 +9,7 @@ import { Api } from "@/lib/api/client";
 import { targetRoles, type Level, type Role, type User } from "@/lib/api/types";
 import {
   interviewerAvatars,
+  getInterviewerAvatar,
   type InterviewerAvatarId,
 } from "@/lib/interviewer-avatar";
 
@@ -34,15 +36,25 @@ function Profile() {
           </button>
         </div>
       )}
-      {profile.data && <>
-        <ProfileForm key={profile.data.id} user={profile.data} />
-        <section className="card-surface mt-6 max-w-xl p-7" aria-label="Account data export">
-          <h2 className="text-xl">Download your account data</h2>
-          <p>Download a versioned JSON copy of your profile, interviews, feedback and study notes. Media metadata is included; recording files are excluded. End active Real Interviews first. Archives over 10 MiB cannot be downloaded here.</p>
-          <DownloadButton label="Download account archive" filename="interview-mirror-account.json" load={Api.exportAccount} />
-        </section>
-        <DeleteAccount />
-      </>}
+      {profile.data && (
+        <>
+          <ProfileForm key={profile.data.id} user={profile.data} />
+          <section className="card-surface mt-6 max-w-xl p-7" aria-label="Account data export">
+            <h2 className="text-xl">Download your account data</h2>
+            <p>
+              Download a versioned JSON copy of your profile, interviews, feedback and study notes.
+              Media metadata is included; recording files are excluded. End active Real Interviews
+              first. Archives over 10 MiB cannot be downloaded here.
+            </p>
+            <DownloadButton
+              label="Download account archive"
+              filename="interview-mirror-account.json"
+              load={Api.exportAccount}
+            />
+          </section>
+          <DeleteAccount />
+        </>
+      )}
     </AppShell>
   );
 }
@@ -53,7 +65,9 @@ function ProfileForm({ user }: { user: User }) {
   const [targetRole, setTargetRole] = useState<Role>(user.targetRole);
   const [level, setLevel] = useState<Level>(user.level);
   const [preferredLanguage, setPreferredLanguage] = useState(user.preferredLanguage);
-  const [avatar, setAvatar] = useState<InterviewerAvatarId>(user.interviewerAvatar ?? "classic");
+  const [avatar, setAvatar] = useState<InterviewerAvatarId>(
+    getInterviewerAvatar(user.interviewerAvatar),
+  );
   const [voiceName, setVoiceName] = useState(user.interviewerVoiceName ?? "");
   const [voiceLang, setVoiceLang] = useState(user.interviewerVoiceLang ?? "");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -68,7 +82,9 @@ function ProfileForm({ user }: { user: User }) {
     synthesis?.addEventListener?.("voiceschanged", refresh);
     return () => synthesis?.removeEventListener?.("voiceschanged", refresh);
   }, []);
-  const selectedVoice = voices.find((voice) => voice.name === voiceName && voice.lang === voiceLang);
+  const selectedVoice = voices.find(
+    (voice) => voice.name === voiceName && voice.lang === voiceLang,
+  );
   const save = useMutation({
     mutationFn: () =>
       Api.updateProfile({
@@ -163,14 +179,14 @@ function ProfileForm({ user }: { user: User }) {
       </label>
       <p id="language-note" className="text-sm text-muted-foreground">
         This profile preference is saved for future sessions. Choose English or Russian for each
-        interview in the setup screen. A Russian preference does not enable the preview on the server;
-        it must also be enabled there. Other interview languages are not available yet.
+        interview in the setup screen. A Russian preference does not enable the preview on the
+        server; it must also be enabled there. Other interview languages are not available yet.
       </p>
       <fieldset className="space-y-3 border-t pt-5">
         <legend className="font-semibold">Interviewer appearance</legend>
         <p className="text-sm text-muted-foreground">
-          Choose the illustrated interviewer used in compatible sessions. This preference is saved
-          to your profile and works with the avatar hidden.
+          Choose an appearance for the 3D interviewer and its still illustration. Save changes to
+          use it in your interviews. Your choice is kept even when 3D is hidden.
         </p>
         <div className="grid grid-cols-3 gap-2">
           {interviewerAvatars.map((option) => (
@@ -185,22 +201,16 @@ function ProfileForm({ user }: { user: User }) {
                 save.reset();
               }}
             >
-              <span
-                className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full"
-                style={{ backgroundColor: option.swatch }}
-              >
-                <span className="relative h-9 w-7 rounded-[45%] bg-[#d9a982]">
-                  <span className="absolute -top-1 left-0 h-3 w-7 rounded-t-full bg-[#302846]" />
-                  <span className="absolute left-1 top-4 h-1 w-1 rounded-full bg-[#302846]" />
-                  <span className="absolute right-1 top-4 h-1 w-1 rounded-full bg-[#302846]" />
-                </span>
+              <span aria-hidden="true" className="mb-2 block">
+                <InterviewerPortrait avatarId={option.id} />
               </span>
               {option.name}
             </button>
           ))}
         </div>
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          Selected appearance: {interviewerAvatars.find((item) => item.id === avatar)?.name ?? "Classic"}
+          Selected appearance:{" "}
+          {interviewerAvatars.find((item) => item.id === avatar)?.name ?? "Classic"}
         </p>
       </fieldset>
       <fieldset className="space-y-3 border-t pt-5">
@@ -215,7 +225,9 @@ function ProfileForm({ user }: { user: User }) {
             value={voiceName ? `${voiceLang}\u0000${voiceName}` : ""}
             disabled={save.isPending}
             onChange={(event) => {
-              const voice = voices.find((item) => `${item.lang}\u0000${item.name}` === event.target.value);
+              const voice = voices.find(
+                (item) => `${item.lang}\u0000${item.name}` === event.target.value,
+              );
               setVoiceName(voice?.name ?? "");
               setVoiceLang(voice?.lang ?? "");
               save.reset();
@@ -224,7 +236,10 @@ function ProfileForm({ user }: { user: User }) {
           >
             <option value="">Automatic system voice</option>
             {voices.map((voice, index) => (
-              <option key={`${voice.lang}-${voice.name}-${index}`} value={`${voice.lang}\u0000${voice.name}`}>
+              <option
+                key={`${voice.lang}-${voice.name}-${index}`}
+                value={`${voice.lang}\u0000${voice.name}`}
+              >
                 {voice.name} ({voice.lang}){voice.localService ? " · on device" : ""}
               </option>
             ))}
@@ -235,7 +250,9 @@ function ProfileForm({ user }: { user: User }) {
             type="button"
             className="btn btn-ghost"
             onClick={() => {
-              const utterance = new SpeechSynthesisUtterance("Hello. I will guide your interview practice.");
+              const utterance = new SpeechSynthesisUtterance(
+                "Hello. I will guide your interview practice.",
+              );
               utterance.voice = selectedVoice;
               utterance.lang = selectedVoice.lang;
               window.speechSynthesis.cancel();
@@ -247,12 +264,14 @@ function ProfileForm({ user }: { user: User }) {
         )}
         {!voices.length && (
           <p role="status" className="text-sm text-muted-foreground">
-            No selectable system voices are available. Automatic voice or text fallback will be used.
+            No selectable system voices are available. Automatic voice or text fallback will be
+            used.
           </p>
         )}
         {voicesLoaded && voiceName && !selectedVoice && (
           <p role="status" className="text-sm text-muted-foreground">
-            Your saved voice is not available on this device. Automatic voice or text fallback will be used.
+            Your saved voice is not available on this device. Automatic voice or text fallback will
+            be used.
           </p>
         )}
         <button

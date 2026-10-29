@@ -1346,7 +1346,7 @@ components:
       properties:
         name: {type: string, minLength: 1, pattern: '\S'}
         preferredLanguage: {type: string, minLength: 1, maxLength: 80, pattern: '\S', description: Omission preserves the saved preference.}
-        interviewerAvatar: {type: string, enum: [classic, sage, rose], default: classic, description: Profile-synced illustration choice; omission preserves the saved preference.}
+        interviewerAvatar: {type: string, enum: [classic, sage, rose], default: classic, description: Profile-synced 3D and still interviewer appearance; omission preserves the saved preference.}
         interviewerVoiceName: {type: string, maxLength: 120, nullable: true, description: Device-provided voice name; null resets to automatic voice. Must be paired with interviewerVoiceLang.}
         interviewerVoiceLang: {type: string, maxLength: 32, nullable: true, description: Voice language tag; must be paired with interviewerVoiceName.}
         targetRole:

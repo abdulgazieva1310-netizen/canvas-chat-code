@@ -121,18 +121,27 @@ it("quick starts with saved preferences and opens the newly created room", async
   client.clear();
 });
 
-it("saves an interviewer appearance preference to the profile", async () => {
-  openPage("/profile");
-  await screen.findByRole("heading", { name: "Profile Settings" });
-  const update = vi.spyOn(Api, "updateProfile").mockResolvedValue({ ...user, interviewerAvatar: "rose" });
-  const rose = await screen.findByRole("button", { name: "Rose" });
-  fireEvent.click(rose);
-  expect(rose).toHaveAttribute("aria-pressed", "true");
-  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-  await screen.findByText("Profile saved.");
-  expect(update).toHaveBeenCalledWith(expect.objectContaining({ interviewerAvatar: "rose" }));
-  expect(screen.getByText("Selected appearance: Rose")).toBeVisible();
-});
+it.each(["classic", "sage", "rose"] as const)(
+  "saves the %s appearance preference to the profile",
+  async (appearance) => {
+    const { client } = openPage("/profile");
+    await screen.findByRole("heading", { name: "Profile Settings" });
+    const update = vi
+      .spyOn(Api, "updateProfile")
+      .mockResolvedValue({ ...user, interviewerAvatar: appearance });
+    const name = appearance[0].toUpperCase() + appearance.slice(1);
+    const card = await screen.findByRole("button", { name });
+    fireEvent.click(card);
+    expect(card).toHaveAttribute("aria-pressed", "true");
+    expect(update).not.toHaveBeenCalled();
+    expect(client.getQueryData(["profile"])).toMatchObject({ interviewerAvatar: "classic" });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await screen.findByText("Profile saved.");
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ interviewerAvatar: appearance }));
+    expect(client.getQueryData(["profile"])).toMatchObject({ interviewerAvatar: appearance });
+    expect(screen.getByText(`Selected appearance: ${name}`)).toBeVisible();
+  },
+);
 
 it("uses the stable default for an unsupported saved appearance", () => {
   expect(getInterviewerAvatar("removed-avatar")).toBe("classic");
@@ -167,9 +176,12 @@ it("previews and saves an available system voice", async () => {
   expect((speak.mock.calls[0]![0] as Utterance).voice).toBe(voice);
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await screen.findByText("Profile saved.");
-  expect(update).toHaveBeenCalledWith(expect.objectContaining({
-    interviewerVoiceName: "Local English", interviewerVoiceLang: "en-US",
-  }));
+  expect(update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      interviewerVoiceName: "Local English",
+      interviewerVoiceLang: "en-US",
+    }),
+  );
 });
 
 it("uses explicit Quick Start defaults when saved role and level are missing", async () => {
@@ -390,7 +402,12 @@ it("shows saved profile edits when returning to the real dashboard", async () =>
     },
   ]);
   vi.spyOn(Api, "getDashboardSummary").mockResolvedValue({
-    completedCount: 0, recentActivity: [], groups: [], strengths: [], weaknesses: [], suggestions: [],
+    completedCount: 0,
+    recentActivity: [],
+    groups: [],
+    strengths: [],
+    weaknesses: [],
+    suggestions: [],
   });
   vi.mocked(Api.getProfile).mockResolvedValue(updated);
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: updated.name } });
@@ -407,31 +424,39 @@ it("shows saved profile edits when returning to the real dashboard", async () =>
 it("requires confirmation for deletion, supports cancel/retry and clears private data on success", async () => {
   saveAuthorization("Bearer owner-token");
   expect(getAuthorization()).toBe("Bearer owner-token");
-  const deletion=vi.spyOn(Api,"deleteAccount").mockRejectedValueOnce(new Error("Current password is incorrect"))
-    .mockImplementationOnce(async()=>{saveAuthorization(null);});
-  const {client,router}=openPage("/profile",true);
+  const deletion = vi
+    .spyOn(Api, "deleteAccount")
+    .mockRejectedValueOnce(new Error("Current password is incorrect"))
+    .mockImplementationOnce(async () => {
+      saveAuthorization(null);
+    });
+  const { client, router } = openPage("/profile", true);
   expect(getAuthorization()).toBe("Bearer owner-token");
-  client.setQueryData(["interview","private"],{id:"private"});
-  await screen.findByRole("button",{name:"Delete my account"});
-  fireEvent.click(screen.getByRole("button",{name:"Delete my account"}));
-  expect(screen.getByRole("button",{name:"Permanently delete account"})).toBeDisabled();
-  fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"wrong"}});
-  fireEvent.change(screen.getByLabelText("Type DELETE to confirm"),{target:{value:"DELETE"}});
-  fireEvent.click(screen.getByRole("button",{name:"Cancel deletion"}));
+  client.setQueryData(["interview", "private"], { id: "private" });
+  await screen.findByRole("button", { name: "Delete my account" });
+  fireEvent.click(screen.getByRole("button", { name: "Delete my account" }));
+  expect(screen.getByRole("button", { name: "Permanently delete account" })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "wrong" } });
+  fireEvent.change(screen.getByLabelText("Type DELETE to confirm"), {
+    target: { value: "DELETE" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel deletion" }));
   expect(deletion).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button",{name:"Delete my account"}));
+  fireEvent.click(screen.getByRole("button", { name: "Delete my account" }));
   expect(screen.getByLabelText("Current password")).toHaveValue("");
-  fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"wrong"}});
-  fireEvent.change(screen.getByLabelText("Type DELETE to confirm"),{target:{value:"DELETE"}});
-  fireEvent.click(screen.getByRole("button",{name:"Permanently delete account"}));
+  fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "wrong" } });
+  fireEvent.change(screen.getByLabelText("Type DELETE to confirm"), {
+    target: { value: "DELETE" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Permanently delete account" }));
   await screen.findByRole("alert");
   expect(deletion).toHaveBeenCalledTimes(1);
   expect(getAuthorization()).toBe("Bearer owner-token");
-  expect(client.getQueryData(["interview","private"])).toEqual({id:"private"});
-  fireEvent.change(screen.getByLabelText("Current password"),{target:{value:"correct"}});
-  fireEvent.click(screen.getByRole("button",{name:"Permanently delete account"}));
+  expect(client.getQueryData(["interview", "private"])).toEqual({ id: "private" });
+  fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "correct" } });
+  fireEvent.click(screen.getByRole("button", { name: "Permanently delete account" }));
   await screen.findByText("Login page");
-  await waitFor(()=>expect(client.getQueryCache().getAll()).toHaveLength(0));
+  await waitFor(() => expect(client.getQueryCache().getAll()).toHaveLength(0));
   expect(getAuthorization()).toBeNull();
   expect(router.state.location.pathname).toBe("/login");
   client.clear();

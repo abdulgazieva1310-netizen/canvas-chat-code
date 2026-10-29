@@ -7,5 +7,9 @@ export const interviewerAvatars = [
 export type InterviewerAvatarId = (typeof interviewerAvatars)[number]["id"];
 
 export function getInterviewerAvatar(saved?: string | null): InterviewerAvatarId {
-  return interviewerAvatars.find((avatar) => avatar.id === saved)?.id ?? "classic";
+  return getInterviewerAppearance(saved).id;
+}
+
+export function getInterviewerAppearance(saved?: string | null) {
+  return interviewerAvatars.find((avatar) => avatar.id === saved) ?? interviewerAvatars[0];
 }

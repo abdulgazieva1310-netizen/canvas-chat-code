@@ -788,7 +788,7 @@ def test_offline_coding_questions_do_not_mix_interview_types(role):
 def test_profile_requires_authentication_and_persists(tmp_path):
     url = f'sqlite:///{tmp_path / "profile.db"}'
     values = {'name': '  Aigerim Murat  ', 'targetRole': 'Python Developer', 'level': 'Senior',
-              'preferredLanguage': 'Kazakh'}
+              'preferredLanguage': 'Kazakh', 'interviewerAvatar': 'sage'}
     with TestClient(create_app(database_url=url)) as client:
         assert client.get('/api/auth/me').status_code == 401
         assert client.patch('/api/auth/me', json=values).status_code == 401
@@ -810,18 +810,25 @@ def test_profile_requires_authentication_and_persists(tmp_path):
         assert login(restarted).json() == expected
 
 
-def test_interviewer_preferences_persist_in_profile_and_can_reset(client):
+@pytest.mark.parametrize('avatar', ['classic', 'sage', 'rose'])
+def test_interviewer_preferences_persist_in_profile_and_can_reset(client, avatar):
     original = login(client).json()
     selected = {'name': original['name'], 'targetRole': original['targetRole'],
-                'level': original['level'], 'interviewerAvatar': 'rose',
+                'level': original['level'], 'interviewerAvatar': avatar,
                 'interviewerVoiceName': 'System English', 'interviewerVoiceLang': 'en-US'}
     updated = client.patch('/api/auth/me', json=selected)
     assert updated.status_code == 200
-    assert updated.json()['interviewerAvatar'] == 'rose'
+    assert updated.json()['interviewerAvatar'] == avatar
     assert updated.json()['interviewerVoiceName'] == 'System English'
     assert client.get('/api/auth/me').json() == updated.json()
     client.post('/api/auth/logout')
     assert login(client).json() == updated.json()
+    # Editing unrelated fields must preserve the appearance for later sessions.
+    preserved = client.patch('/api/auth/me', json={
+        'name': original['name'], 'targetRole': original['targetRole'], 'level': original['level'],
+    })
+    assert preserved.status_code == 200
+    assert preserved.json() == updated.json()
     reset = client.patch('/api/auth/me', json={
         'name': original['name'], 'targetRole': original['targetRole'], 'level': original['level'],
         'interviewerAvatar': 'classic', 'interviewerVoiceName': None, 'interviewerVoiceLang': None,

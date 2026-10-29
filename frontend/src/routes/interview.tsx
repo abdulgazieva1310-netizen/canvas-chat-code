@@ -15,6 +15,7 @@ import {
 } from "react";
 import { Camera, CameraOff, Mic, MicOff } from "lucide-react";
 import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
+import { InterviewerPortrait } from "@/components/InterviewerPortrait";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpokenQuestion } from "@/hooks/use-spoken-question";
@@ -1005,15 +1006,7 @@ function Interview() {
               </>
             ) : (
               <div className="mt-4 flex items-center gap-3">
-                <div className="flex h-12 items-end gap-1">
-                  {[40, 70, 50, 90, 60].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-1.5 rounded-full bg-primary pulse-dot"
-                      style={{ height: `${h}%`, animationDelay: `${i * 0.15}s` }}
-                    />
-                  ))}
-                </div>
+                <InterviewerPortrait avatarId={avatarId} />
                 <p className="text-sm text-muted-foreground">
                   {answer.isPending ? "Thinking…" : "Ready for your answer"}
                 </p>

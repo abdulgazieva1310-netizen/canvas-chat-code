@@ -1,18 +1,12 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import type { InterviewerAvatarId } from "@/lib/interviewer-avatar";
+import { getInterviewerAppearance, type InterviewerAvatarId } from "@/lib/interviewer-avatar";
 
 type Props = {
   state: "idle" | "listening" | "speaking";
   reducedMotion: boolean;
   avatarId: InterviewerAvatarId;
   onFailure: () => void;
-};
-
-const clothingColors: Record<InterviewerAvatarId, number> = {
-  classic: 0x655a83,
-  sage: 0x426b64,
-  rose: 0x9a526b,
 };
 
 /** A small procedural interviewer. It has no camera, network, or session-state access. */
@@ -76,7 +70,7 @@ export function Interviewer3D({ state, reducedMotion, avatarId, onFailure }: Pro
     neck.position.y = -1.03;
     add(
       new THREE.SphereGeometry(1.25, 40, 24),
-      clothingColors[avatarId] ?? clothingColors.classic,
+      Number.parseInt(getInterviewerAppearance(avatarId).swatch.slice(1), 16),
       0,
       -2.02,
       0,
@@ -101,7 +95,8 @@ export function Interviewer3D({ state, reducedMotion, avatarId, onFailure }: Pro
       renderer.setAnimationLoop(() => {
         phase += 0.16;
         const currentState = stateRef.current;
-        mouth.scale.y = currentState === "speaking" ? 0.15 + Math.abs(Math.sin(phase)) * 0.62 : 0.16;
+        mouth.scale.y =
+          currentState === "speaking" ? 0.15 + Math.abs(Math.sin(phase)) * 0.62 : 0.16;
         group.rotation.y =
           currentState === "speaking"
             ? Math.sin(phase * 0.18) * 0.025

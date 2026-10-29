@@ -655,19 +655,30 @@ it("keeps interview progress and syncs the opt-in 3D view to question playback",
   client.clear();
 });
 
-it("falls back to the existing interview when the 3D renderer fails", async () => {
-  window.sessionStorage.setItem("mock-3d-fail", "yes");
-  const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
-  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
-  const client = openInterview();
-  await screen.findByRole("button", { name: "Replay question" });
-  fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
-  expect(await screen.findByText(/3D view is unavailable in this browser/)).toBeVisible();
-  expect(screen.getByRole("textbox", { name: "Your answer" })).toBeVisible();
-  expect(client.getQueryData(["interview", active.id])).toEqual(active);
-  client.clear();
-  window.sessionStorage.removeItem("mock-3d-fail");
-});
+it.each(["classic", "sage", "rose"] as const)(
+  "preserves %s appearance and the draft when the 3D renderer fails",
+  async (appearance) => {
+    window.sessionStorage.setItem("mock-3d-fail", "yes");
+    const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
+    vi.spyOn(Api, "getInterview").mockResolvedValue(active);
+    const client = openInterview(undefined, { interviewerAvatar: appearance });
+    await screen.findByRole("button", { name: "Replay question" });
+    const answer = screen.getByRole("textbox", { name: "Your answer" });
+    fireEvent.change(answer, { target: { value: "Preserved draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
+    expect(await screen.findByText(/3D view is unavailable in this browser/)).toBeVisible();
+    expect(answer).toHaveValue("Preserved draft");
+    expect(
+      screen.getByRole("img", {
+        name: `${appearance[0].toUpperCase()}${appearance.slice(1)} interviewer`,
+      }),
+    ).toBeVisible();
+    expect(client.getQueryData(["profile"])).toMatchObject({ interviewerAvatar: appearance });
+    expect(client.getQueryData(["interview", active.id])).toEqual(active);
+    client.clear();
+    window.sessionStorage.removeItem("mock-3d-fail");
+  },
+);
 
 it("passes the reduced-motion preference to the static 3D presentation", async () => {
   vi.spyOn(window, "matchMedia").mockReturnValue({

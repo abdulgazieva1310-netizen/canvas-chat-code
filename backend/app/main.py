@@ -15,6 +15,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException
 
 from .routers import auth, dashboard, evaluation_feedback, interviews, job_targets, languages, setup_presets, study, study_plans
@@ -83,6 +84,20 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
     app.include_router(evaluation_feedback.router, prefix='/api')
     app.include_router(job_targets.router, prefix='/api')
     app.include_router(setup_presets.router, prefix='/api')
+
+    frontend_dir = Path(os.getenv(
+        'FRONTEND_DIST_DIR',
+        Path(__file__).resolve().parents[2] / 'frontend' / '.output' / 'public',
+    )).resolve()
+    frontend_index = frontend_dir / 'index.html'
+    if frontend_index.is_file():
+        @app.get('/{frontend_path:path}', include_in_schema=False)
+        def frontend(frontend_path: str):
+            requested_file = (frontend_dir / frontend_path).resolve()
+            if requested_file.is_relative_to(frontend_dir.resolve()) and requested_file.is_file():
+                return FileResponse(requested_file)
+            return FileResponse(frontend_index)
+
     return app
 
 

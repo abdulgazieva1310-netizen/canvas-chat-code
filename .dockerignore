@@ -1,0 +1,13 @@
+.git
+.venv
+**/__pycache__
+**/*.py[cod]
+frontend/node_modules
+frontend/.output
+frontend/.tanstack
+frontend/.wrangler
+frontend/test-results
+frontend/playwright-report
+backend/.venv
+backend/interview.db*
+backend/media-storage

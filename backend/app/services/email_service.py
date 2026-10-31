@@ -1,5 +1,4 @@
 """SMTP recovery delivery, with console links for local development."""
-import logging
 import os
 import smtplib
 import ssl
@@ -18,7 +17,7 @@ class LocalMailbox:
 class ConsoleDelivery(LocalMailbox):
     def send_reset(self, email, link):
         super().send_reset(email, link)
-        logging.getLogger(__name__).warning('Local password reset link: %s', link)
+        print(f'Local password reset link: {link}', flush=True)
 
 
 class SMTPDelivery:

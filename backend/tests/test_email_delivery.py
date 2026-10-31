@@ -114,7 +114,7 @@ def test_smtp_auto_selection_with_smtp_user_and_default_sender(tmp_path, smtp_ca
             'email': 'demo@example.com', 'password': 'replacement-password'}).status_code == 200
 
 
-def test_unconfigured_smtp_logs_a_usable_reset_link(tmp_path, monkeypatch, caplog):
+def test_unconfigured_smtp_logs_a_usable_reset_link(tmp_path, monkeypatch, capsys):
     def unexpected_smtp(*args, **kwargs):
         pytest.fail('Console fallback must not open an SMTP connection')
     monkeypatch.setattr('app.services.email_service.smtplib.SMTP', unexpected_smtp)
@@ -122,12 +122,12 @@ def test_unconfigured_smtp_logs_a_usable_reset_link(tmp_path, monkeypatch, caplo
     assert isinstance(app.state.mailer, ConsoleDelivery)
     with TestClient(app) as client:
         unknown = client.post('/api/auth/password-reset/request', json={'email': 'absent@example.com'})
-        assert 'Local password reset link' not in caplog.text
+        assert 'Local password reset link' not in capsys.readouterr().out
         known = client.post('/api/auth/password-reset/request', json={'email': 'demo@example.com'})
         assert known.status_code == unknown.status_code == 202
         assert known.content == unknown.content
         link = app.state.mailer.messages[-1]['link']
-        assert link in caplog.text
+        assert link in capsys.readouterr().out
         assert 'localhost:8080/reset-password' in link
         token, = parse_qs(urlsplit(link).query)['token']
         assert token not in known.text

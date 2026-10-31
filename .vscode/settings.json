@@ -1,6 +1,4 @@
-{   
-     "python.defaultInterpreterPath": "/home/user/tmp/ai-system-interview/backend/.venv/bin/python",
-    "python.analysis.extraPaths": [
-        "/home/user/tmp/ai-system-interview/backend/.venv/lib/python3.12/site-packages"
-    ]
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.terminal.activateEnvironment": true
 }

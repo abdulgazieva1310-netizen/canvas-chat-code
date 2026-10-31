@@ -37,7 +37,7 @@ function Comparison() {
       <p>{report.interview.setup.role} · {report.interview.setup.type} · {report.interview.setup.mode} · {report.interview.setup.language}</p>
       <p>Started {new Date(report.interview.startedAt).toISOString().slice(0,10)} UTC</p>
       <p>Starting level: {report.interview.setup.level} · Effective level: {report.interview.effectiveLevel ?? report.interview.setup.level}</p>
-      <p>{report.interview.status==="incomplete" ? "Incomplete (partial results)" : "Completed"} · {report.interview.answeredCount} of {report.interview.setup.questionCount} answered</p>
+      <p>{report.interview.status==="incomplete" ? "Incomplete (partial results)" : "Completed"} · {report.interview.answeredCount} of {report.interview.setup.questionCount} main questions answered</p>
       <p>Overall: {report.feedback.overall ?? "Unscored"}</p>
       <h3 className="mt-3 font-semibold">Strengths</h3><ul>{report.feedback.strengths.map((text,i)=><li key={i}>{text}</li>)}</ul>
       <h3 className="mt-3 font-semibold">Weaknesses</h3><ul>{report.feedback.gaps.map((text,i)=><li key={i}>{text}</li>)}</ul>

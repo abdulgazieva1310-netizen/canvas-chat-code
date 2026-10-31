@@ -446,7 +446,7 @@ class Repository:
         # The transcript (including all messages) lives in the interview payload.
         self.session.delete(self.loaded[ident])
 
-    def answer(self, interview, text, next_question=None, evaluation=None, follow_up_parent_id=None,
+    def answer(self, interview, text, next_question=None, evaluation=None,
                coding_judge=None, defer_next_question=False):
         if interview.status != 'active':
             raise HTTPException(409, 'This interview has ended.')
@@ -474,12 +474,12 @@ class Repository:
         interview.lastAnswerFeedback = evaluation if interview.setup.mode == 'Practice' else None
         interview.lastCodingJudge = answer_message.codingJudge if interview.setup.mode == 'Practice' else None
         if defer_next_question:
+            if interview.answeredCount >= interview.setup.questionCount:
+                interview.status = 'complete'
+                interview.endedAt = now()
             self.save(interview)
             return interview
-        if follow_up_parent_id:
-            interview.messages.append(message(interview.id, 'ai', next_question, kind='follow-up',
-                main_question_id=follow_up_parent_id))
-        elif interview.answeredCount >= interview.setup.questionCount:
+        if interview.answeredCount >= interview.setup.questionCount:
             interview.status = 'complete'
             interview.endedAt = now()
         else:

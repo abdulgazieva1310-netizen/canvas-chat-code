@@ -187,7 +187,7 @@ function Report() {
         <div>
           <p className="eyebrow">
             {new Date(interview.startedAt).toLocaleDateString()} · {interview.answeredCount} of{" "}
-            {interview.setup.questionCount} questions · {interview.status}
+            {interview.setup.questionCount} main questions · {interview.status}
           </p>
           <h1 className="mt-2 text-4xl md:text-5xl">
             {interview.setup.role} · {interview.setup.type}
@@ -211,7 +211,7 @@ function Report() {
       {interview.status === "incomplete" && (
         <p role="status" className="card-surface mt-4 p-4">
           Incomplete interview: {feedback.answeredQuestions} of {feedback.selectedQuestions} main
-          questions answered. Feedback covers only submitted answers.
+          questions answered. New interviews do not include follow-ups. Feedback covers only submitted answers.
         </p>
       )}
       <section className="card-surface mt-4 space-y-3 p-5" aria-label="Saved recordings">

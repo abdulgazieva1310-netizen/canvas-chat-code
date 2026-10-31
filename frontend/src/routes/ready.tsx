@@ -102,7 +102,7 @@ function Ready() {
         <div className="card-surface p-6">
           <h2 className="text-xl">How it works</h2>
           <ul className="mt-4 space-y-3 text-sm">
-            <li>• {setup.questionCount} main questions; follow-ups don't count.</li>
+            <li>• {setup.questionCount} main questions. No follow-ups are asked.</li>
             <li>• Difficulty adapts to your answers.</li>
             <li>• Ask for a hint any time (Practice mode).</li>
             <li>• No time limit — elapsed time is shown.</li>

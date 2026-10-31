@@ -317,14 +317,14 @@ def test_next_question_failure_cannot_rollback_saved_russian_scores(provider, mo
         assert client.post(path + '/next-question').status_code == 404
 
 
-def test_deferred_final_question_and_followup_finish_with_saved_scores(provider, monkeypatch, tmp_path):
+def test_deferred_final_question_finishes_without_followups(provider, monkeypatch, tmp_path):
     questions = []
     def question(*args, **kwargs):
         questions.append(True)
         return f'Вопрос {len(questions)}?'
     monkeypatch.setattr(ai_service, 'generate_question', question)
-    monkeypatch.setattr(ai_service, 'generate_followup', lambda role, level, kind, q, a, **kw:
-                        'Почему вы выбрали этот подход?' if q == 'Вопрос 5?' else None)
+    monkeypatch.setattr(ai_service, 'generate_followup', lambda *args, **kwargs:
+                        pytest.fail('Interviews must not generate follow-up questions'))
     provider(lambda request: completion(evaluation_payload()))
     with TestClient(create_app(database_url=f'sqlite:///{tmp_path / "last-question.db"}')) as client:
         client.post('/api/auth/login', json={'email': 'demo@example.com', 'password': 'demo-password'})
@@ -336,13 +336,10 @@ def test_deferred_final_question_and_followup_finish_with_saved_scores(provider,
             result = client.post(path + '/messages', json={
                 'text': 'Я проверил гипотезу.', 'expectedQuestionId': interview['messages'][-1]['id']})
             assert result.status_code == 200 and result.json()['answeredCount'] == count
-            interview = client.post(path + '/next-question').json()
-        assert interview['status'] == 'active'
-        assert interview['messages'][-1]['kind'] == 'follow-up'
-        assert client.post(path + '/messages', json={
-            'text': 'Это уменьшило риски.', 'expectedQuestionId': interview['messages'][-1]['id']}).status_code == 200
-        finished = client.post(path + '/next-question').json()
-        assert finished['status'] == 'complete' and finished['answeredCount'] == 5
+            interview = result.json()
+            if interview['status'] == 'active':
+                interview = client.post(path + '/next-question').json()
+        assert interview['status'] == 'complete' and interview['answeredCount'] == 5
         assert len(questions) == 5
         assert client.get(path + '/report').json()['feedback']['overall'] == 8
 

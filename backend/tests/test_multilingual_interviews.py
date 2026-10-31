@@ -87,7 +87,8 @@ def test_russian_answer_feedback_and_hint_keep_the_selected_language(client, mon
                            json={'text': 'Я системно проверил гипотезу и подтвердил результат.'}).json()
     assert answered['lastAnswerFeedback']['went_well'].startswith('Вы')
     assert client.post(f"/api/interviews/{interview['id']}/next-question").status_code == 200
-    assert followup_calls == ['Russian']
+    assert followup_calls == []
+    assert client.get(f"/api/interviews/{interview['id']}").json()['messages'][-1]['kind'] == 'main'
     client.post(f"/api/interviews/{interview['id']}/end")
     report = client.get(f"/api/interviews/{interview['id']}/report").json()
     assert report['feedback']['questions'][0]['better'].startswith('Я проверил')

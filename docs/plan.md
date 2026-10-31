@@ -22,7 +22,7 @@ The product should teach users *why* an answer was strong or weak, not merely as
 | Target audience | IT professionals | Emphasis on software and related IT roles |
 | Interview categories | Technical, behavioral, role-specific | All three supported |
 | Interaction modes (vision) | Text, voice, video | MVP uses text and voice; video is later |
-| AI interviewer | Realistic, conversational | Natural follow-ups and challenges to vague answers |
+| AI interviewer | Realistic, conversational | Distinct main questions with adaptive difficulty |
 | Feedback | Complete feedback | Technical and communication feedback with actionable advice |
 | Progress | Visual dashboard | History, scores, weaknesses, and trends |
 | Personalization | Role, level, interview type, optional job description | Quick Start or custom setup |
@@ -37,9 +37,9 @@ The product should teach users *why* an answer was strong or weak, not merely as
 | Feedback timing | Mode-based | Immediate in Practice Mode; at end in Real Interview Mode |
 | Post-interview options | Review, retry, suggested practice | Included in product experience |
 | MVP breadth | Simple MVP | Keep advanced interaction features for later |
-| Question source | Hybrid | Curated questions + AI-generated questions and follow-ups |
+| Question source | Hybrid | Curated questions + AI-generated main questions |
 | Session ending | Question-based | **Latest decision:** replaces strict duration-based ending |
-| Main question count | 5, 10, or 15 | Follow-ups do not count toward main limit |
+| Main question count | 5, 10, or 15 | No follow-ups; every generated question advances this count |
 | Difficulty | Adaptive | Adjust based on answers; start from selected/profile level |
 | Evaluation | Numerical + written | 1–10 scores, explanations, stronger answer examples |
 | Saving | Automatic | Completed interviews saved automatically |
@@ -70,11 +70,11 @@ The product should teach users *why* an answer was strong or weak, not merely as
 
 ### 3.3 AI interview experience
 
-- Natural AI-led conversation with relevant follow-up questions.
+- AI-led sequence of distinct main questions.
 - Hybrid source of curated and AI-generated questions.
 - Difficulty adapts to how well the user answers, starting at an appropriate experience level.
 - Technical interviews for Java, Python, C++, Backend, and Full Stack Developers exclusively use algorithmic/coding challenges. Language-specific roles use their named language. Behavioral and role-specific interviews retain their own question types.
-- Follow-up questions do not count against the selected main question total.
+- Follow-up questions are disabled during interviews.
 - Session ends after the chosen number of main questions, or when the user ends it early.
 - Display elapsed time without a hard time cutoff.
 - Voice mode: AI asks aloud, user responds by microphone, and a transcript is available.
@@ -88,7 +88,7 @@ The product should teach users *why* an answer was strong or weak, not merely as
 | Feedback during interview | Yes | No |
 | Final report | Yes | Yes |
 | Adaptive questions | Yes | Yes |
-| Natural follow-ups | Yes | Yes |
+| Follow-up questions | No | No |
 
 ### 3.5 Feedback and review
 
@@ -173,8 +173,8 @@ silently mixing languages.
 
 ### Decision 9 — Question-based sessions
 
-**Chosen:** 5/10/15 main questions, follow-ups not counted, with early ending allowed.  
-**Why:** Matches the user's latest explicit choice and avoids abruptly cutting off answers.  
+**Chosen:** 5/10/15 main questions, with follow-ups disabled and early ending allowed.
+**Why:** The selected count matches the number of interview questions the candidate sees.
 **Other options:** Strict timer; both time and question limits; unlimited sessions.
 
 ### Decision 10 — Visual dashboard, without full AI study plans
@@ -216,7 +216,7 @@ silently mixing languages.
 2. They configure a **Technical** interview in **Real Interview Mode**, using **Voice**, with **5 main questions**.
 3. AI asks: “Can you explain the difference between SQL and NoSQL databases?”
 4. After the answer, AI follows up: “When would you choose a relational database?”
-5. The interview ends after five main questions (plus any follow-ups).
+5. The interview ends after five main questions; no follow-ups are generated.
 6. The user receives an illustrative overall score, for example **7.5/10**, plus category feedback explaining strengths and missing concepts.
 7. The session and transcript are saved automatically.
 8. The dashboard updates, and the user may retry or practice relevant database topics.
@@ -241,7 +241,7 @@ silently mixing languages.
 - [ ] User can start an interview with Quick Start or Custom Setup.
 - [ ] Interview supports selected IT role, type and 5/10/15 questions.
 - [ ] User can respond in text or voice.
-- [ ] AI asks natural follow-ups and adapts difficulty.
+- [ ] AI asks exactly the selected number of main questions and adapts difficulty.
 - [ ] Practice Mode offers hints and immediate feedback.
 - [ ] Real Interview Mode provides feedback only after the session.
 - [ ] User receives understandable scores and actionable written feedback.

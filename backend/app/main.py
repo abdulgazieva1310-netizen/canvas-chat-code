@@ -14,9 +14,9 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException
+import httpx
 
 from .routers import auth, dashboard, evaluation_feedback, interviews, job_targets, languages, setup_presets, study, study_plans
 from .store import Store
@@ -25,6 +25,12 @@ from .services.email_service import email_delivery, password_reset_url
 
 def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None):
     store = Store(seed=seed, database_url=database_url)
+    frontend_server_entry = os.getenv('FRONTEND_SERVER_ENTRY')
+    frontend_server_host = os.getenv('FRONTEND_SERVER_HOST', '127.0.0.1')
+    frontend_server_port = int(os.getenv('FRONTEND_SERVER_PORT', '3000'))
+    frontend_server_base_url = f'http://{frontend_server_host}:{frontend_server_port}'
+    frontend_process = None
+    frontend_client = None
 
     async def media_reaper():
         while True:
@@ -40,8 +46,40 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
 
     @asynccontextmanager
     async def lifespan(app):
+        nonlocal frontend_process, frontend_client
         reaper = asyncio.create_task(media_reaper())
         try:
+            if frontend_server_entry:
+                entry = Path(frontend_server_entry).resolve()
+                if not entry.is_file():
+                    raise RuntimeError(f'TanStack server entry not found: {entry}')
+
+                frontend_env = os.environ.copy()
+                frontend_env['NITRO_HOST'] = frontend_server_host
+                frontend_env['NITRO_PORT'] = str(frontend_server_port)
+                frontend_process = await asyncio.create_subprocess_exec(
+                    'node', str(entry), cwd=str(entry.parent.parent), env=frontend_env,
+                )
+                for _ in range(100):
+                    if frontend_process.returncode is not None:
+                        raise RuntimeError(
+                            f'TanStack server exited during startup with code '
+                            f'{frontend_process.returncode}'
+                        )
+                    try:
+                        _reader, writer = await asyncio.wait_for(
+                            asyncio.open_connection(frontend_server_host, frontend_server_port),
+                            timeout=0.25,
+                        )
+                        writer.close()
+                        await writer.wait_closed()
+                        break
+                    except (OSError, asyncio.TimeoutError):
+                        await asyncio.sleep(0.1)
+                else:
+                    raise RuntimeError('TanStack server did not start listening in time')
+                frontend_client = httpx.AsyncClient(timeout=60.0)
+
             yield
         finally:
             reaper.cancel()
@@ -49,6 +87,15 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
                 await reaper
             except asyncio.CancelledError:
                 pass
+            if frontend_client is not None:
+                await frontend_client.aclose()
+            if frontend_process is not None and frontend_process.returncode is None:
+                frontend_process.terminate()
+                try:
+                    await asyncio.wait_for(frontend_process.wait(), timeout=5)
+                except asyncio.TimeoutError:
+                    frontend_process.kill()
+                    await frontend_process.wait()
             store.engine.dispose()
 
     app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
@@ -85,18 +132,41 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
     app.include_router(job_targets.router, prefix='/api')
     app.include_router(setup_presets.router, prefix='/api')
 
-    frontend_dir = Path(os.getenv(
-        'FRONTEND_DIST_DIR',
-        Path(__file__).resolve().parents[2] / 'frontend' / '.output' / 'public',
-    )).resolve()
-    frontend_index = frontend_dir / 'index.html'
-    if frontend_index.is_file():
-        @app.get('/{frontend_path:path}', include_in_schema=False)
-        def frontend(frontend_path: str):
-            requested_file = (frontend_dir / frontend_path).resolve()
-            if requested_file.is_relative_to(frontend_dir.resolve()) and requested_file.is_file():
-                return FileResponse(requested_file)
-            return FileResponse(frontend_index)
+    if frontend_server_entry:
+        @app.api_route(
+            '/{frontend_path:path}',
+            methods=['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            include_in_schema=False,
+        )
+        async def frontend(frontend_path: str, request: Request):
+            upstream_url = f'{frontend_server_base_url}/{frontend_path}'
+            if request.url.query:
+                upstream_url = f'{upstream_url}?{request.url.query}'
+            headers = dict(request.headers)
+            headers.pop('host', None)
+            headers.pop('content-length', None)
+            headers.pop('connection', None)
+            headers.pop('accept-encoding', None)
+            try:
+                upstream = await frontend_client.request(
+                    request.method,
+                    upstream_url,
+                    headers=headers,
+                    content=await request.body(),
+                )
+            except httpx.HTTPError:
+                return Response('Frontend server unavailable', status_code=502)
+
+            response = Response(upstream.content, status_code=upstream.status_code)
+            hop_by_hop_headers = {
+                b'connection', b'content-encoding', b'content-length',
+                b'keep-alive', b'proxy-authenticate', b'proxy-authorization',
+                b'te', b'trailers', b'transfer-encoding', b'upgrade',
+            }
+            for name, value in upstream.headers.raw:
+                if name.lower() not in hop_by_hop_headers:
+                    response.headers.append(name.decode('latin-1'), value.decode('latin-1'))
+            return response
 
     return app
 

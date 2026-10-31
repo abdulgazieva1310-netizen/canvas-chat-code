@@ -54,3 +54,22 @@ npm test
 Production frontend build: `cd frontend && npm run build`. See
 [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md)
 for application configuration.
+
+## Docker Deployment
+
+Build the Docker image from the repository root:
+
+```sh
+docker build -t interview-mirror .
+```
+
+Run the container and publish the application on port 8000. The named Docker
+volume `interview-data` persists the SQLite database at `/app/backend/interview.db`
+between container runs, including when `--rm` removes the container:
+
+```sh
+docker run --rm -p 8000:8000 -v interview-data:/app/backend interview-mirror
+```
+
+Open [http://localhost:8000](http://localhost:8000) to access the application. Press
+`Ctrl+C` to stop the container.

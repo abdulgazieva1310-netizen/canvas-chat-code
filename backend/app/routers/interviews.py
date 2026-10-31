@@ -389,7 +389,7 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
         if judge_key:
             coding_judge = judge_code(judge_language, data.text, judge_key)
         if setup.language == 'Russian':
-            # Commit scores before any follow-up/question provider request can fail.
+            # Commit scores before the next-question provider request can fail.
             return store.answer(interview, data.text, evaluation=evaluation, coding_judge=coding_judge,
                                 defer_next_question=True).model_copy(deep=True)
         current_level = interview.effectiveLevel or setup.level
@@ -398,25 +398,20 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             decision.questionId == main_question_id for decision in interview.difficultyDecisions)
         next_level = current_level if already_adjusted or not is_main_answer else difficulty_transition(
             current_level, evaluation)[0]
-        follow_up_options = {'interview_language': setup.language} if setup.language != 'English' else {}
-        follow_up = (ai_service.generate_followup(setup.role, next_level, setup.type,
-            current_question, submitted, **follow_up_options) if is_main_answer else None)
         next_question = None
-        if not follow_up:
-            answered_after = interview.answeredCount + int(is_main_answer)
-            if answered_after < setup.questionCount:
-                conversation = [*interview.messages, message(interviewId, 'you', submitted)]
-                used_questions = [item.text for item in interview.messages
-                                  if item.sender == 'ai' and item.kind == 'main']
-                question_options = {'interview_language': setup.language} if setup.language != 'English' else {}
-                next_question = ai_service.generate_question(setup.role, next_level, conversation,
-                    interview_type=setup.type, job_description=setup.jobDescription,
-                    practice_topic=setup.practiceTopic, used_questions=used_questions, **question_options)
-                if setup.language == 'Russian' and not next_question:
-                    raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Your answer was not saved; retry or select English.')
-        return store.answer(interview, data.text, next_question=follow_up or next_question,
-            coding_judge=coding_judge,
-            evaluation=evaluation, follow_up_parent_id=main_question_id if follow_up else None).model_copy(deep=True)
+        answered_after = interview.answeredCount + int(is_main_answer)
+        if answered_after < setup.questionCount:
+            conversation = [item for item in interview.messages
+                            if item.sender == 'ai' and item.kind == 'main']
+            used_questions = [item.text for item in conversation]
+            question_options = {'interview_language': setup.language} if setup.language != 'English' else {}
+            next_question = ai_service.generate_question(setup.role, next_level, conversation,
+                interview_type=setup.type, job_description=setup.jobDescription,
+                practice_topic=setup.practiceTopic, used_questions=used_questions, **question_options)
+            if setup.language == 'Russian' and not next_question:
+                raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Your answer was not saved; retry or select English.')
+        return store.answer(interview, data.text, next_question=next_question,
+            coding_judge=coding_judge, evaluation=evaluation).model_copy(deep=True)
 
 
 @router.post('/{interviewId}/next-question', response_model=Interview)
@@ -431,26 +426,19 @@ def next_question(interviewId: str, request: Request, user: CurrentUser):
         if not ai_service.provider_supports_language('Russian'):
             raise HTTPException(503, 'Your answer is saved. Russian question services are unavailable; retry later.')
         setup = interview.setup
-        answered_question = next(m for m in reversed(interview.messages) if m.sender == 'ai')
-        answer = interview.messages[-1]
-        level = interview.effectiveLevel or setup.level
-        followup = (ai_service.generate_followup(setup.role, level, setup.type,
-                    answered_question.text, answer.text, interview_language='Russian')
-                    if answered_question.kind == 'main' else None)
-        if followup:
-            interview.messages.append(message(interview.id, 'ai', followup, kind='follow-up',
-                main_question_id=answered_question.id))
-        elif interview.answeredCount >= setup.questionCount:
+        if interview.answeredCount >= setup.questionCount:
             interview.status = 'complete'
             interview.endedAt = now()
-        else:
-            generated = ai_service.generate_question(setup.role, level, interview.messages,
-                interview_type=setup.type, job_description=setup.jobDescription,
-                practice_topic=setup.practiceTopic, interview_language='Russian',
-                used_questions=[m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main'])
-            if not generated:
-                raise HTTPException(503, 'Your answer and scores are saved. The next Russian question is unavailable; retry later.')
-            interview.messages.append(message(interview.id, 'ai', generated))
+            store.save(interview)
+            return interview.model_copy(deep=True)
+        level = interview.effectiveLevel or setup.level
+        generated = ai_service.generate_question(setup.role, level, interview.messages,
+            interview_type=setup.type, job_description=setup.jobDescription,
+            practice_topic=setup.practiceTopic, interview_language='Russian',
+            used_questions=[m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main'])
+        if not generated:
+            raise HTTPException(503, 'Your answer and scores are saved. The next Russian question is unavailable; retry later.')
+        interview.messages.append(message(interview.id, 'ai', generated))
         store.save(interview)
         return interview.model_copy(deep=True)
 

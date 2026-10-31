@@ -476,7 +476,7 @@ it("makes zero-answer, incomplete, and error states explicit without placeholder
   ).toBeVisible();
   expect(
     screen.getByText(
-      "Incomplete interview: 0 of 5 main questions answered. Feedback covers only submitted answers.",
+      "Incomplete interview: 0 of 5 main questions answered. New interviews do not include follow-ups. Feedback covers only submitted answers.",
     ),
   ).toBeVisible();
   expect(screen.getByText("Not scored")).toBeVisible();

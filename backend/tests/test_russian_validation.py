@@ -145,7 +145,7 @@ def test_api_journey_preserves_russian_after_profile_changes(tmp_path, localized
         assert scored.status_code == 200 and scored.json()['lastAnswerFeedback']['accuracy'] == 8
         continued = client.post(path + '/next-question')
         assert continued.status_code == 200
-        assert continued.json()['messages'][-1]['kind'] == 'follow-up'
+        assert continued.json()['messages'][-1]['kind'] == 'main'
         assert continued.json()['answeredCount'] == 1
         assert client.post(path + '/end').status_code == 200
         saved = client.get(path + '/report').json()

@@ -387,7 +387,8 @@ paths:
         return 409. Preserves source whitespace for supported coding roles in Technical
         submissions and trims other answers. Reviews code in the selected language using
         static AI analysis without execution. Appends the user's message and increments
-        answeredCount. Appends the next AI question unless questionCount is reached,
+        answeredCount for each answered main question. Appends the next main AI question unless
+        questionCount is reached,
         when status becomes complete and endedAt is set. Practice mode returns live
         lastFeedback scores and lastAnswerFeedback text when evaluation succeeds;
         Real Interview mode keeps both null. Unavailable evaluations return null feedback.
@@ -438,8 +439,8 @@ paths:
       summary: Continue a Russian interview after a saved answer
       description: |
         An active interview ending with a user message has saved scores and awaits a question.
-        Generates one follow-up or next main question, or marks the session complete after the
-        selected main count. A provider failure preserves the saved answer and scores. Retrying
+        Generates the next main question, or marks the session complete after the selected main
+        question count. Follow-ups are not generated. A provider failure preserves the saved answer and scores. Retrying
         after continuation succeeds returns the interview unchanged. Requires ownership.
       responses:
         '200':
@@ -1167,7 +1168,7 @@ components:
         selectedLanguage: {type: string, enum: [Python, Java, C++, JavaScript, TypeScript]}
     PlannedMessage:
       x-implementation-status: planned
-      description: Follow-up metadata planned for issue 18. At most one follow-up per mainQuestionId; only main questions advance progress. Hints and answers retain their sender values.
+      description: Legacy follow-up metadata. New interviews ask main questions only; hints and answers retain their sender values.
       allOf:
         - $ref: '#/components/schemas/Message'
         - type: object
@@ -1473,7 +1474,7 @@ components:
         level:
           $ref: '#/components/schemas/Level'
         mode: {type: string, enum: [Practice, Real Interview]}
-        questionCount: {type: integer, enum: [5, 10, 15]}
+        questionCount: {type: integer, enum: [5, 10, 15], description: Number of main questions; interviews do not generate follow-ups.}
         type: {type: string, enum: [Technical, Behavioral, Role-specific]}
         input: {type: string, enum: [Voice, Text]}
         language: {type: string, enum: [English, Russian]}
@@ -1541,7 +1542,7 @@ components:
         status: {type: string, enum: [active, complete, incomplete]}
         startedAt: {type: string, format: date-time}
         endedAt: {type: string, format: date-time, nullable: true}
-        answeredCount: {type: integer, minimum: 0}
+        answeredCount: {type: integer, minimum: 0, description: Number of main questions answered.}
         messages:
           type: array
           items:

@@ -69,8 +69,9 @@ test("register, log in, complete an interview answer, and review its report", as
     await expect(page).toHaveURL(new RegExp(`/report\\?interviewId=${interviewId}`));
     await expect(page.getByText(/1 of 5 main questions · incomplete/)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Question by question" })).toBeVisible();
-    await page.getByRole("button", { name: /Question 1/ }).click();
-    await expect(page.getByText(answerText, { exact: true })).toBeVisible();
+    const reportAnswer = page.locator("pre").filter({ hasText: answerText });
+    await expect(reportAnswer).toBeVisible();
+    await expect(reportAnswer).toHaveText(answerText);
   } finally {
     if (!authorization) {
       const relogin = await page.request.post(`${baseURL}/api/auth/login`, {

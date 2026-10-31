@@ -3,7 +3,7 @@ from datetime import date, datetime, time, timezone
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import JSON, case, column, func, or_, select
 
 from .database import AnswerEvaluationRecord, InterviewRecord
 from .models import Interview, Role
@@ -58,7 +58,7 @@ def _transcript_match_filter(session, table, term):
         folded_term = term.casefold()
     elif dialect == 'postgresql':
         messages = func.json_array_elements(table.payload['messages']).table_valued(
-            'value').alias('transcript_message')
+            column('value', JSON)).alias('transcript_message')
         text = messages.c.value['text'].as_string()
         sender = messages.c.value['from'].as_string()
         folded_text = func.lower(text)

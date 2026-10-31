@@ -88,6 +88,18 @@ server's working directory. Configure the connection with `DATABASE_URL`:
 DATABASE_URL=sqlite:////absolute/path/interview.db uv run uvicorn app.main:app --port 8000
 ```
 
+PostgreSQL is also supported through the Psycopg 3 driver. For the local
+`interview-canvas-db` container, start the backend from `backend` with:
+
+```sh
+DATABASE_URL=postgresql+psycopg://sdip:sdip@localhost:5432/sdip uv run uvicorn app.main:app --port 8000
+```
+
+The application runs its Alembic migrations at startup. When the backend runs
+in Docker, use the PostgreSQL container's network name instead of `localhost`
+(for example, `interview-canvas-db`) and put both containers on the same Docker
+network.
+
 Relative SQLite paths (such as `sqlite:///interview.db`) resolve from the server's
 working directory. The parent directory must already exist. The server automatically loads `backend/.env` at startup, regardless of its working
 directory. Existing process environment variables take precedence over `.env` values.
@@ -111,10 +123,9 @@ fresh SQLite file per test, and `sqlite:///:memory:` is also supported.
 The repository uses SQLAlchemy types and queries with separate transactions for
 API operations. User emails are unique in the database. Interview writes use version
 checks to reject stale updates with 409. Multiple server instances can use the same
-database. SQLite connection options are applied only to SQLite; another SQLAlchemy
-URL (for example `postgresql+psycopg://user:password@host/interviews`) will select
-that dialect after its driver is installed using `uv add`. PostgreSQL integration
-is not yet tested. Interview setup, messages, feedback, and user profile fields use
+database. SQLite connection options are applied only to SQLite; PostgreSQL uses
+the `postgresql+psycopg` SQLAlchemy URL and the Psycopg 3 driver included in the
+backend dependencies. Interview setup, messages, feedback, and user profile fields use
 portable JSON columns; ownership, status, timestamps, and credentials have dedicated
 columns. Sessions commit on success and roll back on failure, following the
 [SQLAlchemy transaction pattern](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#framing-out-a-begin-commit-rollback-block).

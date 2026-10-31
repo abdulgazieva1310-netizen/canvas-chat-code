@@ -34,6 +34,17 @@ restart scenario restarts the Compose `app` service. If the standalone
 volume, stop it before starting Compose so PostgreSQL does not open the same
 volume twice.
 
+The root Playwright suite exercises registration, login, Setup, one submitted
+answer, and the resulting incomplete report against Compose:
+
+```sh
+cd frontend
+npm run test:e2e:compose
+```
+
+Compose must already be running. Set `COMPOSE_APP_URL` if its host URL is not
+`http://localhost:8100`.
+
 The API is under `http://localhost:8000/api`; interactive docs are at `/docs`.
 Code is split into request/response models, authentication, SQLAlchemy database
 records and a transactional repository, and auth/interview routers.

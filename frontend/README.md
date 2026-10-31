@@ -39,8 +39,7 @@ restores it after reload, and sends it on subsequent API requests alongside
 `credentials: "include"`. Expired tokens are cleared. Passwords are never stored.
 Cookie authentication remains available when browser storage is disabled.
 
-The default API URL is `/api`, which works when the frontend and backend are
-served on the same origin. Copy `.env.example` to
+The default API URL is `http://localhost:8000/api`. Copy `.env.example` to
 `.env.local` to override `VITE_API_BASE_URL` (including `/api`). For deployment,
 use `/api` behind a same-origin reverse proxy, or configure backend `CORS_ORIGINS`
 for the frontend origin and expose the `Authorization` response header (the

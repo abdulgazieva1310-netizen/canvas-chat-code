@@ -26,8 +26,9 @@ their SHA-256 digests are stored. An invalid explicit Authorization header takes
 precedence over a valid cookie. No credentials appear in response bodies.
 
 For browser cookie authentication, use `credentials: 'include'`. CORS allows
-localhost ports 3000, 5173, and 8080, plus 127.0.0.1:8080 by default, and exposes the Authorization response
-header. Set `CORS_ORIGINS` to a comma-separated list of frontend origins and set
+localhost ports 3000, 5173, and 8080, 127.0.0.1:8080, and `http://13.61.182.94`
+by default, and exposes the Authorization response header. Set `CORS_ORIGINS` to a
+comma-separated list of frontend origins and set
 `SECURE_COOKIES=true` when serving over HTTPS.
 
 All interviews are private to their owner. Missing and inaccessible interviews

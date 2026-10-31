@@ -109,7 +109,7 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
     app.state.secure_cookies = (os.getenv('SECURE_COOKIES', 'false').lower() == 'true'
                                 if secure_cookies is None else secure_cookies)
     app.add_middleware(CORSMiddleware,
-        allow_origins=os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000,http://localhost:5173').split(','),
+        allow_origins=os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000,http://localhost:5173,http://13.61.182.94').split(','),
         allow_credentials=True, allow_methods=['*'],
         allow_headers=['*'], expose_headers=['Authorization'])
 

@@ -20,6 +20,29 @@ Start the backend from the repository root:
 make run
 ```
 
+To use PostgreSQL instead of the default SQLite database, start the local
+PostgreSQL 16 container:
+
+```sh
+docker run -d \
+  --name interview-canvas-db \
+  -e POSTGRES_USER=sdip \
+  -e POSTGRES_PASSWORD=sdip \
+  -e POSTGRES_DB=sdip \
+  -p 5432:5432 \
+  -v interview-canvas-pgdata:/var/lib/postgresql/data \
+  postgres:16-alpine
+```
+
+Then run the backend with its PostgreSQL connection URL:
+
+```sh
+DATABASE_URL=postgresql+psycopg://sdip:sdip@localhost:5432/sdip make run
+```
+
+The backend applies database migrations at startup. To use PostgreSQL by
+default, set the same `DATABASE_URL` in `backend/.env`.
+
 Start the frontend in a second terminal:
 
 ```sh

@@ -23,6 +23,9 @@ cd backend
 COMPOSE_INTEGRATION=1 uv run pytest tests/integration/test_compose_stack.py -q
 ```
 
+Compose publishes the app at `http://localhost:8100`; override the test target
+with `COMPOSE_APP_URL` if you use a different host port.
+
 The suite checks frontend CORS origins, interview JSON persistence and
 PostgreSQL transcript search, plus profile and session persistence after an app
 container restart. It creates and deletes uniquely named test accounts. The

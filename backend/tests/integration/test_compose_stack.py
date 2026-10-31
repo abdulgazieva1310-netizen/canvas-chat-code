@@ -16,7 +16,7 @@ if os.getenv("COMPOSE_INTEGRATION") != "1":
 
 ROOT = Path(__file__).resolve().parents[3]
 COMPOSE_FILE = ROOT / "docker-compose.yaml"
-APP_URL = os.getenv("COMPOSE_APP_URL", "http://localhost:8000").rstrip("/")
+APP_URL = os.getenv("COMPOSE_APP_URL", "http://localhost:8100").rstrip("/")
 TIMEOUT = httpx.Timeout(5.0, connect=2.0)
 
 

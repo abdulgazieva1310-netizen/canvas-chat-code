@@ -12,6 +12,25 @@ uv run uvicorn app.main:app --reload --port 8000
 uv run pytest
 ```
 
+## Docker Compose integration tests
+
+Start the Compose services from the repository root, then run the opt-in HTTP
+integration suite from `backend`:
+
+```sh
+docker compose up --build -d
+cd backend
+COMPOSE_INTEGRATION=1 uv run pytest tests/integration/test_compose_stack.py -q
+```
+
+The suite checks both frontend CORS origins, interview JSON persistence and
+PostgreSQL transcript search, plus profile and session persistence after an app
+container restart. It creates and deletes uniquely named test accounts. The
+restart scenario restarts the Compose `app` service. If the standalone
+`interview-canvas-db` container is still using the `interview-canvas-pgdata`
+volume, stop it before starting Compose so PostgreSQL does not open the same
+volume twice.
+
 The API is under `http://localhost:8000/api`; interactive docs are at `/docs`.
 Code is split into request/response models, authentication, SQLAlchemy database
 records and a transactional repository, and auth/interview routers.

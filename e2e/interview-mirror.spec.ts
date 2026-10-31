@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "../frontend/node_modules/@playwright/test/index.mjs";
 
 const baseURL = process.env.COMPOSE_APP_URL ?? "http://localhost:8100";
-const password = "compose-e2e-password";
+const password = "ComposeE2e2026!";
 
 test("register, log in, complete an interview answer, and review its report", async ({ page }) => {
-  const email = `compose-e2e-${randomUUID()}@example.test`;
+  const email = `compose-e2e-${randomUUID()}@example.com`;
   const name = "Compose E2E Candidate";
   let authorization: string | undefined;
 

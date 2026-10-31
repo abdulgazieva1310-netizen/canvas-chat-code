@@ -1,6 +1,7 @@
 FROM node:22-slim AS frontend-build
 
 WORKDIR /src/frontend
+ENV VITE_API_BASE_URL=/api
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./

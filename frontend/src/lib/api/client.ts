@@ -25,7 +25,7 @@ import type {
   StudyPlanList,
 } from "./types";
 
-const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api").replace(
+const baseUrl = (import.meta.env["VITE_API_BASE_URL"] || "/api").replace(
   /\/+$/,
   "",
 );

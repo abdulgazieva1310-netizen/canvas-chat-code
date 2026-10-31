@@ -26,7 +26,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sdip}:${POSTGRES_PASSWORD:-sdip}@postgres:5432/${POSTGRES_DB:-sdip}
     ports:
-      - "8000:8000"
+      - "8100:8000"
     restart: unless-stopped
 
 volumes:

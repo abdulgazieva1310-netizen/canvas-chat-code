@@ -23,7 +23,7 @@ cd backend
 COMPOSE_INTEGRATION=1 uv run pytest tests/integration/test_compose_stack.py -q
 ```
 
-The suite checks both frontend CORS origins, interview JSON persistence and
+The suite checks frontend CORS origins, interview JSON persistence and
 PostgreSQL transcript search, plus profile and session persistence after an app
 container restart. It creates and deletes uniquely named test accounts. The
 restart scenario restarts the Compose `app` service. If the standalone
@@ -45,7 +45,7 @@ their SHA-256 digests are stored. An invalid explicit Authorization header takes
 precedence over a valid cookie. No credentials appear in response bodies.
 
 For browser cookie authentication, use `credentials: 'include'`. CORS allows
-localhost ports 3000, 5173, and 8080, 127.0.0.1:8080, and `http://13.61.182.94`
+localhost ports 3000, 5173, 8080, and 8100, 127.0.0.1:8080, and `http://13.61.182.94`
 by default, and exposes the Authorization response header. Set `CORS_ORIGINS` to a
 comma-separated list of frontend origins and set
 `SECURE_COOKIES=true` when serving over HTTPS.

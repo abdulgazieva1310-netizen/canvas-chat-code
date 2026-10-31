@@ -61,7 +61,11 @@ def account(api):
     assert deleted.status_code == 204, f"Failed to delete disposable test account: {deleted.text}"
 
 
-@pytest.mark.parametrize("origin", ["http://localhost:8080", "http://127.0.0.1:8080"])
+@pytest.mark.parametrize("origin", [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://localhost:8100",
+])
 def test_frontend_origins_pass_cors_preflight(api, origin):
     response = api.options("/api/interviews", headers={
         "Origin": origin,

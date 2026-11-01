@@ -1,6 +1,7 @@
 """Transactional database repository and deterministic interview fixtures."""
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+import hashlib
 import re
 from uuid import uuid4
 
@@ -103,19 +104,41 @@ def practice_topics(missing, suggested=None):
     return result
 
 
-def question(setup, index, effective_level=None):
+def question(setup, index, effective_level=None, used_questions=(), seed=''):
     level = effective_level or setup.level
-    if setup.practiceTopic:
-        try:
-            matches = [item for item in load_bank() if setup.role in item.roles
-                       and level in item.levels and setup.type == item.type
-                       and (item.topic.casefold() in setup.practiceTopic.casefold()
-                            or setup.practiceTopic.casefold() in item.topic.casefold())]
-        except BankError:
-            matches = []
-        if matches:
-            item = sorted(matches, key=lambda candidate: candidate.id)[index % len(matches)]
-            return item.candidate_prompt(setup.role)
+    used = [re.sub(r'[^\w]+', ' ', text.casefold()).strip() for text in used_questions]
+    try:
+        bank = load_bank()
+        compatible = sorted((item for item in bank if setup.role in item.roles
+                             and level in item.levels and setup.type == item.type),
+                            key=lambda item: item.id)
+        if setup.practiceTopic:
+            targeted = [item for item in compatible
+                        if item.topic.casefold() in setup.practiceTopic.casefold()
+                        or setup.practiceTopic.casefold() in item.topic.casefold()]
+            if targeted and any(not _question_was_used(item.candidate_prompt(setup.role), used)
+                                for item in targeted):
+                compatible = targeted
+        available = [item for item in compatible
+                     if not _question_was_used(item.candidate_prompt(setup.role), used)]
+        if available:
+            offset = int(hashlib.sha256(seed.encode()).hexdigest()[:8], 16) if seed else 0
+            desired = compatible[(offset + index) % len(compatible)] if compatible else None
+            if desired and desired in available:
+                item = desired
+            else:
+                item = available[0]
+            candidate = item.candidate_prompt(setup.role)
+            if setup.practiceTopic and not any(
+                    item.topic.casefold() in setup.practiceTopic.casefold()
+                    or setup.practiceTopic.casefold() in item.topic.casefold()
+                    for item in compatible):
+                return (f'No matching curated questions for “{setup.practiceTopic}”. '
+                        f'Continuing with a role-compatible {setup.type.lower()} practice question.\n\n'
+                        f'{candidate}')
+            return candidate
+    except BankError:
+        pass
     if setup.type == 'Technical' and setup.role in CODING_ROLES:
         language = {'Java Developer': 'Java', 'Python Developer': 'Python',
                     'C++ Developer': 'C++'}.get(setup.role, 'a language of your choice')
@@ -140,6 +163,12 @@ def question(setup, index, effective_level=None):
         return (f'No matching curated questions for “{setup.practiceTopic}”. '
                 f'Continuing with a role-compatible {setup.type.lower()} practice question.\n\n{fallback}')
     return fallback
+
+
+def _question_was_used(candidate, used_questions):
+    key = re.sub(r'[^\w]+', ' ', candidate.casefold()).strip()
+    return bool(key) and any(previous and
+        (key == previous or key in previous or previous in key) for previous in used_questions)
 
 
 def report(interview, evaluations=None):
@@ -393,7 +422,7 @@ class Repository:
     def start(self, user_id, setup, first_question=None):
         ident = str(uuid4())
         interview = Interview(id=ident, setup=setup, effectiveLevel=setup.level, startedAt=now(),
-                              messages=[message(ident, 'ai', first_question or question(setup, 0))])
+                              messages=[message(ident, 'ai', first_question or question(setup, 0, seed=ident))])
         self.session.add(InterviewRecord(id=ident, owner_id=user_id,
             started_at=interview.startedAt.timestamp(), status=interview.status,
             payload=interview.model_dump(mode='json', by_alias=True)))
@@ -483,8 +512,11 @@ class Repository:
             interview.status = 'complete'
             interview.endedAt = now()
         else:
+            used_questions = [item.text for item in interview.messages
+                              if item.sender == 'ai' and item.kind == 'main']
             interview.messages.append(message(interview.id, 'ai', next_question or question(
-                interview.setup, interview.answeredCount, interview.effectiveLevel)))
+                interview.setup, interview.answeredCount, interview.effectiveLevel,
+                used_questions, interview.id)))
         self.save(interview)
         return interview
 

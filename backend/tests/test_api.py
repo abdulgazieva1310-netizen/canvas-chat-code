@@ -461,10 +461,13 @@ def test_question_fallback_during_api_outage(client, monkeypatch):
     login(client)
     interview = start(client, type='Behavioral')
     setup = InterviewSetup(**(SETUP | {'type': 'Behavioral'}))
-    assert interview['messages'][0]['text'] == question(setup, 0)
+    first_question = interview['messages'][0]['text']
+    assert first_question == question(setup, 0, seed=interview['id'])
     response = client.post('/api/interviews/' + interview['id'] + '/messages', json={'text': 'Answer'})
     assert response.status_code == 200
-    assert response.json()['messages'][-1]['text'] == question(setup, 1)
+    next_question = response.json()['messages'][-1]['text']
+    assert next_question == question(setup, 1, used_questions=[first_question], seed=interview['id'])
+    assert next_question != first_question
 
 
 @pytest.mark.parametrize('mode', ['Practice', 'Real Interview'])
@@ -553,7 +556,7 @@ def test_difficulty_transition_persists_and_drives_ai_and_curated_next_question(
         assert levels == ['Middle', 'Senior']
         assert updated['setup']['level'] == 'Middle'
         assert updated['effectiveLevel'] == 'Senior'
-        assert updated['messages'][-1]['text'].startswith('Question 2 (Senior)')
+        assert updated['messages'][-1]['text'] != interview['messages'][0]['text']
         decision = updated['difficultyDecisions'][0]
         assert decision['questionId'] == interview['messages'][0]['id']
         assert decision['answerId'] == next(m['id'] for m in updated['messages'] if m['from'] == 'you')

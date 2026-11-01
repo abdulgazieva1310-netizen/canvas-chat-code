@@ -408,6 +408,13 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             next_question = ai_service.generate_question(setup.role, next_level, conversation,
                 interview_type=setup.type, job_description=setup.jobDescription,
                 practice_topic=setup.practiceTopic, used_questions=used_questions, **question_options)
+            if ai_service.question_was_used(next_question, used_questions):
+                next_question = ai_service.generate_question(setup.role, next_level, conversation,
+                    interview_type=setup.type, job_description=setup.jobDescription,
+                    practice_topic=setup.practiceTopic,
+                    used_questions=[*used_questions, next_question], **question_options)
+            if ai_service.question_was_used(next_question, used_questions):
+                next_question = None
             if setup.language == 'Russian' and not next_question:
                 raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Your answer was not saved; retry or select English.')
         return store.answer(interview, data.text, next_question=next_question,
@@ -432,10 +439,18 @@ def next_question(interviewId: str, request: Request, user: CurrentUser):
             store.save(interview)
             return interview.model_copy(deep=True)
         level = interview.effectiveLevel or setup.level
+        used_questions = [m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main']
         generated = ai_service.generate_question(setup.role, level, interview.messages,
             interview_type=setup.type, job_description=setup.jobDescription,
             practice_topic=setup.practiceTopic, interview_language='Russian',
-            used_questions=[m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main'])
+            used_questions=used_questions)
+        if ai_service.question_was_used(generated, used_questions):
+            generated = ai_service.generate_question(setup.role, level, interview.messages,
+                interview_type=setup.type, job_description=setup.jobDescription,
+                practice_topic=setup.practiceTopic, interview_language='Russian',
+                used_questions=[*used_questions, generated])
+        if ai_service.question_was_used(generated, used_questions):
+            generated = None
         if not generated:
             raise HTTPException(503, 'Your answer and scores are saved. The next Russian question is unavailable; retry later.')
         interview.messages.append(message(interview.id, 'ai', generated))

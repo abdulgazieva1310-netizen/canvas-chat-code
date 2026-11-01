@@ -33,6 +33,12 @@ reviewer notes. These roles do not receive the coding-only constraints rule.
 The complete bank contains 495 stable records and covers all 81 MVP
 role/type/level combinations with 15 unique questions in each. Run:
 
+When Groq is unavailable, English interviews now select an unused compatible
+question from this bank. Targeted practice prefers matching topics, then moves
+to the remaining role/type/level questions when those topic matches are used.
+If Groq returns a question already asked in an English interview, generation
+retries once before using the unused curated fallback.
+
 ```sh
 uv run --project backend pytest backend/tests/test_noncoding_questions.py backend/tests/test_workplace_questions.py backend/tests/test_question_bank.py
 ```

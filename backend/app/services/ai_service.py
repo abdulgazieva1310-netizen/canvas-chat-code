@@ -310,6 +310,17 @@ def generate_question(role: str, level: str, previous_messages: Sequence[Message
         return None
 
 
+def question_was_used(candidate: str | None, used_questions: Sequence[str]) -> bool:
+    if not candidate:
+        return False
+
+    def normalize(value: str) -> str:
+        return re.sub(r'[^\w]+', ' ', value.casefold()).strip()
+
+    key = normalize(candidate)
+    return bool(key) and any(normalize(previous) == key for previous in used_questions)
+
+
 def _compatible_question(content: str, role: str, interview_type: str,
                          interview_language: str = 'English') -> bool:
     """Reject obvious cross-type output and underspecified coding prompts."""

@@ -3,7 +3,12 @@
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": ["iam:GetRole", "iam:PassRole"],
+      "Action": "iam:GetRole",
+      "Resource": "arn:aws:iam::451726026816:role/interview-mirror-staging-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
       "Resource": "arn:aws:iam::451726026816:role/interview-mirror-staging-*",
       "Condition": {
         "StringEquals": {

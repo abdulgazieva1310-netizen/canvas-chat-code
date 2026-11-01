@@ -10,8 +10,10 @@ in parallel. A push to `main` deploys only after all four jobs pass.
 Configure the repository variable `AWS_DEPLOY_ROLE_ARN` with an IAM role that
 trusts GitHub's OIDC provider `token.actions.githubusercontent.com`. Restrict
 its trust policy to audience `sts.amazonaws.com` and subject
-`repo:abdulgazieva1310-netizen/canvas-chat-code:ref:refs/heads/main`. The role
-needs ECR push access for `interview-mirror`, CloudFormation update access for
+`repo:abdulgazieva1310-netizen@332606930/canvas-chat-code@1423419216:ref:refs/heads/main`.
+GitHub is configured to use immutable OIDC subject claims, so the owner and
+repository IDs are part of the subject. The role needs ECR push access for
+`interview-mirror`, CloudFormation update access for
 `interview-mirror-staging`, and `iam:PassRole` for the stack's ECS task
 execution and Express infrastructure roles. The workflow assumes this role
 without long-lived AWS keys, tags images with the commit SHA, updates the stack

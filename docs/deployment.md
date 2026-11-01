@@ -1,5 +1,27 @@
 # Production deployment
 
+## GitHub Actions deployment
+
+`.github/workflows/checks.yml` runs backend tests, frontend tests/build, the
+Docker Compose PostgreSQL/API integration tests, the Compose browser E2E test,
+and the full journey runner. The backend, frontend, Compose, and journey jobs run
+in parallel. A push to `main` deploys only after all four jobs pass.
+
+Configure the repository variable `AWS_DEPLOY_ROLE_ARN` with an IAM role that
+trusts GitHub's OIDC provider `token.actions.githubusercontent.com`. Restrict
+its trust policy to audience `sts.amazonaws.com` and subject
+`repo:abdulgazieva1310-netizen/canvas-chat-code:ref:refs/heads/main`. The role
+needs ECR push access for `interview-mirror`, CloudFormation update access for
+`interview-mirror-staging`, and `iam:PassRole` for the stack's ECS task
+execution and Express infrastructure roles. The workflow assumes this role
+without long-lived AWS keys, tags images with the commit SHA, updates the stack
+parameter `ImageTag`, and checks `/api/health` before succeeding.
+
+The stack and ECR repository must already exist. Configure the AWS role and
+repository variable before merging a commit to `main`; otherwise the deploy job
+will fail at role assumption. The stack's Groq secret is separate from the
+workflow and is not overwritten during updates.
+
 Run the frontend SSR server and FastAPI as separate services behind an HTTPS
 reverse proxy. Install Python 3.11+ with uv and a Node version compatible with the
 locked frontend dependencies (this guide was verified with Node 22).

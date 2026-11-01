@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["iam:GetRole", "iam:PassRole"],
+      "Resource": "arn:aws:iam::451726026816:role/interview-mirror-staging-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": [
+            "ecs.amazonaws.com",
+            "ecs-tasks.amazonaws.com"
+          ]
+        }
+      }
+    }
+  ]
+}

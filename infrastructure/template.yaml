@@ -1,0 +1,333 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Interview Mirror staging stack: ECR, public ECS Express Mode service, private
+  PostgreSQL database, and Secrets Manager values. No application resources are
+  created until this template is deployed.
+
+Parameters:
+  ServiceName:
+    Type: String
+    Default: interview-mirror
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9-]{1,39}'
+  DatabaseName:
+    Type: String
+    Default: interviewmirror
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]{1,62}'
+  DatabaseUsername:
+    Type: String
+    Default: interviewapp
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9_]{0,62}'
+  GroqApiKey:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    Description: Groq API key. Stored as a Secrets Manager secret.
+  ImageTag:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|[A-Za-z0-9_.-]{1,128}'
+    Description: >-
+      Leave empty for the infrastructure-only first deployment. After pushing
+      the image to ECR, update the stack with its immutable image tag.
+
+Conditions:
+  HasImageTag: !Not [!Equals [!Ref ImageTag, '']]
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.40.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-vpc'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.40.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-public-a'
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.40.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-public-b'
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.40.10.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-private-a'
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: 10.40.11.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-private-b'
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ECS Express load balancer traffic to the app port
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 10.40.0.0/16
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-app'
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: PostgreSQL accepts connections only from the app tasks
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${ServiceName}-database'
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for Interview Mirror PostgreSQL
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+  DatabaseCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${ServiceName}/database-credentials'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username":"${DatabaseUsername}"}'
+        GenerateStringKey: password
+        PasswordLength: 40
+        ExcludePunctuation: true
+
+  GroqApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${ServiceName}/groq-api-key'
+      SecretString: !Ref GroqApiKey
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: postgres
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: !Ref DatabaseName
+      MasterUsername: !Ref DatabaseUsername
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:password}}'
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VPCSecurityGroups:
+        - !GetAtt DatabaseSecurityGroup.GroupId
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 1
+      AutoMinorVersionUpgrade: true
+      DeletionProtection: false
+
+  DatabaseUrlSecret:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: Database
+    Properties:
+      Name: !Sub '${ServiceName}/database-url'
+      SecretString: !Sub
+        - 'postgresql+psycopg://${DatabaseUsername}:${DbPassword}@${DbHost}:5432/${DatabaseName}'
+        - DbPassword: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:password}}'
+          DbHost: !GetAtt Database.Endpoint.Address
+
+  EcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref ServiceName
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      LifecyclePolicy:
+        LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Keep latest 20 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":20},"action":{"type":"expire"}}]}'
+
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ReadApplicationSecrets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref DatabaseUrlSecret
+                  - !Ref GroqApiKeySecret
+
+  EcsExpressInfrastructureRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRoleforExpressGatewayServices
+
+  ApplicationCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub '${ServiceName}-cluster'
+
+  EcsExpressService:
+    Type: AWS::ECS::ExpressGatewayService
+    Condition: HasImageTag
+    DependsOn:
+      - DatabaseUrlSecret
+      - GroqApiKeySecret
+    Properties:
+      Cluster: !Ref ApplicationCluster
+      ServiceName: !Ref ServiceName
+      InfrastructureRoleArn: !GetAtt EcsExpressInfrastructureRole.Arn
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      Cpu: '1024'
+      Memory: '2048'
+      HealthCheckPath: /api/health
+      NetworkConfiguration:
+        Subnets:
+          - !Ref PublicSubnetA
+          - !Ref PublicSubnetB
+        SecurityGroups:
+          - !Ref AppSecurityGroup
+      ScalingTarget:
+        MinTaskCount: 1
+        MaxTaskCount: 1
+      PrimaryContainer:
+        Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/${EcrRepository}:${ImageTag}'
+        ContainerPort: 8000
+        Environment:
+          - Name: SECURE_COOKIES
+            Value: 'true'
+          - Name: DATABASE_NAME
+            Value: !Ref DatabaseName
+          - Name: PASSWORD_RESET_URL
+            Value: !Sub 'https://${ServiceName}.ecs.${AWS::Region}.on.aws/reset-password'
+          - Name: EMAIL_ADAPTER
+            Value: auto
+        Secrets:
+          - Name: DATABASE_URL
+            ValueFrom: !Ref DatabaseUrlSecret
+          - Name: GROQ_API_KEY
+            ValueFrom: !Ref GroqApiKeySecret
+
+Outputs:
+  EcrRepositoryUri:
+    Description: Push the built application image here before deploying the service.
+    Value: !GetAtt EcrRepository.RepositoryUri
+  ApplicationUrl:
+    Condition: HasImageTag
+    Description: ECS Express Mode HTTPS endpoint.
+    Value: !GetAtt EcsExpressService.Endpoint
+  DatabaseEndpoint:
+    Description: Private RDS PostgreSQL endpoint.
+    Value: !GetAtt Database.Endpoint.Address
+  GroqSecretArn:
+    Description: Secrets Manager secret containing the configured Groq API key.
+    Value: !Ref GroqApiKeySecret

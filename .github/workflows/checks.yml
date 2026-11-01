@@ -1,17 +1,58 @@
-name: Checks
+name: Checks and deploy
+
 on:
   pull_request:
   push:
     branches: [main]
+
 permissions:
   contents: read
+
 concurrency:
   group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
-  tests:
+  backend:
+    name: Backend tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --locked --project backend
+      - run: uv run --locked --project backend pytest backend/tests
+      - run: uv run --locked --project backend python -m pytest coding-runner/test_runner.py
+
+  frontend:
+    name: Frontend tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm test --prefix frontend
+      - run: npm run build --prefix frontend
+
+  compose:
+    name: Docker Compose integration and E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      AI_API_KEY: ''
+      EMAIL_ADAPTER: local
+      COMPOSE_APP_URL: http://localhost:8100
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,13 +69,34 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: uv sync --locked --project backend
       - run: npm ci --prefix frontend
-      - run: uv run --locked --project backend pytest backend/tests
-      - run: uv run --locked --project backend python -m pytest coding-runner/test_runner.py
-      - run: npm test --prefix frontend
-      - run: npm run build --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Build and start Compose stack
+        run: docker compose up --build --detach
+      - name: Run PostgreSQL and API integration tests
+        env:
+          COMPOSE_INTEGRATION: '1'
+        run: uv run --locked --project backend pytest backend/tests/integration/test_compose_stack.py -q
+      - name: Run browser E2E against Compose
+        run: npm run test:e2e:compose --prefix frontend
+      - name: Upload browser artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-e2e-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+      - name: Stop Compose stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
   journeys:
+    name: Full browser journeys
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       AI_API_KEY: ''
       EMAIL_ADAPTER: local
@@ -60,10 +122,70 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: browser-failure-${{ github.run_id }}
+          name: browser-journey-failure-${{ github.run_id }}
           retention-days: 7
           if-no-files-found: warn
           path: |
             frontend/test-results/
             frontend/playwright-report/
             frontend/journey-servers.log
+
+  deploy:
+    name: Deploy to AWS
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, compose, journeys]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-central-1
+      - name: Resolve ECR repository from CloudFormation
+        id: stack
+        shell: bash
+        run: |
+          repository_uri="$(aws cloudformation describe-stacks \
+            --stack-name interview-mirror-staging \
+            --query "Stacks[0].Outputs[?OutputKey=='EcrRepositoryUri'].OutputValue | [0]" \
+            --output text)"
+          test -n "$repository_uri" && test "$repository_uri" != None
+          echo "repository_uri=$repository_uri" >> "$GITHUB_OUTPUT"
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push immutable commit image
+        env:
+          IMAGE_URI: ${{ steps.stack.outputs.repository_uri }}:${{ github.sha }}
+        run: |
+          docker build --platform linux/amd64 -t "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+      - name: Deploy image with CloudFormation
+        run: >-
+          aws cloudformation deploy
+          --template-file infrastructure/template.yaml
+          --stack-name interview-mirror-staging
+          --capabilities CAPABILITY_IAM
+          --parameter-overrides ImageTag=${{ github.sha }}
+          --no-fail-on-empty-changeset
+      - name: Verify deployed health endpoint
+        shell: bash
+        run: |
+          app_url="$(aws cloudformation describe-stacks \
+            --stack-name interview-mirror-staging \
+            --query "Stacks[0].Outputs[?OutputKey=='ApplicationUrl'].OutputValue | [0]" \
+            --output text)"
+          test -n "$app_url" && test "$app_url" != None
+          for attempt in $(seq 1 36); do
+            if curl --fail --silent --show-error --max-time 10 "$app_url/api/health"; then
+              echo "Application health check passed at $app_url/api/health"
+              exit 0
+            fi
+            echo "Health check attempt $attempt/36 failed; retrying in 10 seconds"
+            sleep 10
+          done
+          echo "Deployment health check failed for $app_url/api/health" >&2
+          exit 1

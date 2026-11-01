@@ -16,9 +16,13 @@ answer evaluation, or report feedback for an existing session. Profile language
 remains a general preference; unsupported values are not treated as interview
 languages.
 
-Russian sessions require `AI_API_KEY` and the exact allowlisted model above. When
-the provider or model is unavailable, the API returns a clear error rather than
-using English fallback questions, hints, or evaluations. Russian output is
+Russian sessions require `AI_API_KEY` and the exact allowlisted model above to
+start and generate localized interview content. If a next Russian question
+cannot be generated, the interview falls back to an English question from Groq
+or the curated bank and asks Groq to translate it. If translation is also
+unavailable, the transcript includes the English question and a Russian
+instruction to answer in Russian. Russian hints and evaluations retain their
+retryable errors rather than silently switching languages. Russian output is
 checked for Cyrillic text, and coding prompts also need localized problem
 requirements. English sessions retain their existing provider fallback behavior.
 
@@ -52,14 +56,18 @@ even when enabled. English remains selectable through its curated fallback.
 Question generation, follow-ups, hints, and evaluation also enforce the matrix
 at the AI service boundary. Calling these services directly with a disabled,
 unknown, or unallowlisted non-English combination returns no generated content
-without sending a provider request. HTTP callers retain their explicit errors.
+without sending a provider request. The Russian next-question endpoint uses the
+English question and translation fallback described above; other Russian
+operations retain their retryable errors.
 
 Russian generated questions, follow-ups, and hints additionally
 undergo a provider-based semantic review against their question/answer context.
-Malformed, negative, or unavailable review results reject the content and retain
-the existing explicit failure/skip behavior. This adds a provider round trip per
-generated item. Russian generation and review allow up to 30 seconds of read
-inactivity per request; several requests may occur in one interview operation.
+Malformed or negative review results reject the content. When a Russian main
+question is rejected or unavailable, the next-question endpoint switches to the
+English/translated fallback; hints retain their explicit failure behavior. The
+semantic review adds a provider round trip per generated item. Russian
+generation and review allow up to 30 seconds of read inactivity per request;
+several requests may occur in one interview operation.
 Question and hint generation use a 4,096-token completion budget to reduce
 reasoning-related truncation. Provider 429 responses can be retried at most twice,
 with a combined wait budget of 30 seconds. Fractional delays in the provider body
@@ -84,8 +92,9 @@ Russian answer submission commits the validated answer and scores immediately.
 When an active transcript ends in a user answer, the frontend separately calls
 `POST /api/interviews/{id}/next-question` to fetch a follow-up/main question or
 finish the interview. This also resumes after reloading a pending interview.
-Question-provider failure cannot roll back scores: the UI shows **Retry next
-question** and lets the user end the interview to review saved results.
+If Russian question generation fails, that endpoint uses the translated English
+fallback without rolling back scores; the user can still end the interview to
+review saved results.
 
 Code-review examples may contain English keywords and identifiers. Russian
 comments or docstrings count as localized coaching when the other feedback
@@ -121,9 +130,10 @@ and results for Russian behavioral, role-specific and coding questions, hints,
 feedback and saved reports. Dictate representative Russian answers, inspect
 transcription accuracy, and listen to questions for intelligibility and locale.
 Exercise provider outage and missing-voice behavior and explicitly switch back
-to English. Russian curated fallback is intentionally unavailable: provider
-failure must return an error rather than exposing the English bank. Issue #63
-remains open until this end-to-end review passes.
+to English. Russian curated content remains unavailable; question fallback can
+use the English bank with a translation attempt and clearly labeled source text
+if translation fails. Other Russian services still report provider errors.
+Issue #63 remains open until this end-to-end review passes.
 
 ## Provider repair (2026-10-20)
 

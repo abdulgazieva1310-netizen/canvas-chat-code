@@ -6,6 +6,16 @@ function synthesis() {
     : undefined;
 }
 
+function spokenQuestion(text: string, language: "English" | "Russian") {
+  if (language !== "Russian") return text;
+  const sourceMarker = "\n\nОригинал вопроса на английском:\n";
+  if (text.includes(sourceMarker)) return text.split(sourceMarker, 1)[0] ?? text;
+  if (text.startsWith("Перевод вопроса временно недоступен.")) {
+    return "Перевод вопроса временно недоступен. Прочитайте вопрос на экране и ответьте на него по-русски.";
+  }
+  return text;
+}
+
 export function useSpokenQuestion(
   enabled: boolean,
   questionId: string,
@@ -72,7 +82,7 @@ export function useSpokenQuestion(
         );
         return;
       }
-      const next = new SpeechSynthesisUtterance(text);
+      const next = new SpeechSynthesisUtterance(spokenQuestion(text, language));
       const currentGeneration = generation.current;
       next.lang = language === "Russian" ? "ru-RU" : "en-US";
       if (fallbackVoice) next.voice = fallbackVoice;

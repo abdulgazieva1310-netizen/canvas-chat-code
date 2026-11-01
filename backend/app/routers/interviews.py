@@ -19,7 +19,7 @@ from ..models import (CODING_LANGUAGES, CODING_ROLES, Answer, CodeRunRequest,
                       InterviewReport, InterviewSetup, MediaConsentRequest)
 from ..media_storage import (ALLOWED_MEDIA_TYPES, MAX_MEDIA_BYTES, RETENTION_DAYS,
                              ensure_media_root, media_path, remove_media_file)
-from ..store import answer_text, message, now
+from ..store import answer_text, message, now, question as curated_question
 from ..services.difficulty import transition as difficulty_transition
 from ..services import ai_service
 from ..services.coding_specs import JUDGE_CASES, PUBLIC_CASES, reviewed_judge_key
@@ -430,8 +430,6 @@ def next_question(interviewId: str, request: Request, user: CurrentUser):
             return interview.model_copy(deep=True)
         if interview.setup.language != 'Russian':
             raise HTTPException(409, 'No question is pending for this interview.')
-        if not ai_service.provider_supports_language('Russian'):
-            raise HTTPException(503, 'Your answer is saved. Russian question services are unavailable; retry later.')
         setup = interview.setup
         if interview.answeredCount >= setup.questionCount:
             interview.status = 'complete'
@@ -452,7 +450,25 @@ def next_question(interviewId: str, request: Request, user: CurrentUser):
         if ai_service.question_was_used(generated, used_questions):
             generated = None
         if not generated:
-            raise HTTPException(503, 'Your answer and scores are saved. The next Russian question is unavailable; retry later.')
+            english_question = ai_service.generate_question(setup.role, level, interview.messages,
+                interview_type=setup.type, job_description=setup.jobDescription,
+                practice_topic=setup.practiceTopic, interview_language='English',
+                used_questions=used_questions)
+            if (ai_service.question_was_used(english_question, used_questions)
+                    or (english_question and ai_service.has_russian_text(english_question))):
+                english_question = None
+            if not english_question:
+                english_setup = setup.model_copy(update={'language': 'English'})
+                english_question = curated_question(english_setup, interview.answeredCount, level,
+                    used_questions, interview.id)
+            if english_question.startswith('No matching curated questions'):
+                english_question = english_question.split('\n\n', 1)[1]
+            translated = ai_service.translate_question_to_russian(english_question)
+            if translated:
+                generated = f'{translated}\n\nОригинал вопроса на английском:\n{english_question}'
+            else:
+                generated = ('Перевод вопроса временно недоступен. Вопрос на английском:\n'
+                             f'{english_question}\n\nПожалуйста, ответьте на него по-русски.')
         interview.messages.append(message(interview.id, 'ai', generated))
         store.save(interview)
         return interview.model_copy(deep=True)

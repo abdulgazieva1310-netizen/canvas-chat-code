@@ -276,7 +276,7 @@ def test_untranslated_improved_example_does_not_discard_actual_scores(provider):
     assert 'Here is' not in result.stronger_answer
 
 
-def test_next_question_failure_cannot_rollback_saved_russian_scores(provider, monkeypatch, tmp_path):
+def test_next_question_provider_failure_uses_fallback_and_keeps_saved_scores(provider, monkeypatch, tmp_path):
     monkeypatch.setattr(ai_service, 'generate_question', lambda *a, **kw: 'Как проверить список?')
     followups = []
     monkeypatch.setattr(ai_service, 'generate_followup', lambda *a, **kw: followups.append(True) or None)
@@ -298,8 +298,14 @@ def test_next_question_failure_cannot_rollback_saved_russian_scores(provider, mo
         assert followups == []  # No question-provider calls block the scoring transaction.
         assert client.post(path + '/hint').status_code == 409
         monkeypatch.setattr(ai_service, 'generate_question', lambda *a, **kw: None)
-        failed = client.post(path + '/next-question')
-        assert failed.status_code == 503 and 'saved' in failed.json()['message']
+        monkeypatch.setattr(ai_service, 'translate_question_to_russian', lambda *_args: None)
+        continued_from_fallback = client.post(path + '/next-question')
+        assert continued_from_fallback.status_code == 200
+        assert continued_from_fallback.json()['messages'][-1]['from'] == 'ai'
+        assert (
+            'Пожалуйста, ответьте на него по-русски'
+            in continued_from_fallback.json()['messages'][-1]['text']
+        )
         saved = client.get(path).json()
         assert saved['answeredCount'] == 1 and saved['lastAnswerFeedback']['accuracy'] == 8
         assert client.post(path + '/messages', json=body).status_code == 200

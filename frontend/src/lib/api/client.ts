@@ -72,6 +72,14 @@ async function request<T>(
   const isAuthRequest =
     path === "/auth/login" || path === "/auth/register" || path.startsWith("/auth/password-reset/");
   const authorization = isAuthRequest ? null : getAuthorization();
+  const csrfToken =
+    typeof document === "undefined"
+      ? undefined
+      : document.cookie
+          .split(";")
+          .map((cookie) => cookie.trim())
+          .find((cookie) => cookie.startsWith("csrf_token="))
+          ?.slice("csrf_token=".length);
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     credentials: "include",
@@ -80,6 +88,7 @@ async function request<T>(
       Accept: responseType === "blob" ? "*/*" : "application/json",
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       ...(authorization ? { Authorization: authorization } : {}),
+      ...(!authorization && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

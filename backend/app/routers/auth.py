@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timedelta, timezone
 import logging
 import secrets
+import hashlib
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy import delete, select, update
@@ -21,6 +22,12 @@ router = APIRouter(prefix='/auth', tags=['auth'])
 @router.post('/password-reset/request', status_code=202)
 def request_reset(data: ResetRequest, request: Request, response: Response):
     response.headers['Cache-Control'] = 'no-store'
+    client_host = request.client.host if request.client else 'unknown'
+    rate_key = hashlib.sha256(f'{client_host}:{str(data.email).lower()}'.encode()).hexdigest()
+    retry_after = request.app.state.password_reset_limiter.consume(rate_key)
+    if retry_after is not None:
+        raise HTTPException(429, 'Too many password reset requests. Try again later.',
+                            headers={'Retry-After': str(retry_after), 'Cache-Control': 'no-store'})
     token = secrets.token_urlsafe(32)
     with request.app.state.store.transaction() as store:
         user = store.user_by_email(str(data.email).lower())
@@ -65,6 +72,8 @@ def confirm_reset(data: ResetPassword, request: Request):
     response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
     response.delete_cookie('session', path='/api', httponly=True,
                            secure=request.app.state.secure_cookies, samesite='lax')
+    response.delete_cookie('csrf_token', path='/', secure=request.app.state.secure_cookies,
+                           samesite='lax')
     return response
 
 
@@ -94,6 +103,8 @@ def logout(request: Request):
     response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
     response.delete_cookie('session', path='/api', httponly=True,
                            secure=request.app.state.secure_cookies, samesite='lax')
+    response.delete_cookie('csrf_token', path='/', secure=request.app.state.secure_cookies,
+                           samesite='lax')
     return response
 
 
@@ -152,4 +163,6 @@ def delete_account(data: DeleteAccount, request: Request, user: CurrentUser):
     response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
     response.delete_cookie('session', path='/api', httponly=True,
         secure=request.app.state.secure_cookies, samesite='lax')
+    response.delete_cookie('csrf_token', path='/', secure=request.app.state.secure_cookies,
+        samesite='lax')
     return response

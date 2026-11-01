@@ -10,6 +10,8 @@ import os
 from contextlib import asynccontextmanager
 import asyncio
 import logging
+import hmac
+from .rate_limit import SlidingWindowRateLimiter
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -106,12 +108,32 @@ def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None
     app.state.store = store
     app.state.mailer = mailer if mailer is not None else email_delivery()
     app.state.reset_url = password_reset_url()
+    app.state.password_reset_limiter = SlidingWindowRateLimiter(limit=5, window_seconds=60)
     app.state.secure_cookies = (os.getenv('SECURE_COOKIES', 'false').lower() == 'true'
                                 if secure_cookies is None else secure_cookies)
     app.add_middleware(CORSMiddleware,
         allow_origins=os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080,http://localhost:8100,http://localhost:3000,http://localhost:5173,http://13.61.182.94').split(','),
         allow_credentials=True, allow_methods=['*'],
         allow_headers=['*'], expose_headers=['Authorization'])
+
+    @app.middleware('http')
+    async def protect_cookie_authenticated_mutations(request: Request, call_next):
+        unsafe_method = request.method not in {'GET', 'HEAD', 'OPTIONS', 'TRACE'}
+        cookie_authenticated = bool(request.cookies.get('session'))
+        bearer_authenticated = request.headers.get('authorization', '').lower().startswith('bearer ')
+        browser_request = bool(request.headers.get('origin') or request.headers.get('sec-fetch-site'))
+        public_auth_action = request.url.path in {
+            '/api/auth/login', '/api/auth/register',
+            '/api/auth/password-reset/request', '/api/auth/password-reset/confirm',
+        }
+        if (request.url.path.startswith('/api/') and unsafe_method and cookie_authenticated and browser_request and
+                not bearer_authenticated and not public_auth_action):
+            cookie_token = request.cookies.get('csrf_token', '')
+            header_token = request.headers.get('x-csrf-token', '')
+            if not cookie_token or not header_token or not hmac.compare_digest(cookie_token, header_token):
+                return JSONResponse({'message': 'A valid CSRF token is required.'}, status_code=403,
+                                    headers={'Cache-Control': 'no-store'})
+        return await call_next(request)
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):

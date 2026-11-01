@@ -53,3 +53,10 @@ ai_service.provider_supports_language = lambda language: language == 'Russian'
 ai_service.translate_question_to_russian = translate_question
 ai_service.generate_study_plan = study_plan
 app = create_app(seed=False)
+
+
+@app.get('/api/__test__/mailbox')
+def test_mailbox(email: str):
+    """Expose only test-runner recovery messages; this route is never in the production app."""
+    messages = getattr(app.state.mailer, 'messages', [])
+    return {'messages': [message for message in messages if message['to'] == email]}

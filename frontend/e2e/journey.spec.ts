@@ -142,3 +142,201 @@ test('downloads a private-safe calendar reminder that returns to Setup without s
   expect(page.getByRole('button', { name: 'Russian', exact: true })).toHaveAttribute('data-active', 'true');
   expect(starts).toBe(0);
 });
+
+test('protected routes redirect to login and cookie-authenticated API mutations require CSRF', async ({ page }) => {
+  await page.goto('/profile');
+  await expect(page).toHaveURL(/\/login\?redirect=/);
+  expect(new URL(page.url()).searchParams.get('redirect')).toBe('/profile');
+
+  await register(page, 'csrf');
+  const api = process.env.JOURNEY_API!;
+  const origin = new URL(process.env.JOURNEY_ORIGIN!).origin;
+  const cookies = await page.context().cookies(api);
+  const csrfCookie = cookies.find(cookie => cookie.name === 'csrf_token');
+  expect(csrfCookie?.value).toBeTruthy();
+
+  const client = page.context().request;
+  const profile = await client.get(`${api}/auth/me`);
+  expect(profile.status()).toBe(200);
+  const current = await profile.json();
+  const update = {
+    name: 'CSRF Verified Candidate',
+    targetRole: current.targetRole,
+    level: current.level,
+    preferredLanguage: current.preferredLanguage,
+    interviewerAvatar: current.interviewerAvatar,
+    interviewerVoiceName: current.interviewerVoiceName,
+    interviewerVoiceLang: current.interviewerVoiceLang,
+  };
+  const headers = { Origin: origin, 'Sec-Fetch-Site': 'same-origin' };
+
+  const missingToken = await client.patch(`${api}/auth/me`, { headers, data: update });
+  expect(missingToken.status()).toBe(403);
+  const invalidToken = await client.patch(`${api}/auth/me`, {
+    headers: { ...headers, 'X-CSRF-Token': 'invalid-token' },
+    data: update,
+  });
+  expect(invalidToken.status()).toBe(403);
+  expect((await (await client.get(`${api}/auth/me`)).json()).name).toBe(current.name);
+
+  const validToken = await client.patch(`${api}/auth/me`, {
+    headers: { ...headers, 'X-CSRF-Token': csrfCookie!.value },
+    data: update,
+  });
+  expect(validToken.status()).toBe(200);
+  expect((await validToken.json()).name).toBe(update.name);
+});
+
+test('password reset link changes password and supports login with the replacement', async ({ page }) => {
+  await register(page, 'password-reset');
+  const email = 'password-reset@example.com';
+  const oldPassword = 'journey-password';
+  const newPassword = 'recovered-password-2026';
+  await page.goto('/forgot-password');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  const requestPromise = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/auth/password-reset/request',
+  );
+  await page.getByRole('button', { name: 'Send reset link', exact: true }).click();
+  const resetRequest = await requestPromise;
+  expect(resetRequest.status()).toBe(202);
+  await expect(page.getByRole('status')).toContainText('Reset request received.');
+
+  const mailbox = await page.context().request.get(
+    `${process.env.JOURNEY_API}/__test__/mailbox?email=${encodeURIComponent(email)}`,
+  );
+  expect(mailbox.status()).toBe(200);
+  const messages = (await mailbox.json()).messages as Array<{ link: string }>;
+  expect(messages.length).toBe(1);
+  const resetUrl = new URL(messages[0]!.link);
+  expect(resetUrl.pathname).toBe('/reset-password');
+  expect(resetUrl.searchParams.get('token')).toBeTruthy();
+
+  await page.goto(resetUrl.toString());
+  await page.getByLabel('New password', { exact: true }).fill(newPassword);
+  await page.getByLabel('Confirm new password', { exact: true }).fill(newPassword);
+  const confirmPromise = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/auth/password-reset/confirm',
+  );
+  await page.getByRole('button', { name: 'Save new password', exact: true }).click();
+  const confirmation = await confirmPromise;
+  expect(confirmation.status()).toBe(204);
+  await expect(page.getByRole('status')).toContainText('Your password has been changed.');
+  expect(new URL(page.url()).searchParams.has('token')).toBe(false);
+
+  const reusedToken = await page.context().request.post(`${process.env.JOURNEY_API}/auth/password-reset/confirm`, {
+    data: { token: resetUrl.searchParams.get('token'), password: newPassword },
+  });
+  expect(reusedToken.status()).toBe(400);
+  const oldLogin = await page.context().request.post(`${process.env.JOURNEY_API}/auth/login`, {
+    data: { email, password: oldPassword },
+  });
+  expect(oldLogin.status()).toBe(401);
+
+  await page.goto('/login');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(newPassword);
+  const loginPromise = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/auth/login',
+  );
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  const login = await loginPromise;
+  expect(login.status()).toBe(200);
+  expect(login.headers()['authorization']).toMatch(/^Bearer\s+\S+/);
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test('mobile viewport can configure and start an interview without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await register(page, 'mobile');
+  await page.goto('/setup');
+  const hasNoHorizontalOverflow = () =>
+    page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  await expect.poll(hasNoHorizontalOverflow).toBe(true);
+
+  for (const choice of ['Behavioral', 'QA Engineer', 'Junior', 'Practice', 'Text', '5']) {
+    const control = page.getByRole('button', { name: choice, exact: true });
+    await expect(control).toBeVisible();
+    await control.click();
+  }
+  const startPromise = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/interviews' && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Start interview', exact: true }).click();
+  expect((await startPromise).status()).toBe(201);
+  await expect(page).toHaveURL(/\/interview\?interviewId=/);
+  await expect(page.getByRole('textbox', { name: 'Your answer' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'End interview', exact: true })).toBeVisible();
+  await expect.poll(hasNoHorizontalOverflow).toBe(true);
+});
+
+test('rate-limited password reset requests return 429 without sending more email', async ({ page }) => {
+  await register(page, 'rate-limit');
+  const email = 'rate-limit@example.com';
+  const api = process.env.JOURNEY_API!;
+  const client = page.context().request;
+  const requestReset = () => client.post(`${api}/auth/password-reset/request`, { data: { email } });
+
+  for (let index = 0; index < 5; index += 1) {
+    expect((await requestReset()).status()).toBe(202);
+  }
+  const limited = await requestReset();
+  expect(limited.status()).toBe(429);
+  expect(Number(limited.headers()['retry-after'])).toBeGreaterThan(0);
+  expect(await limited.json()).toMatchObject({ message: 'Too many password reset requests. Try again later.' });
+  const mailbox = await client.get(`${api}/__test__/mailbox?email=${encodeURIComponent(email)}`);
+  expect((await mailbox.json()).messages).toHaveLength(5);
+});
+
+test('long text answers and code blocks survive submission and report rendering', async ({ page }) => {
+  await register(page, 'long-answer');
+  const interviewId = await start(page);
+  const longAnswer = `Long answer boundary. ${'Unicode проверка and detailed reasoning. '.repeat(500)}`.trimEnd();
+  await page.getByRole('textbox', { name: 'Your answer' }).fill(longAnswer);
+  const textResponsePromise = page.waitForResponse(response =>
+    new URL(response.url()).pathname === `/api/interviews/${interviewId}/messages` &&
+    response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  const textResponse = await textResponsePromise;
+  expect(textResponse.status()).toBe(200);
+  const textInterview = await textResponse.json();
+  expect(textInterview.messages.some((message: { from: string; text: string }) =>
+    message.from === 'you' && message.text === longAnswer,
+  )).toBe(true);
+  await page.getByRole('button', { name: 'End interview', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/report\\?interviewId=${interviewId}`));
+  await expect(page.locator('pre').filter({ hasText: longAnswer.slice(0, 100) }).first()).toContainText(longAnswer.slice(-100));
+
+  const codingInterviewId = await startCoding(page);
+  await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 30_000 });
+  const longCode = `# long code block saved through the interview answer API\n${'# boundary case\n'.repeat(1500)}`;
+  const editor = page.getByRole('textbox', { name: 'Code answer' });
+  await editor.focus();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.insertText(longCode);
+  const codeResponsePromise = page.waitForResponse(response =>
+    new URL(response.url()).pathname === `/api/interviews/${codingInterviewId}/messages` &&
+    response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  const codeResponse = await codeResponsePromise;
+  expect(codeResponse.status()).toBe(200);
+  const codeInterview = await codeResponse.json();
+  expect(codeInterview.messages.some((message: { from: string; text: string }) =>
+    message.from === 'you' && message.text === longCode,
+  )).toBe(true);
+  await page.getByRole('button', { name: 'End interview', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/report\\?interviewId=${codingInterviewId}`));
+  await expect(page.locator('pre').filter({ hasText: longCode.slice(0, 100) }).first()).toContainText(longCode.slice(-100));
+});
+
+async function startCoding(page: Page) {
+  await page.goto('/setup');
+  for (const choice of ['Technical', 'Python Developer', 'Junior', 'Practice', 'Text', '5']) {
+    await page.getByRole('button', { name: choice, exact: true }).click();
+  }
+  await page.getByRole('button', { name: 'Start interview', exact: true }).click();
+  await expect(page).toHaveURL(/\/interview\?interviewId=/);
+  return new URL(page.url()).searchParams.get('interviewId')!;
+}

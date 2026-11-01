@@ -240,7 +240,10 @@ def test_secure_cookie_and_cors():
 
 def test_create_returns_created_interview(client):
     login(client)
-    response = client.post('/api/interviews', json=SETUP, headers={'Origin': 'http://localhost:8080'})
+    csrf_token = client.cookies.get('csrf_token')
+    response = client.post('/api/interviews', json=SETUP, headers={
+        'Origin': 'http://localhost:8080', 'X-CSRF-Token': csrf_token,
+    })
     assert response.status_code == 201
     created = response.json()
     assert isinstance(created['id'], str) and created['id'].strip()

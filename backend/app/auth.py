@@ -21,12 +21,16 @@ def token_key(token: str) -> str:
 
 def establish_session(request: Request, response: Response, user_id: str, store):
     token = secrets.token_urlsafe(32)
+    csrf_token = secrets.token_urlsafe(32)
     store.add_token(token_key(token), user_id, datetime.now(timezone.utc) + TOKEN_TTL)
     response.headers['Authorization'] = f'Bearer {token}'
     response.headers['Cache-Control'] = 'no-store'
     response.set_cookie('session', token, max_age=int(TOKEN_TTL.total_seconds()),
                         httponly=True, secure=request.app.state.secure_cookies,
                         samesite='lax', path='/api')
+    response.set_cookie('csrf_token', csrf_token, max_age=int(TOKEN_TTL.total_seconds()),
+                        httponly=False, secure=request.app.state.secure_cookies,
+                        samesite='lax', path='/')
 
 
 def current_user(request: Request,

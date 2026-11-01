@@ -9,7 +9,6 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { afterEach, expect, it, vi } from "vitest";
-import { useEffect } from "react";
 import { Route } from "@/routes/interview";
 import { Api, ApiError } from "@/lib/api/client";
 import { loadAnswerDraft, saveAnswerDraft } from "@/lib/answer-drafts";
@@ -29,33 +28,6 @@ vi.mock("@/components/MonacoEditor.client", () => ({
       onChange={(event) => props.onChange(event.target.value)}
     />
   ),
-}));
-
-vi.mock("@/components/Interviewer3D", () => ({
-  Interviewer3D: ({
-    state,
-    reducedMotion,
-    avatarId,
-    onFailure,
-  }: {
-    state: "idle" | "listening" | "speaking";
-    reducedMotion: boolean;
-    avatarId: string;
-    onFailure: () => void;
-  }) => {
-    useEffect(() => {
-      if (window.sessionStorage.getItem("mock-3d-fail") === "yes") onFailure();
-    }, [onFailure]);
-    return (
-      <div
-        data-testid="interviewer-3d"
-        data-state={state}
-        data-speaking={state === "speaking"}
-        data-reduced-motion={reducedMotion}
-        data-avatar={avatarId}
-      />
-    );
-  },
 }));
 
 afterEach(() => {
@@ -607,104 +579,6 @@ it("uses the saved profile voice for question playback", async () => {
   });
   await waitFor(() => expect(speak).toHaveBeenCalledOnce());
   expect((speak.mock.calls[0]![0] as Utterance).voice).toBe(savedVoice);
-});
-
-it("keeps interview progress and syncs the opt-in 3D view to question playback", async () => {
-  class Utterance {
-    onstart: (() => void) | null = null;
-    onend: (() => void) | null = null;
-    onerror: (() => void) | null = null;
-    constructor(readonly text: string) {}
-  }
-  const speak = vi.fn();
-  vi.stubGlobal("SpeechRecognition", RoomRecognition);
-  vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
-  vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });
-  const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
-  vi.spyOn(Api, "getInterview").mockResolvedValue(active);
-  const client = openInterview();
-  client.setQueryData(["profile"], {
-    id: "owner-123",
-    name: "Test User",
-    email: "test@example.com",
-    targetRole: "Backend Developer",
-    level: "Middle",
-    preferredLanguage: "English",
-    interviewerAvatar: "sage",
-  });
-  await screen.findByRole("button", { name: "Replay question" });
-  act(() => speak.mock.calls[0][0].onstart());
-  const answer = screen.getByRole("textbox", { name: "Your answer" });
-  fireEvent.change(answer, { target: { value: "Draft answer" } });
-  fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
-  const avatar = await screen.findByTestId("interviewer-3d");
-  expect(avatar).toHaveAttribute("data-state", "idle");
-  expect(avatar).toHaveAttribute("data-speaking", "false");
-  expect(avatar).toHaveAttribute("data-avatar", "sage");
-  fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
-  await waitFor(() => expect(avatar).toHaveAttribute("data-state", "idle"));
-  fireEvent.click(screen.getByRole("button", { name: "Start microphone" }));
-  await waitFor(() => expect(avatar).toHaveAttribute("data-state", "listening"));
-  expect(screen.getByText("Interviewer listening.")).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Leave 3D interviewer" }));
-  expect(screen.queryByTestId("interviewer-3d")).toBeNull();
-  expect(answer).toHaveValue("Draft answer");
-  expect(client.getQueryData(["interview", active.id])).toEqual(active);
-  client.clear();
-});
-
-it.each(["classic", "sage", "rose"] as const)(
-  "preserves %s appearance and the draft when the 3D renderer fails",
-  async (appearance) => {
-    window.sessionStorage.setItem("mock-3d-fail", "yes");
-    const active = { ...incompleteSession(), status: "active" as const, endedAt: null };
-    vi.spyOn(Api, "getInterview").mockResolvedValue(active);
-    const client = openInterview(undefined, { interviewerAvatar: appearance });
-    await screen.findByRole("button", { name: "Replay question" });
-    const answer = screen.getByRole("textbox", { name: "Your answer" });
-    fireEvent.change(answer, { target: { value: "Preserved draft" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
-    expect(await screen.findByText(/3D view is unavailable in this browser/)).toBeVisible();
-    expect(answer).toHaveValue("Preserved draft");
-    expect(
-      screen.getByRole("img", {
-        name: `${appearance[0].toUpperCase()}${appearance.slice(1)} interviewer`,
-      }),
-    ).toBeVisible();
-    expect(client.getQueryData(["profile"])).toMatchObject({ interviewerAvatar: appearance });
-    expect(client.getQueryData(["interview", active.id])).toEqual(active);
-    client.clear();
-    window.sessionStorage.removeItem("mock-3d-fail");
-  },
-);
-
-it("passes the reduced-motion preference to the static 3D presentation", async () => {
-  vi.spyOn(window, "matchMedia").mockReturnValue({
-    matches: true,
-    media: "(prefers-reduced-motion: reduce)",
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  } as unknown as MediaQueryList);
-  vi.spyOn(Api, "getInterview").mockResolvedValue({
-    ...incompleteSession(),
-    status: "active",
-    endedAt: null,
-  });
-  const client = openInterview();
-  await screen.findByRole("button", { name: "Replay question" });
-  fireEvent.click(screen.getByRole("button", { name: "Enable 3D interviewer" }));
-  expect(await screen.findByTestId("interviewer-3d")).toHaveAttribute(
-    "data-reduced-motion",
-    "true",
-  );
-  expect(
-    screen.getByText(/Still avatar shown to respect your reduced-motion setting/),
-  ).toBeVisible();
-  client.clear();
 });
 
 it("cancels question playback before microphone recognition and reports unavailable playback", async () => {

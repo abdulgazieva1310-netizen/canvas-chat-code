@@ -18,7 +18,6 @@ export interface User {
   targetRole: Role;
   level: Level;
   preferredLanguage: string;
-  interviewerAvatar?: "classic" | "sage" | "rose";
   interviewerVoiceName?: string | null;
   interviewerVoiceLang?: string | null;
 }
@@ -27,7 +26,7 @@ export type ProfileUpdate = Pick<User, "name" | "targetRole" | "level"> &
   Partial<
     Pick<
       User,
-      "preferredLanguage" | "interviewerAvatar" | "interviewerVoiceName" | "interviewerVoiceLang"
+      "preferredLanguage" | "interviewerVoiceName" | "interviewerVoiceLang"
     >
   >;
 

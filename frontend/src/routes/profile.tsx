@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { InterviewerPortrait } from "@/components/InterviewerPortrait";
 import { AppShell } from "@/components/AppShell";
 import { DownloadButton } from "@/components/DownloadButton";
 import { DeleteAccount } from "@/components/DeleteAccount";
 import { Api } from "@/lib/api/client";
 import { targetRoles, type Level, type Role, type User } from "@/lib/api/types";
-import {
-  interviewerAvatars,
-  getInterviewerAvatar,
-  type InterviewerAvatarId,
-} from "@/lib/interviewer-avatar";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile Settings — Interview Mirror" }] }),
@@ -65,9 +59,6 @@ function ProfileForm({ user }: { user: User }) {
   const [targetRole, setTargetRole] = useState<Role>(user.targetRole);
   const [level, setLevel] = useState<Level>(user.level);
   const [preferredLanguage, setPreferredLanguage] = useState(user.preferredLanguage);
-  const [avatar, setAvatar] = useState<InterviewerAvatarId>(
-    getInterviewerAvatar(user.interviewerAvatar),
-  );
   const [voiceName, setVoiceName] = useState(user.interviewerVoiceName ?? "");
   const [voiceLang, setVoiceLang] = useState(user.interviewerVoiceLang ?? "");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -92,7 +83,6 @@ function ProfileForm({ user }: { user: User }) {
         targetRole,
         level,
         preferredLanguage: preferredLanguage.trim(),
-        interviewerAvatar: avatar,
         interviewerVoiceName: voiceName || null,
         interviewerVoiceLang: voiceName ? voiceLang : null,
       }),
@@ -102,7 +92,6 @@ function ProfileForm({ user }: { user: User }) {
       setTargetRole(updated.targetRole);
       setLevel(updated.level);
       setPreferredLanguage(updated.preferredLanguage);
-      setAvatar(updated.interviewerAvatar ?? "classic");
       setVoiceName(updated.interviewerVoiceName ?? "");
       setVoiceLang(updated.interviewerVoiceLang ?? "");
     },
@@ -183,37 +172,6 @@ function ProfileForm({ user }: { user: User }) {
         server; it must also be enabled there. Other interview languages are not available yet.
       </p>
       <fieldset className="space-y-3 border-t pt-5">
-        <legend className="font-semibold">Interviewer appearance</legend>
-        <p className="text-sm text-muted-foreground">
-          Choose an appearance for the 3D interviewer and its still illustration. Save changes to
-          use it in your interviews. Your choice is kept even when 3D is hidden.
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {interviewerAvatars.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={`rounded-lg border p-3 text-center ${avatar === option.id ? "border-primary ring-2 ring-primary" : "border-border"}`}
-              aria-pressed={avatar === option.id}
-              onClick={() => {
-                const next = option.id as InterviewerAvatarId;
-                setAvatar(next);
-                save.reset();
-              }}
-            >
-              <span aria-hidden="true" className="mb-2 block">
-                <InterviewerPortrait avatarId={option.id} />
-              </span>
-              {option.name}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground" aria-live="polite">
-          Selected appearance:{" "}
-          {interviewerAvatars.find((item) => item.id === avatar)?.name ?? "Classic"}
-        </p>
-      </fieldset>
-      <fieldset className="space-y-3 border-t pt-5">
         <legend className="font-semibold">Interviewer voice</legend>
         <p className="text-sm text-muted-foreground">
           Voices come from this browser and device. Your selection syncs with your profile; if it is
@@ -277,15 +235,14 @@ function ProfileForm({ user }: { user: User }) {
         <button
           type="button"
           className="btn btn-ghost"
-          disabled={save.isPending || (avatar === "classic" && !voiceName)}
+          disabled={save.isPending || !voiceName}
           onClick={() => {
-            setAvatar("classic");
             setVoiceName("");
             setVoiceLang("");
             save.reset();
           }}
         >
-          Reset interviewer preferences
+          Reset interviewer voice
         </button>
       </fieldset>
       {save.error && <p role="alert">Could not save profile: {save.error.message}</p>}

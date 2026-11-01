@@ -2,25 +2,13 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api/client";
 import type { CodeRunResult, Interview as InterviewData } from "@/lib/api/types";
-import {
-  Component,
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ErrorInfo,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Mic, MicOff } from "lucide-react";
 import CodeEditor, { type CodingLanguage } from "@/components/CodeEditor";
-import { InterviewerPortrait } from "@/components/InterviewerPortrait";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpokenQuestion } from "@/hooks/use-spoken-question";
 import { useCameraPreview } from "@/hooks/use-camera-preview";
-import { getInterviewerAvatar, type InterviewerAvatarId } from "@/lib/interviewer-avatar";
 import {
   clearAnswerDraft,
   clearInterviewAnswerDrafts,
@@ -28,29 +16,6 @@ import {
   saveAnswerDraft,
   type DraftStorageResult,
 } from "@/lib/answer-drafts";
-
-const Interviewer3D = lazy(() =>
-  import("@/components/Interviewer3D").then((module) => ({ default: module.Interviewer3D })),
-);
-
-class ThreeDFallbackBoundary extends Component<
-  { children: ReactNode; onFailure: () => void },
-  { failed: boolean }
-> {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  componentDidCatch(_error: Error, _info: ErrorInfo) {
-    this.props.onFailure();
-  }
-
-  render() {
-    return this.state.failed ? null : this.props.children;
-  }
-}
 
 const languageLabels: Record<CodingLanguage, string> = {
   python: "Python",
@@ -144,10 +109,6 @@ function Interview() {
     DraftStorageResult | "ready" | "owner-unavailable"
   >("ready");
   const [sec, setSec] = useState(0);
-  const [show3D, setShow3D] = useState(false);
-  const [renderFailed, setRenderFailed] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [avatarId, setAvatarId] = useState<InterviewerAvatarId>("classic");
   const [recordingConsent, setRecordingConsent] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingStarting, setRecordingStarting] = useState(false);
@@ -275,20 +236,6 @@ function Interview() {
       recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
-  const fail3D = useCallback(() => {
-    setRenderFailed(true);
-    setShow3D(false);
-  }, []);
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(preference.matches);
-    update();
-    preference.addEventListener("change", update);
-    return () => preference.removeEventListener("change", update);
-  }, []);
-  useEffect(() => {
-    setAvatarId(getInterviewerAvatar(profile?.interviewerAvatar));
-  }, [profile?.interviewerAvatar]);
   const receive = async (updated: InterviewData) => {
     client.setQueryData(queryKey, updated);
     if (updated.status !== "active") {
@@ -966,62 +913,6 @@ function Interview() {
               )}
             </section>
           )}
-          <div className="card-surface p-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="eyebrow">Interviewer</p>
-              <button
-                type="button"
-                className="btn btn-ghost text-sm"
-                aria-pressed={show3D}
-                onClick={() => {
-                  setRenderFailed(false);
-                  setShow3D((visible) => !visible);
-                }}
-              >
-                {show3D ? "Leave 3D interviewer" : "Enable 3D interviewer"}
-              </button>
-            </div>
-            {show3D && !renderFailed ? (
-              <>
-                <ThreeDFallbackBoundary onFailure={fail3D}>
-                  <Suspense
-                    fallback={
-                      <p className="mt-3 text-sm text-muted-foreground">Loading 3D interviewer…</p>
-                    }
-                  >
-                    <Interviewer3D
-                      state={spoken.speaking ? "speaking" : speech.listening ? "listening" : "idle"}
-                      reducedMotion={reducedMotion}
-                      avatarId={avatarId}
-                      onFailure={fail3D}
-                    />
-                  </Suspense>
-                </ThreeDFallbackBoundary>
-                <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-                  Interviewer{" "}
-                  {spoken.speaking ? "speaking" : speech.listening ? "listening" : "idle"}.
-                </p>
-                {reducedMotion && (
-                  <p className="text-xs text-muted-foreground">
-                    Still avatar shown to respect your reduced-motion setting.
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="mt-4 flex items-center gap-3">
-                <InterviewerPortrait avatarId={avatarId} />
-                <p className="text-sm text-muted-foreground">
-                  {answer.isPending ? "Thinking…" : "Ready for your answer"}
-                </p>
-              </div>
-            )}
-            {renderFailed && (
-              <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
-                3D view is unavailable in this browser. You can continue with the transcript and
-                voice controls.
-              </p>
-            )}
-          </div>
           {practice && interview.lastFeedback && (
             <div className="card-surface p-5">
               <p className="eyebrow">Last answer</p>

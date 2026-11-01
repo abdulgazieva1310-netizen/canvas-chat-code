@@ -16,7 +16,6 @@ import { Api } from "@/lib/api/client";
 import { getAuthorization, saveAuthorization } from "@/lib/api/session";
 import type { User } from "@/lib/api/types";
 import { defaultSetup, quickStartDefaults } from "@/lib/api/default-setup";
-import { getInterviewerAvatar } from "@/lib/interviewer-avatar";
 
 const user: User = {
   id: "user-1",
@@ -25,7 +24,6 @@ const user: User = {
   targetRole: "Backend Developer",
   level: "Middle",
   preferredLanguage: "English",
-  interviewerAvatar: "classic",
   interviewerVoiceName: null,
   interviewerVoiceLang: null,
 };
@@ -119,32 +117,6 @@ it("quick starts with saved preferences and opens the newly created room", async
   expect(client.getQueryData(["interview", "quick-started"])).toEqual(created);
   expect(client.getQueryData(["profile"])).toEqual(user);
   client.clear();
-});
-
-it.each(["classic", "sage", "rose"] as const)(
-  "saves the %s appearance preference to the profile",
-  async (appearance) => {
-    const { client } = openPage("/profile");
-    await screen.findByRole("heading", { name: "Profile Settings" });
-    const update = vi
-      .spyOn(Api, "updateProfile")
-      .mockResolvedValue({ ...user, interviewerAvatar: appearance });
-    const name = appearance[0].toUpperCase() + appearance.slice(1);
-    const card = await screen.findByRole("button", { name });
-    fireEvent.click(card);
-    expect(card).toHaveAttribute("aria-pressed", "true");
-    expect(update).not.toHaveBeenCalled();
-    expect(client.getQueryData(["profile"])).toMatchObject({ interviewerAvatar: "classic" });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-    await screen.findByText("Profile saved.");
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({ interviewerAvatar: appearance }));
-    expect(client.getQueryData(["profile"])).toMatchObject({ interviewerAvatar: appearance });
-    expect(screen.getByText(`Selected appearance: ${name}`)).toBeVisible();
-  },
-);
-
-it("uses the stable default for an unsupported saved appearance", () => {
-  expect(getInterviewerAvatar("removed-avatar")).toBe("classic");
 });
 
 it("previews and saves an available system voice", async () => {
@@ -286,7 +258,7 @@ it("opens from the keyboard and closes with Escape", async () => {
   client.clear();
 });
 
-it("saves name, role, and level and updates the shared user cache and avatar", async () => {
+it("saves name, role, and level and updates the shared user cache", async () => {
   const { client } = openPage("/profile");
   await screen.findByLabelText("Name");
   let finish!: (value: User) => void;
@@ -311,7 +283,6 @@ it("saves name, role, and level and updates the shared user cache and avatar", a
       targetRole: "C++ Developer",
       level: "Senior",
       preferredLanguage: "Kazakh",
-      interviewerAvatar: "classic",
       interviewerVoiceName: null,
       interviewerVoiceLang: null,
     }),

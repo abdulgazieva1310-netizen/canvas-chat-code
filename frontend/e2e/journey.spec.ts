@@ -96,57 +96,6 @@ test('Real mode hides feedback in responses and UI until ending', async ({ page 
   await expect(page.getByText('FIXTURE_FEEDBACK: concrete example').first()).toBeVisible();
 });
 
-test('optional 3D interviewer works at desktop and mobile sizes without requesting camera access', async ({ page }) => {
-  await page.addInitScript(() => {
-    const browserWindow = window as typeof window & { __cameraRequestCount?: number };
-    browserWindow.__cameraRequestCount = 0;
-    const mediaDevices = navigator.mediaDevices;
-    if (!mediaDevices) return;
-    const getUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
-    Object.defineProperty(mediaDevices, 'getUserMedia', {
-      configurable: true,
-      value: (...args: Parameters<MediaDevices['getUserMedia']>) => {
-        browserWindow.__cameraRequestCount = (browserWindow.__cameraRequestCount ?? 0) + 1;
-        return getUserMedia(...args);
-      },
-    });
-  });
-  await register(page, 'avatar');
-  await start(page);
-
-  const enable = page.getByRole('button', { name: 'Enable 3D interviewer', exact: true });
-  await enable.focus();
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('button', { name: 'Leave 3D interviewer' })).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(async () =>
-    (await page.locator('[data-state="idle"]').count()) +
-    (await page.getByText(/3D view is unavailable in this browser/).count()),
-  ).toBe(1);
-  if (await page.locator('[data-state="idle"]').isVisible()) {
-    await expect(page.getByText('Interviewer idle.')).toBeVisible();
-  }
-  expect(await page.evaluate(() => (window as typeof window & { __cameraRequestCount?: number }).__cameraRequestCount)).toBe(0);
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.getByRole('button', { name: 'Leave 3D interviewer' }).click();
-  await page.getByRole('button', { name: 'Enable 3D interviewer' }).click();
-  await expect(page.getByText(/Still avatar shown to respect your reduced-motion setting/)).toBeVisible();
-  const mobileLayout = await page.evaluate(() => ({
-    width: window.innerWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-    overflowers: Array.from(document.querySelectorAll('*'))
-      .map((element) => {
-        const rect = element.getBoundingClientRect();
-        return { tag: element.tagName, className: typeof element.className === 'string' ? element.className : '', left: rect.left, right: rect.right, width: rect.width };
-      })
-      .filter((element) => element.right > window.innerWidth + 1 || element.left < -1)
-      .slice(0, 8),
-  }));
-  expect(mobileLayout.scrollWidth, JSON.stringify(mobileLayout)).toBeLessThanOrEqual(mobileLayout.width);
-  expect(await page.evaluate(() => (window as typeof window & { __cameraRequestCount?: number }).__cameraRequestCount)).toBe(0);
-});
-
 test('downloads a private-safe calendar reminder that returns to Setup without starting an interview', async ({ page }) => {
   await register(page, 'calendar');
   let starts = 0;

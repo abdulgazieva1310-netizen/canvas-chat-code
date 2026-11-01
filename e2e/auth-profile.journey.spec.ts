@@ -42,6 +42,6 @@ test("registration, login, and profile changes persist across reloads", async ({
     await expect(page.getByLabel("Level", { exact: true })).toHaveValue("Senior");
     await expect(page.getByLabel("Preferred language", { exact: true })).toHaveValue("Russian");
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });

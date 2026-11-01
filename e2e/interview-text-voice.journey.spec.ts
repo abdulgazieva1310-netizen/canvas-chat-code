@@ -19,7 +19,7 @@ test("text interview accepts an answer, advances, and can end with a saved repor
     await expect(page.getByText(/1 of 5 main questions · incomplete/)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Question by question" })).toBeVisible();
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });
 
@@ -104,6 +104,6 @@ test("voice interview captures a browser speech transcript and saves the spoken 
     await expect(savedAnswer).toBeVisible();
     await expect(savedAnswer).toHaveText(spokenAnswer);
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });

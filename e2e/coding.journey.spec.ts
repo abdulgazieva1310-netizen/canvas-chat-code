@@ -29,6 +29,6 @@ test("Python coding setup loads Monaco and stores source code in the report", as
     await expect(reportCode).toBeVisible();
     await expect(reportCode).toContainText("return [0, 1]");
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });

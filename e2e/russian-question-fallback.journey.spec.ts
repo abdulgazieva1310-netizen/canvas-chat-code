@@ -37,6 +37,6 @@ test("Russian interview continues with a translated English question after Groq 
     ).toBeVisible();
     await expect(page.getByText("Fixture question 2:", { exact: false })).toBeVisible();
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });

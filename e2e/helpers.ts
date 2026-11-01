@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, type Page } from "../frontend/node_modules/@playwright/test/index";
+import { expect, request, type Page } from "../frontend/node_modules/@playwright/test/index";
 
 export const password = "ComposeE2e2026!";
 
@@ -28,26 +28,31 @@ export async function registerAccount(page: Page, label: string): Promise<TestAc
   return { email, name, authorization: authorization! };
 }
 
-export async function removeAccount(page: Page, account: TestAccount) {
+export async function removeAccount(account: TestAccount) {
   const base = process.env.JOURNEY_API ?? `${process.env.JOURNEY_ORIGIN ?? "http://127.0.0.1:4173"}/api`;
+  const api = await request.newContext({ timeout: 15_000 });
   let authorization = account.authorization;
-  let response = await page.request.delete(`${base}/auth/me`, {
-    headers: { Authorization: authorization },
-    data: { password, confirmation: "DELETE" },
-  });
-  if (response.status() === 401) {
-    const login = await page.request.post(`${base}/auth/login`, {
-      data: { email: account.email, password },
+  try {
+    let response = await api.delete(`${base}/auth/me`, {
+      headers: { Authorization: authorization },
+      data: { password, confirmation: "DELETE" },
     });
-    authorization = login.headers()["authorization"] ?? "";
-    if (authorization) {
-      response = await page.request.delete(`${base}/auth/me`, {
-        headers: { Authorization: authorization },
-        data: { password, confirmation: "DELETE" },
+    if (response.status() === 401) {
+      const login = await api.post(`${base}/auth/login`, {
+        data: { email: account.email, password },
       });
+      authorization = login.headers()["authorization"] ?? "";
+      if (authorization) {
+        response = await api.delete(`${base}/auth/me`, {
+          headers: { Authorization: authorization },
+          data: { password, confirmation: "DELETE" },
+        });
+      }
     }
+    expect(response.status()).toBe(204);
+  } finally {
+    await api.dispose();
   }
-  expect(response.status()).toBe(204);
 }
 
 export interface InterviewChoices {

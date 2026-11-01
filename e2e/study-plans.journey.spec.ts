@@ -35,7 +35,8 @@ test("study plan generation, item completion, persistence, and deletion", async 
         new URL(response.url()).pathname.includes("/items/") &&
         response.request().method() === "PATCH",
     );
-    await item.check();
+    await item.click();
+    await expect(item).toBeChecked();
     expect((await completionPromise).status()).toBe(200);
     await page.reload();
     const persistedPlan = page.locator('article[aria-label="Study plan for QA Engineer"]');
@@ -51,6 +52,6 @@ test("study plan generation, item completion, persistence, and deletion", async 
     await expect(persistedPlan).toHaveCount(0);
     await expect(page.getByText("Your generated plans will appear here.")).toBeVisible();
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });

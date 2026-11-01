@@ -19,6 +19,6 @@ test("completed answers persist in the report and can be reopened from history",
     await expect(page).toHaveURL(new RegExp(`/report\\?interviewId=${interviewId}`));
     await expect(page.getByText(/5 of 5 main questions · complete/)).toBeVisible();
   } finally {
-    await removeAccount(page, account);
+    await removeAccount(account);
   }
 });

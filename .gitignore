@@ -17,3 +17,4 @@ __pycache__/
 # Browser QA artifacts
 frontend/test-results/
 frontend/playwright-report/
+frontend/playwright-full-report/

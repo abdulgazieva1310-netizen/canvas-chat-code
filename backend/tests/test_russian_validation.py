@@ -18,8 +18,10 @@ def localized_provider(monkeypatch):
 
     def question(role, level, previous, **kwargs):
         calls.append(('question', kwargs.get('interview_language')))
-        return next(case.question for case in russian.load_cases()
+        base = next(case.question for case in russian.load_cases()
                     if case.role == role and case.interview_type == kwargs['interview_type'])
+        question_number = sum(stage == 'question' for stage, _ in calls)
+        return f'{base} Уточните критерий проверки {question_number}.'
 
     def evaluation(question, answer, **kwargs):
         calls.append(('evaluation', kwargs.get('interview_language')))

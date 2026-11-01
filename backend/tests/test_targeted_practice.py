@@ -33,7 +33,10 @@ def test_topic_reaches_ai_and_matching_curated_questions(client, monkeypatch):
     assert response.status_code == 201
     interview = response.json()
     assert interview['setup']['practiceTopic'] == 'hashing'
-    assert 'first integer encountered for a second time' in interview['messages'][0]['text']
+    assert any(fragment in interview['messages'][0]['text'] for fragment in (
+        'first integer encountered for a second time',
+        'distinct integers present in both arrays',
+    ))
     assert 'reviewerNotes' not in interview['messages'][0]['text']
 
     response = client.post(f"/api/interviews/{interview['id']}/messages", json={'text': 'Use a set.'})

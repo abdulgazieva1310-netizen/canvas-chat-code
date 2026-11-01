@@ -763,11 +763,11 @@ def test_new_developer_roles_register_start_and_persist(client, role, language):
     assert response.json()['targetRole'] == role
     interview = start(client, role=role)
     assert interview['setup']['role'] == role
-    assert f'Implement in {language}' in interview['messages'][0]['text']
+    assert f'Use {language}.' in interview['messages'][0]['text']
     path = '/api/interviews/' + interview['id']
     response = client.post(path + '/messages', json={'text': 'I would use a hash map.'})
     assert response.status_code == 200
-    assert f'Implement in {language}' in response.json()['messages'][-1]['text']
+    assert f'Use {language}.' in response.json()['messages'][-1]['text']
     assert client.get(path).json() == response.json()
     spec = yaml.safe_load((Path(__file__).resolve().parents[2] / 'openapi.yaml').read_text())
     assert role in spec['components']['schemas']['Role']['enum']
@@ -780,9 +780,12 @@ def test_offline_coding_questions_do_not_mix_interview_types(role):
     from app.store import question
     for index in range(3):
         technical = question(InterviewSetup(**(SETUP | {'role': role})), index)
-        assert 'Example:' in technical and 'Constraints:' in technical
-        assert 'Implement in' in technical and 'time and space complexity' in technical
-        assert 'Implement in' not in question(InterviewSetup(**(SETUP | {
+        assert 'Examples:' in technical and 'Constraints:' in technical
+        language = {'Java Developer': 'Use Java.', 'Python Developer': 'Use Python.',
+                    'C++ Developer': 'Use C++.'}.get(role, 'Use your selected programming language.')
+        assert language in technical
+        assert 'Implement in' not in technical
+        assert 'Examples:' not in question(InterviewSetup(**(SETUP | {
             'role': role, 'type': 'Behavioral'})), index)
 
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "../frontend/node_modules/@playwright/test/index.mjs";
+import { expect, test } from "../frontend/node_modules/@playwright/test/index";
 
 const baseURL = process.env.COMPOSE_APP_URL ?? "http://localhost:8100";
 const password = "ComposeE2e2026!";

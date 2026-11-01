@@ -22,8 +22,10 @@ test("registration, login, and profile changes persist across reloads", async ({
     await page.goto("/profile");
     await expect(page.getByRole("heading", { name: "Profile Settings" })).toBeVisible();
     await page.getByLabel("Name", { exact: true }).fill("Updated Journey Candidate");
-    await page.getByLabel("Target role", { exact: true }).selectOption("Python Developer");
-    await page.getByLabel("Level", { exact: true }).selectOption("Senior");
+    await page
+      .getByRole("combobox", { name: "Target role", exact: true })
+      .selectOption("Python Developer");
+    await page.getByRole("combobox", { name: "Level", exact: true }).selectOption("Senior");
     await page.getByLabel("Preferred language", { exact: true }).fill("Russian");
     const updatePromise = page.waitForResponse(
       (response) =>
@@ -38,8 +40,10 @@ test("registration, login, and profile changes persist across reloads", async ({
     await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
       "Updated Journey Candidate",
     );
-    await expect(page.getByLabel("Target role", { exact: true })).toHaveValue("Python Developer");
-    await expect(page.getByLabel("Level", { exact: true })).toHaveValue("Senior");
+    await expect(
+      page.getByRole("combobox", { name: "Target role", exact: true }),
+    ).toHaveValue("Python Developer");
+    await expect(page.getByRole("combobox", { name: "Level", exact: true })).toHaveValue("Senior");
     await expect(page.getByLabel("Preferred language", { exact: true })).toHaveValue("Russian");
   } finally {
     await removeAccount(account);

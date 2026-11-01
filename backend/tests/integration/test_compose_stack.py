@@ -45,11 +45,13 @@ def api():
 @pytest.fixture
 def account(api):
     password = "compose-integration-password"
-    email = f"compose-{uuid4().hex}@example.test"
+    email = f"compose-{uuid4().hex}@example.com"
     response = api.post("/api/auth/register", json={
         "name": "Compose Integration",
         "email": email,
         "password": password,
+        "targetRole": "Backend Developer",
+        "level": "Middle",
     })
     assert response.status_code == 201, response.text
     user = response.json()

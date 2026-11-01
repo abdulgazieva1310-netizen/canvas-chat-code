@@ -144,14 +144,11 @@ class DeleteAccount(BaseModel):
 
 @router.delete('/me', status_code=204)
 def delete_account(data: DeleteAccount, request: Request, user: CurrentUser):
-    from ..account_deletion import delete_owned_account, retry_media_cleanup
+    from ..account_deletion import delete_owned_account
     with request.app.state.store.transaction() as store:
         delete_owned_account(store, user.id, data.password)
-    # Database deletion has committed. A file failure must not misreport the committed result.
-    try:
-        retry_media_cleanup(request.app.state.store)
-    except Exception:
-        logging.getLogger(__name__).warning('Account deleted; durable media cleanup will retry')
+    # File cleanup is retried by the background reaper; keep filesystem I/O out
+    # of this request after the account transaction has committed.
     response = Response(status_code=204, headers={'Cache-Control': 'no-store'})
     response.delete_cookie('session', path='/api', httponly=True,
         secure=request.app.state.secure_cookies, samesite='lax')

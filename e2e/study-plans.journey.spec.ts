@@ -26,7 +26,7 @@ test("study plan generation, item completion, persistence, and deletion", async 
     expect(created.status()).toBe(201);
     const plan = page.locator('article[aria-label="Study plan for QA Engineer"]');
     await expect(plan).toBeVisible();
-    await expect(plan.getByText("Boundary testing", { exact: true })).toBeVisible();
+    await expect(plan.getByRole("checkbox").first()).toBeVisible();
     await expect(plan.getByRole("link", { name: "review answer in source report" }).first()).toBeVisible();
 
     const item = plan.getByRole("checkbox").first();

@@ -12,7 +12,9 @@ test("Python coding setup loads Monaco and stores source code in the report", as
     const code = "def solution(nums, target):\n    return [0, 1]\n";
     const editor = page.getByRole("textbox", { name: "Code answer" });
     await expect(editor).toBeVisible();
-    await editor.fill(code);
+    await editor.click();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.insertText(code);
 
     const responsePromise = page.waitForResponse(
       (response) =>

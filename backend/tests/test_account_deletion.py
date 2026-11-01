@@ -57,11 +57,14 @@ def test_account_deletion_reauth_revocation_isolation_and_durable_cleanup(tmp_pa
         other_response=client.post('/api/auth/register',json={'name':'Other','email':'other@example.com','password':'other-password'})
         other=other_response.json()['id']; other_token=other_response.headers['authorization']
         client.headers['Authorization']=token
+        cleanup_calls = []
         def unavailable(_key):
+            cleanup_calls.append(_key)
             raise OSError('temporary storage failure')
         monkeypatch.setattr(account_deletion,'remove_media_file',unavailable)
         result=client.request('DELETE','/api/auth/me',json={'password':'private-password','confirmation':'DELETE','ownerId':other})
         assert result.status_code==204 and 'Max-Age=0' in result.headers['set-cookie']
+        assert cleanup_calls == []  # request returns without synchronous file cleanup
         assert client.get('/api/auth/me').status_code==401
         assert client.get(path+'/media/media').status_code==401
         assert client.post('/api/auth/password-reset/confirm',json={'token':reset,'password':'new'}).status_code==400

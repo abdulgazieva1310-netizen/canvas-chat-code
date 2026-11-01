@@ -12,7 +12,8 @@ uv run --project backend python scripts/journey.py
 ```
 
 The runner builds the production Node frontend with an isolated API URL, starts
-FastAPI with `backend/tests/journey_app.py`, and runs three Chromium scenarios:
+FastAPI with `backend/tests/journey_app.py`, and runs the existing three
+Chromium scenarios plus the broader root-level `e2e/` suite:
 
 - Register, configure a five-question text interview, answer all five, reload
   saved feedback, traverse History's link to Dashboard, reopen results, and delete.
@@ -21,15 +22,32 @@ FastAPI with `backend/tests/journey_app.py`, and runs three Chromium scenarios:
   responses, absent live feedback/hints in the UI, denial of the active report,
   and visible feedback after ending. The test injects a deliberately leaked field
   into the privacy assertion and verifies that the assertion rejects it.
+- `e2e/auth-profile.journey.spec.ts`: register, log in, update profile fields,
+  reload, and confirm the saved values.
+- `e2e/interview-text-voice.journey.spec.ts`: answer in text mode, then exercise
+  voice playback, mocked browser speech recognition, and voice answer submission.
+- `e2e/russian-question-fallback.journey.spec.ts`: trigger Russian question
+  provider failure, confirm the translated English fallback, and review it in
+  the saved transcript.
+- `e2e/coding.journey.spec.ts`: open a Python technical interview, load Monaco,
+  submit code, and confirm the source appears in the report.
+- `e2e/reports-history.journey.spec.ts`: complete an interview, reload its
+  report, and reopen it from History.
+- `e2e/study-plans.journey.spec.ts`: complete two scored reports, generate a
+  plan, complete an item, reload, and delete the plan.
 
-The test-only ASGI entry provides deterministic questions, evaluation and hints;
-AI_API_KEY is blank, email uses the local adapter, and each run gets a temporary
-SQLite database. Each scenario registers its own user. Tests exercise real HTTP,
-browser cookies and CORS. No browser API mocks replace the backend. Both server
-processes and temporary data are cleaned up even when a scenario fails.
+The test-only ASGI entry provides deterministic questions, evaluation, hints,
+Russian question failure/translation, and study-plan generation; AI_API_KEY is
+blank, email uses the local adapter, and each run gets a temporary SQLite
+database. Each scenario registers its own user. Tests exercise the production
+frontend, real HTTP, browser cookies and CORS. Browser speech recognition and
+speech synthesis are stubbed only for the voice-control journey; the rest of
+the backend is not replaced by browser API mocks. Both server processes and
+temporary data are cleaned up even when a scenario fails.
 
 Failures retain Playwright traces, screenshots and videos in
-`frontend/test-results/`, with an HTML report in `frontend/playwright-report/`.
+`frontend/test-results/`, with HTML reports in `frontend/playwright-report/` and
+`frontend/playwright-full-report/`.
 Server logs are saved in `frontend/journey-servers.log`. View reports using
 `cd frontend && npx playwright show-report` and traces using
 `npx playwright show-trace <trace.zip>`. Artifacts are ignored by Git.

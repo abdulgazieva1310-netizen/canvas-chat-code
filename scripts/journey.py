@@ -39,6 +39,8 @@ def main():
                 deployment.ready(origin + '/login', frontend)
                 subprocess.run(['npx', 'playwright', 'test', '--config', 'playwright.journey.config.ts'],
                                cwd=ROOT / 'frontend', env=env, check=True)
+                subprocess.run(['npx', 'playwright', 'test', '--config', 'playwright.full-journey.config.ts'],
+                               cwd=ROOT / 'frontend', env=env, check=True)
             finally:
                 for process in reversed(processes):
                     if process.poll() is None:

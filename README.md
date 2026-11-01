@@ -78,6 +78,27 @@ Production frontend build: `cd frontend && npm run build`. See
 [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md)
 for application configuration.
 
+## AWS Deployment
+
+The staging application is deployed in **eu-central-1**:
+
+- Application: [https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws](https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws)
+- Health endpoint: [https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws/api/health](https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws/api/health)
+
+Push changes to `main` to start the GitHub Actions pipeline. It runs backend
+and frontend tests, Docker Compose integration and browser E2E tests, and full
+browser journeys in parallel. Once they pass, the deploy job builds the Docker
+image, pushes it to the `interview-mirror` ECR repository, updates the
+`interview-mirror-staging` CloudFormation stack, and checks the health endpoint.
+
+The stack and ECR repository must already exist. In the GitHub repository,
+configure the `AWS_DEPLOY_ROLE_ARN` Actions variable with the deploy role ARN.
+The role must trust GitHub OIDC for this repository's `main` branch and have
+the deployment permissions described in [docs/deployment.md](docs/deployment.md).
+Do not add AWS access keys to GitHub; the workflow uses short-lived OIDC
+credentials. See the deployment guide for role setup, permissions, and manual
+CloudFormation deployment details.
+
 ## Docker Deployment
 
 Build the Docker image from the repository root:

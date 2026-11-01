@@ -44,7 +44,7 @@ test('register, complete five questions, reload saved results/history, delete', 
   }
   await expect(page).toHaveURL(/report\?interviewId=/);
   await page.reload();
-  await expect(page.getByText(/5 of 5 questions · complete/)).toBeVisible();
+  await expect(page.getByText(/5 of 5 main questions · complete/)).toBeVisible();
   await expect(page.getByText('FIXTURE_FEEDBACK: concrete example').first()).toBeVisible();
   await page.goto('/history');
   await page.reload();
@@ -67,7 +67,7 @@ test('early end retains partial results', async ({ page }) => {
   await page.getByRole('button', { name: 'End interview', exact: true }).click();
   await expect(page).toHaveURL(/report\?interviewId=/);
   await page.reload();
-  await expect(page.getByText(/1 of 5 questions · incomplete/)).toBeVisible();
+  await expect(page.getByText(/1 of 5 main questions · incomplete/)).toBeVisible();
   await expect(page.getByText('FIXTURE_FEEDBACK: concrete example').first()).toBeVisible();
   await page.goto('/');
   await expect(page.getByText('Incomplete', { exact: true })).toBeVisible();

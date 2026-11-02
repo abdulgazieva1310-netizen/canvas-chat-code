@@ -154,6 +154,10 @@ class InterviewMediaRecord(Base):
 def database_engine(url=None):
     default = 'sqlite:///' + str(Path(__file__).resolve().parents[1] / 'interview.db')
     url = make_url(url if url is not None else os.getenv('DATABASE_URL', default))
+    # Render provides PostgreSQL URLs as `postgresql://...`. Use the psycopg
+    # driver that this project installs instead of SQLAlchemy's psycopg2 default.
+    if url.drivername == 'postgresql':
+        url = url.set(drivername='postgresql+psycopg')
     options = {'pool_pre_ping': True}
     if url.get_backend_name() == 'sqlite':
         options['connect_args'] = {'check_same_thread': False}

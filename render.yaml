@@ -1,0 +1,46 @@
+# Render Blueprints don't run docker-compose.yaml directly. This Blueprint
+# deploys the combined app Dockerfile and replaces the Compose Postgres
+# container with Render-managed PostgreSQL.
+services:
+  - type: web
+    name: interview-mirror-render
+    runtime: docker
+    plan: 0.5c-512mb
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    disk:
+      name: interview-media
+      mountPath: /var/data/interview-media
+      sizeGB: 5
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: interview-mirror-render-db
+          property: connectionString
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: INTERVIEW_MEDIA_DIR
+        value: /var/data/interview-media
+      - key: EMAIL_ADAPTER
+        value: auto
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: openai/gpt-oss-120b
+      - key: ENABLE_RUSSIAN_INTERVIEWS
+        value: "false"
+
+databases:
+  - name: interview-mirror-render-db
+    databaseName: interview_mirror
+    user: interview_mirror
+    plan: 0.5c-1g
+    region: frankfurt
+    postgresMajorVersion: "16"
+    diskSizeGB: 5
+    ipAllowList: []

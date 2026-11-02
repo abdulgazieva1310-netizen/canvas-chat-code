@@ -65,7 +65,9 @@ def email_delivery():
 
 def password_reset_url():
     value = os.getenv('PASSWORD_RESET_URL')
-    value = value or 'http://localhost:8080/reset-password'
+    if not value:
+        render_url = os.getenv('RENDER_EXTERNAL_URL', '').rstrip('/')
+        value = f'{render_url}/reset-password' if render_url else 'http://localhost:8080/reset-password'
     parsed = urlsplit(value)
     if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError('PASSWORD_RESET_URL must be an absolute HTTP(S) URL without credentials or fragment')

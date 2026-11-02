@@ -5,16 +5,12 @@ services:
   - type: web
     name: interview-mirror-render
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
-    disk:
-      name: interview-media
-      mountPath: /var/data/interview-media
-      sizeGB: 5
     envVars:
       - key: PORT
         value: "8000"
@@ -24,8 +20,6 @@ services:
           property: connectionString
       - key: SECURE_COOKIES
         value: "true"
-      - key: INTERVIEW_MEDIA_DIR
-        value: /var/data/interview-media
       - key: EMAIL_ADAPTER
         value: auto
       - key: AI_API_KEY
@@ -39,8 +33,7 @@ databases:
   - name: interview-mirror-render-db
     databaseName: interview_mirror
     user: interview_mirror
-    plan: 0.5c-1g
+    plan: free
     region: frankfurt
     postgresMajorVersion: "16"
-    diskSizeGB: 5
     ipAllowList: []

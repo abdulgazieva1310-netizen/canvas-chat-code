@@ -45,15 +45,15 @@ test("recording requires consent, is private and playable, and can be revoked or
     );
     const startRecording = page.getByRole("button", { name: "Start recording" });
     await expect(startRecording).toBeDisabled();
+    await recordingConsent.check();
+    await expect(startRecording).toBeEnabled();
     const grant = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === `/api/interviews/${revokeId}/media/consent` &&
         response.request().method() === "POST",
     );
-    await recordingConsent.check();
-    expect((await grant).status()).toBe(204);
-    await expect(startRecording).toBeEnabled();
     await startRecording.click();
+    expect((await grant).status()).toBe(204);
     await expect(page.getByText("Recording on this device.")).toBeVisible();
     const stopAndSave = page.getByRole("button", { name: "Stop and save recording" });
     const revokedUploadPromise = page.waitForResponse(
@@ -67,6 +67,8 @@ test("recording requires consent, is private and playable, and can be revoked or
     const revokedMedia = await revokedUpload.json();
     expect(revokedMedia).toMatchObject({ mediaType: "audio/webm" });
     expect(revokedMedia.sizeBytes).toBeGreaterThan(0);
+    expect(revokedMedia).not.toHaveProperty("data");
+    expect(revokedMedia).not.toHaveProperty("content");
 
     const revoke = page.waitForResponse(
       (response) =>
@@ -96,9 +98,9 @@ test("recording requires consent, is private and playable, and can be revoked or
         response.request().method() === "POST",
     );
     await playbackConsent.check();
-    expect((await consentResponse).status()).toBe(204);
     const beginRecording = page.getByRole("button", { name: "Start recording" });
     await beginRecording.click();
+    expect((await consentResponse).status()).toBe(204);
     const uploadResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === `/api/interviews/${playbackId}/media` &&
@@ -120,6 +122,17 @@ test("recording requires consent, is private and playable, and can be revoked or
     const secondApi = await request.newContext();
     const otherEmail = `other-${Date.now()}@example.com`;
     try {
+      const anonymousList = await secondApi.get(apiUrl(`/interviews/${playbackId}/media`));
+      expect(anonymousList.status()).toBe(401);
+      const anonymousPlayback = await secondApi.get(
+        apiUrl(`/interviews/${playbackId}/media/${media.id}`),
+      );
+      expect(anonymousPlayback.status()).toBe(401);
+      const anonymousDelete = await secondApi.delete(
+        apiUrl(`/interviews/${playbackId}/media/${media.id}`),
+      );
+      expect(anonymousDelete.status()).toBe(401);
+
       const otherRegistration = await secondApi.post(apiUrl("/auth/register"), {
         data: { email: otherEmail, name: "Other E2E User", password: "Other-E2E-2026!" },
       });
@@ -129,6 +142,16 @@ test("recording requires consent, is private and playable, and can be revoked or
         headers: { Authorization: otherAuthorization },
       });
       expect(hidden.status()).toBe(404);
+      const hiddenPlayback = await secondApi.get(
+        apiUrl(`/interviews/${playbackId}/media/${media.id}`),
+        { headers: { Authorization: otherAuthorization } },
+      );
+      expect(hiddenPlayback.status()).toBe(404);
+      const hiddenDelete = await secondApi.delete(
+        apiUrl(`/interviews/${playbackId}/media/${media.id}`),
+        { headers: { Authorization: otherAuthorization } },
+      );
+      expect(hiddenDelete.status()).toBe(404);
       const cleanup = await secondApi.delete(apiUrl("/auth/me"), {
         headers: { Authorization: otherAuthorization },
         data: { password: "Other-E2E-2026!", confirmation: "DELETE" },

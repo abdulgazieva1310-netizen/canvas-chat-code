@@ -35,6 +35,15 @@ test("Practice hints do not submit answers and reviewed code examples show resul
       type: "Technical",
       role: "Backend Developer",
     });
+    let answerPosts = 0;
+    page.on("request", (request) => {
+      if (
+        new URL(request.url()).pathname === `/api/interviews/${codingId}/messages` &&
+        request.method() === "POST"
+      ) {
+        answerPosts += 1;
+      }
+    });
     await expect(page.locator(".monaco-editor")).toBeVisible({ timeout: 30_000 });
     const editor = page.getByRole("textbox", { name: "Code answer" });
     const incorrect = "print('wrong')\n";
@@ -49,11 +58,16 @@ test("Practice hints do not submit answers and reviewed code examples show resul
     await page.getByRole("button", { name: "Run public examples" }).click();
     const failed = await failedRun;
     expect(failed.status()).toBe(200);
-    expect(await failed.json()).toMatchObject({ status: "failed", passed: 0, total: 2 });
+    expect(failed.request().postDataJSON()).toMatchObject({ language: "Python", code: incorrect });
+    expect(await failed.json()).toMatchObject({
+      status: "failed",
+      stdout: "0 of 2 public examples passed.",
+    });
     await expect(page.getByRole("region", { name: "Code run result" })).toContainText(
       "Public examples failed",
     );
-    await expect(editor).toHaveValue(incorrect);
+    await expect(page.locator(".monaco-editor .view-lines")).toContainText("print('wrong')");
+    expect(answerPosts).toBe(0);
 
     const correct = [
       "line = input().strip()",
@@ -72,9 +86,11 @@ test("Practice hints do not submit answers and reviewed code examples show resul
       "        break",
       "print(str(valid and not stack).lower())",
     ].join("\n");
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.evaluate((source) => navigator.clipboard.writeText(source), correct);
     await editor.focus();
     await page.keyboard.press("Control+A");
-    await page.keyboard.insertText(correct);
+    await page.keyboard.press("Control+V");
     const passedRun = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === `/api/interviews/${codingId}/run` &&
@@ -83,10 +99,15 @@ test("Practice hints do not submit answers and reviewed code examples show resul
     await page.getByRole("button", { name: "Run public examples" }).click();
     const passed = await passedRun;
     expect(passed.status()).toBe(200);
-    expect(await passed.json()).toMatchObject({ status: "passed", passed: 2, total: 2 });
+    expect(passed.request().postDataJSON()).toMatchObject({ language: "Python", code: correct });
+    expect(await passed.json()).toMatchObject({
+      status: "passed",
+      stdout: "2 of 2 public examples passed.",
+    });
     await expect(page.getByRole("region", { name: "Code run result" })).toContainText(
       "Public examples passed",
     );
+    expect(answerPosts).toBe(0);
 
     const send = page.waitForResponse(
       (response) =>
@@ -95,6 +116,7 @@ test("Practice hints do not submit answers and reviewed code examples show resul
     );
     await page.getByRole("button", { name: "Send" }).click();
     expect((await send).status()).toBe(200);
+    expect(answerPosts).toBe(1);
     await endInterview(page, codingId);
     await expect(page.locator("pre").filter({ hasText: "line = input().strip()" })).toContainText(
       "print(str(valid and not stack).lower())",

@@ -38,10 +38,10 @@ test("history filters, searches transcripts, preserves URL state, and paginates"
     await expect(page.getByRole("heading", { name: "Interview History" })).toBeVisible();
     await expect(page.getByText(/Page 1 of 2 · 22 sessions/)).toBeVisible();
 
-    await page.getByLabel("Role", { exact: true }).selectOption("QA Engineer");
+    await page.getByRole("combobox", { name: "Role" }).selectOption("QA Engineer");
     await expect(page).toHaveURL(/role=QA(%20|\+)Engineer/);
     await expect(page.getByText(/sessions/)).toBeVisible();
-    await page.getByLabel("Interview type", { exact: true }).selectOption("Behavioral");
+    await page.getByRole("combobox", { name: "Interview type" }).selectOption("Behavioral");
     await expect(page).toHaveURL(/type=Behavioral/);
     await expect(page.getByText("QA Engineer · Behavioral").first()).toBeVisible();
     await expect(page.getByText("Python Developer · Technical")).toHaveCount(0);
@@ -52,35 +52,47 @@ test("history filters, searches transcripts, preserves URL state, and paginates"
     await page.getByLabel("Minimum score").fill("7");
     await page.getByLabel("Maximum score").fill("8");
     await expect(page).toHaveURL(/startDate=/);
+    await expect(page).toHaveURL(/endDate=/);
     await expect(page).toHaveURL(/minScore=7/);
     await expect(page).toHaveURL(/maxScore=8/);
     await expect(page.getByText(`QA Engineer · Behavioral`, { exact: false }).first()).toBeVisible();
+    await expect(page.getByText(/Page 1 of 1 · 1 sessions/)).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Start date (UTC)")).toHaveValue(today);
     await expect(page.getByLabel("Minimum score")).toHaveValue("7");
 
     await page.getByRole("button", { name: "Clear filters" }).click();
-    await page.getByLabel("Search in").selectOption("setup");
+    await page.getByRole("combobox", { name: "Search in" }).selectOption("setup");
     await page.getByLabel("Search role or job description").fill("targeted practice calibration");
     await expect(page.getByText("QA Engineer · Behavioral").first()).toBeVisible();
     await expect(page.getByText("Python Developer · Technical")).toHaveCount(0);
 
-    await page.getByLabel("Search in").selectOption("transcript");
+    await page.getByRole("combobox", { name: "Search in" }).selectOption("transcript");
+    const transcriptSearchRequests: string[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === "/api/interviews" && url.searchParams.get("searchMode") === "transcript") {
+        transcriptSearchRequests.push(url.searchParams.get("search") ?? "");
+      }
+    });
     await page.getByLabel("Search questions and answers").fill("boundary cases");
-    await expect(page.getByText(/Transcript matches/).first()).toBeVisible();
+    await expect(page.getByRole("list", { name: /Transcript matches/ }).first()).toBeVisible();
     await expect(page).toHaveURL(/searchMode=transcript/);
+    expect(transcriptSearchRequests).toContain("boundary cases");
+    const requestsBeforeShortSearch = transcriptSearchRequests.length;
     await page.getByLabel("Search questions and answers").fill("x");
     await expect(page.getByRole("status")).toContainText(
       "Enter at least 2 characters to search transcript questions and answers.",
     );
+    expect(transcriptSearchRequests).toHaveLength(requestsBeforeShortSearch);
     await page.getByRole("button", { name: "Clear filters" }).click();
 
     await expect(page.getByText(/Page 1 of 2 · 22 sessions/)).toBeVisible();
-    await page.getByRole("button", { name: "Next page" }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(page).toHaveURL(/page=2/);
     await expect(page.getByText(/Page 2 of 2 · 22 sessions/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Previous page" })).toBeEnabled();
-    await page.getByRole("button", { name: "Previous page" }).click();
+    await expect(page.getByRole("button", { name: "Previous", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Previous", exact: true }).click();
     await expect(page.getByText(/Page 1 of 2 · 22 sessions/)).toBeVisible();
     expect(completedId).toBeTruthy();
   } finally {

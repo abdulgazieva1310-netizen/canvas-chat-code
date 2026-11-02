@@ -1,5 +1,12 @@
-import { expect, test } from "@playwright/test";
-import { endInterview, registerAccount, removeAccount, startInterview, submitAnswer } from "./helpers";
+import { expect, request, test } from "@playwright/test";
+import {
+  apiUrl,
+  endInterview,
+  registerAccount,
+  removeAccount,
+  startInterview,
+  submitAnswer,
+} from "./helpers";
 
 test("saved question note can be created, edited, reloaded, and removed", async ({ page }) => {
   const account = await registerAccount(page, "saved-question");
@@ -55,6 +62,31 @@ test("saved question note can be created, edited, reloaded, and removed", async 
     await expect(updated.getByLabel("Private note")).toHaveValue(
       "Updated note survives another reload.",
     );
+
+    const secondAccountApi = await request.newContext();
+    try {
+      const secondRegistration = await secondAccountApi.post(apiUrl("/auth/register"), {
+        data: {
+          email: `saved-question-other-${Date.now()}@example.com`,
+          name: "Other E2E User",
+          password: "Other-E2E-2026!",
+        },
+      });
+      expect(secondRegistration.status()).toBe(201);
+      const otherAuthorization = secondRegistration.headers()["authorization"];
+      const otherLibrary = await secondAccountApi.get(apiUrl("/study/questions?page=1"), {
+        headers: { Authorization: otherAuthorization },
+      });
+      expect(otherLibrary.status()).toBe(200);
+      expect(await otherLibrary.json()).toMatchObject({ items: [], total: 0 });
+      const removeOtherAccount = await secondAccountApi.delete(apiUrl("/auth/me"), {
+        headers: { Authorization: otherAuthorization },
+        data: { password: "Other-E2E-2026!", confirmation: "DELETE" },
+      });
+      expect(removeOtherAccount.status()).toBe(204);
+    } finally {
+      await secondAccountApi.dispose();
+    }
 
     const deletion = page.waitForResponse(
       (response) =>

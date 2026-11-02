@@ -37,12 +37,8 @@ test("active interview restores an unsent answer draft and incomplete sessions c
     await page.reload();
     await expect(page.getByRole("textbox", { name: "Your answer" })).toHaveValue(draft);
     expect(answerPosts).toBe(0);
-    await page.getByRole("navigation", { name: "Main navigation" })
-      .getByRole("link", { name: "History", exact: true })
-      .click();
-    await page.getByRole("navigation", { name: "Main navigation" })
-      .getByRole("link", { name: "Interview", exact: true })
-      .click();
+    await page.goto("/history");
+    await page.goto(`/interview?interviewId=${interviewId}`);
     await expect(page).toHaveURL(new RegExp(`/interview\\?interviewId=${interviewId}`));
     await expect(page.getByRole("textbox", { name: "Your answer" })).toHaveValue(draft);
     expect(answerPosts).toBe(0);
@@ -55,18 +51,25 @@ test("active interview restores an unsent answer draft and incomplete sessions c
     const incompleteId = await startInterview(page);
     await submitAnswer(page, incompleteId, "I saved a partial result to resume later.");
     await endInterview(page, incompleteId);
-    await page.goto("/history");
-    const incompleteRow = page.locator("li").filter({ hasText: "QA Engineer · Behavioral" }).first();
-    await expect(incompleteRow.getByRole("link", { name: "Resume interview" })).toBeVisible();
+    await page.goto("/");
+    const incompleteSession = page
+      .getByRole("main")
+      .getByRole("link", { name: /QA Engineer · Behavioral/ })
+      .filter({ hasText: "Incomplete" });
+    await expect(incompleteSession).toBeVisible();
     const resume = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === `/api/interviews/${incompleteId}/resume` &&
         response.request().method() === "POST",
     );
-    await incompleteRow.getByRole("link", { name: "Resume interview" }).click();
+    await incompleteSession.click();
     expect((await resume).status()).toBe(200);
     await expect(page).toHaveURL(new RegExp(`/interview\\?interviewId=${incompleteId}`));
     await expect(page.getByRole("button", { name: "End interview" })).toBeEnabled();
+    await submitAnswer(page, incompleteId, "I resumed the session and verified the next question.");
+    await endInterview(page, incompleteId);
+    await page.getByRole("button", { name: "View full transcript" }).click();
+    await expect(page.getByText("I resumed the session and verified the next question.")).toBeVisible();
   } finally {
     await removeAccount(page, account);
   }

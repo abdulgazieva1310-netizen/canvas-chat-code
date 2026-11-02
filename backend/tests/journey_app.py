@@ -4,6 +4,7 @@ import re
 from app.main import create_app
 from app.models import AnswerEvaluation, StudyPlanDraft, StudyPlanDraftItem
 from app.services import ai_service
+from app.routers import interviews
 
 
 def question(role, level, previous_messages, **kwargs):
@@ -52,6 +53,28 @@ ai_service.generate_hint = lambda *args, **kwargs: 'Fixture hint: identify the g
 ai_service.provider_supports_language = lambda language: language == 'Russian'
 ai_service.translate_question_to_russian = translate_question
 ai_service.generate_study_plan = study_plan
+
+
+def coding_judge(language, code, judge_key, *, public_only=False):
+    """Return deterministic public-example outcomes without requiring a runner service."""
+    correct = (
+        language == 'Python'
+        and judge_key == 'balanced-brackets-v1'
+        and "pairs = {')': '(', ']': '[', '}': '{'}" in code
+        and "print(str(valid and not stack).lower())" in code
+    )
+    passed = 2 if correct else 0
+    status = 'passed' if correct else 'failed'
+    return {
+        'status': status,
+        'passed': passed,
+        'total': 2,
+        'summary': 'All reviewed public examples passed.' if correct else
+            'The submitted code did not pass the reviewed public examples.',
+    }
+
+
+interviews.judge_code = coding_judge
 app = create_app(seed=False)
 
 

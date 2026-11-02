@@ -12,8 +12,8 @@ uv run --project backend python scripts/journey.py
 ```
 
 The runner builds the production Node frontend with an isolated API URL, starts
-FastAPI with `backend/tests/journey_app.py`, and runs the existing three
-Chromium scenarios plus the broader root-level `e2e/` suite:
+FastAPI with `backend/tests/journey_app.py`, runs the base browser journey and
+the scenarios listed below, then runs the broader root-level `e2e/` suite:
 
 - Register, configure a five-question text interview, answer all five, reload
   saved feedback, traverse History's link to Dashboard, reopen results, and delete.
@@ -35,6 +35,21 @@ Chromium scenarios plus the broader root-level `e2e/` suite:
   report, and reopen it from History.
 - `e2e/study-plans.journey.spec.ts`: complete two scored reports, generate a
   plan, complete an item, reload, and delete the plan.
+- `e2e/hints-code-execution.journey.spec.ts`: check that Practice hints leave
+  the answer untouched, Real Interview mode rejects hints, and public coding
+  examples report failed and passing runs before the submitted solution appears
+  in the report.
+- `e2e/history-search.journey.spec.ts`: create enough sessions to paginate,
+  exercise setup and transcript searches, combine filters, and preserve filter
+  state across reloads.
+- `e2e/media-recording.journey.spec.ts`: simulate browser recording, verify
+  consent gates uploads, check private playback and revocation, then delete the
+  saved recording.
+- `e2e/resume-drafts.journey.spec.ts`: restore an unsent draft after reload
+  and navigation, verify it is not submitted implicitly, and resume an
+  incomplete interview from History.
+- `e2e/saved-questions.journey.spec.ts`: save an interview question for study,
+  edit and reload its private note, then remove the saved question.
 
 The test-only ASGI entry provides deterministic questions, evaluation, hints,
 Russian question failure/translation, and study-plan generation; AI_API_KEY is

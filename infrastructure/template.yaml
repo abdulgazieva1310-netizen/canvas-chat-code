@@ -314,7 +314,7 @@ Resources:
         Secrets:
           - Name: DATABASE_URL
             ValueFrom: !Ref DatabaseUrlSecret
-          - Name: GROQ_API_KEY
+          - Name: AI_API_KEY
             ValueFrom: !Ref GroqApiKeySecret
 
 Outputs:

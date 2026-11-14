@@ -1,0 +1,224 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Interview Mirror Production app and PostgreSQL on an independent t3.micro EC2
+  host using Docker Compose. Traffic is accepted only from the Dev Caddy ingress.
+  No load balancer, NAT gateway, RDS, ECR, or Secrets Manager is created.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-061e9b43ef1fb52cd
+    Description: Existing default VPC in eu-central-1.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-03c9e7718b285793f
+    Description: Existing public default subnet in eu-central-1a.
+  DevSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: sg-0eceb1e16436bead1
+    Description: Security group on the existing Dev EC2/Caddy ingress instance.
+  ProdDomain:
+    Type: String
+    Default: 35.157.122.141.nip.io
+    AllowedPattern: '[A-Za-z0-9.-]+'
+    Description: Production hostname served by the Dev Caddy ingress.
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 x86_64 image.
+  GitRepository:
+    Type: String
+    Default: https://github.com/abdulgazieva1310-netizen/canvas-chat-code.git
+  GitBranch:
+    Type: String
+    Default: main
+    AllowedPattern: '[A-Za-z0-9._/-]+'
+    Description: Public repository branch containing the Docker Compose deployment changes.
+  GroqApiKeyParameterName:
+    Type: String
+    Default: /interview-mirror-production/groq-api-key
+    AllowedPattern: '/[A-Za-z0-9_./-]+'
+    Description: Optional standard SecureString Parameter Store parameter. Leave absent to use deterministic AI fallback.
+
+Resources:
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Production app reachable only through the Dev Caddy instance.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - Description: App traffic from the Dev Caddy ingress only
+          IpProtocol: tcp
+          FromPort: 8100
+          ToPort: 8100
+          SourceSecurityGroupId: !Ref DevSecurityGroupId
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: interview-mirror-production
+        - Key: Environment
+          Value: Production
+
+  ApplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Environment
+          Value: Production
+      Policies:
+        - PolicyName: ReadOptionalGroqParameter
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GroqApiKeyParameterName}
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.${AWS::URLSuffix}
+              - Effect: Allow
+                Action:
+                  - cloudformation:SignalResource
+                Resource:
+                  - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*
+
+  ApplicationInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ApplicationRole
+
+  ApplicationInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT45M
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: t3.micro
+      CreditSpecification:
+        CPUCredits: standard
+      IamInstanceProfile: !Ref ApplicationInstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          SubnetId: !Ref SubnetId
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !Ref ApplicationSecurityGroup
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+      Monitoring: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: interview-mirror-production
+        - Key: Environment
+          Value: Production
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec > >(tee -a /var/log/interview-mirror-bootstrap.log | logger -t interview-mirror-bootstrap -s 2>/dev/console) 2>&1
+
+          dnf install -y docker git awscli-2 aws-cfn-bootstrap
+          install -d -m 0755 /usr/local/lib/docker/cli-plugins
+          curl --fail --silent --show-error --location \
+            https://github.com/docker/compose/releases/download/v5.7.0/docker-compose-linux-x86_64 \
+            --output /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+          curl --fail --silent --show-error --location \
+            https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-amd64 \
+            --output /usr/local/lib/docker/cli-plugins/docker-buildx
+          chmod 0755 /usr/local/lib/docker/cli-plugins/docker-buildx
+          install -d -m 0755 /etc/docker
+          cat > /etc/docker/daemon.json <<'DOCKER_CONFIG'
+          {"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}
+          DOCKER_CONFIG
+          systemctl enable --now docker
+          systemctl enable --now amazon-ssm-agent || true
+
+          # Keep the image build and small Compose stack from exhausting the 1 GiB host.
+          fallocate -l 2G /swapfile
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+          sysctl -w vm.swappiness=80
+
+          install -d -m 0750 /opt/interview-mirror
+          git clone --depth 1 --branch '${GitBranch}' '${GitRepository}' /opt/interview-mirror/repo
+
+          POSTGRES_PASSWORD=$(openssl rand -hex 24)
+          GROQ_API_KEY=''
+          if aws ssm get-parameter --name '${GroqApiKeyParameterName}' --with-decryption \
+            --region '${AWS::Region}' --query Parameter.Value --output text >/tmp/groq-api-key 2>/dev/null; then
+            GROQ_API_KEY=$(cat /tmp/groq-api-key)
+            shred -u /tmp/groq-api-key || rm -f /tmp/groq-api-key
+          fi
+
+          cat > /opt/interview-mirror/runtime.env <<EOF
+          POSTGRES_USER=interviewapp
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          POSTGRES_DB=interviewmirror
+          AI_API_KEY=$GROQ_API_KEY
+          APP_BIND_ADDRESS=0.0.0.0
+          EMAIL_ADAPTER=local
+          SECURE_COOKIES=true
+          SEED_DEMO_ACCOUNT=false
+          CORS_ORIGINS=https://${ProdDomain}
+          PASSWORD_RESET_URL=https://${ProdDomain}/reset-password
+          EOF
+          chmod 0600 /opt/interview-mirror/runtime.env
+
+          cd /opt/interview-mirror/repo
+          docker compose --env-file /opt/interview-mirror/runtime.env build app
+          docker compose --env-file /opt/interview-mirror/runtime.env up -d postgres app
+
+          for attempt in $(seq 1 60); do
+            if docker compose --env-file /opt/interview-mirror/runtime.env exec -T app \
+              python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8000/api/health', timeout=3).status == 200"; then
+              /opt/aws/bin/cfn-signal --exit-code 0 --stack '${AWS::StackName}' \
+                --resource ApplicationInstance --region '${AWS::Region}'
+              exit 0
+            fi
+            sleep 5
+          done
+          /opt/aws/bin/cfn-signal --exit-code 1 --stack '${AWS::StackName}' \
+            --resource ApplicationInstance --region '${AWS::Region}'
+
+Outputs:
+  ApplicationUrl:
+    Description: Production HTTPS endpoint served through the Dev Caddy ingress.
+    Value: !Sub https://${ProdDomain}
+  ProductionPrivateAddress:
+    Description: Private app address reachable only from the Dev ingress security group.
+    Value: !Sub ${ApplicationInstance.PrivateIp}:8100
+  ApplicationInstanceId:
+    Description: Instance administration is via AWS Systems Manager Session Manager.
+    Value: !Ref ApplicationInstance

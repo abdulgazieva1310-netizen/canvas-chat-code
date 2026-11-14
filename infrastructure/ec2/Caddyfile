@@ -1,4 +1,9 @@
-{$APP_DOMAIN} {
+{$PROD_DOMAIN} {
+	encode gzip
+	reverse_proxy {$PROD_UPSTREAM}
+}
+
+{$DEV_DOMAIN} {
 	encode gzip
 	reverse_proxy app:8000
 }

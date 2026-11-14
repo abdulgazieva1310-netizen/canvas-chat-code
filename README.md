@@ -80,12 +80,15 @@ for application configuration.
 
 ## AWS Deployment
 
-The planned deployment uses one Free Plan eligible `t3.micro` EC2 instance in
-`eu-central-1`. Docker Compose runs the application and PostgreSQL on the same
-host; Caddy provides HTTPS. PostgreSQL is persisted in a Docker volume and is
-not exposed to the public network. See [docs/deployment.md](docs/deployment.md)
-for the deployment steps and Free Plan limits. GitHub Actions runs CI checks;
-AWS deployment is not triggered by pushes to `main`.
+The AWS setup has separate Dev and Production `t3.micro` EC2 instances. Docker
+Compose runs each environment's app and PostgreSQL on its own host. The Dev
+instance runs the shared Caddy HTTPS ingress and routes Production traffic to
+the Production app over the private VPC network. The current URLs are
+`https://dev.35.157.122.141.nip.io/` and
+`https://35.157.122.141.nip.io/`. See
+[docs/deployment.md](docs/deployment.md) for topology and Free Plan limits.
+GitHub Actions deploys passing `main` changes to Dev; Production is updated
+separately.
 
 ## Docker Deployment
 

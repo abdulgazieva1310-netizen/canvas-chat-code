@@ -69,6 +69,9 @@ def test_ci_and_manual_production_promotion_workflows():
                and 'pull app' in command and '--no-build' in command for command in dev_commands)
     assert any('--comment "Deploy image to Dev"' in command and '${IMAGE_URI}' not in command
                for command in dev_commands)
+    assert any(r'sed -i \"/^APP_IMAGE=/d\"' in command
+               and r'printf \"APP_IMAGE=%s' in command for command in dev_commands)
+    assert not any(r'\\\"' in command for command in dev_commands)
     assert not any('docker build' in command or 'docker buildx' in command for command in dev_commands)
 
     promotion = yaml.load((root / '.github/workflows/promote.yml').read_text(), Loader=yaml.BaseLoader)
@@ -88,6 +91,9 @@ def test_ci_and_manual_production_promotion_workflows():
                and '--no-build' in command for command in promote_commands)
     assert any('"Promote Dev image to Production"' in command
                for command in promote_commands)
+    assert any(r'sed -i \"/^APP_IMAGE=/d\"' in command
+               and r'printf \"APP_IMAGE=%s' in command for command in promote_commands)
+    assert not any(r'\\\"' in command for command in promote_commands)
     assert not any('docker build ' in command or ' up -d --build ' in command
                    for command in promote_commands)
     assert any("OutputKey=='ApplicationUrl'" in command and 'api/health' in command

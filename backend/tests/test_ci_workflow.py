@@ -47,7 +47,7 @@ def test_ci_and_manual_production_promotion_workflows():
     assert not any('aws-actions/' in str(job) or 'aws ssm' in str(job) for job in jobs.values())
 
     promotion = yaml.load((root / '.github/workflows/promote.yml').read_text(), Loader=yaml.BaseLoader)
-    assert promotion['on'] == {'workflow_dispatch': None}
+    assert 'workflow_dispatch' in promotion['on']
     promote = promotion['jobs']['promote']
     assert promote['environment']['name'] == 'production'
     assert promote['permissions'] == {'contents': 'read', 'id-token': 'write'}

@@ -53,6 +53,12 @@ def test_ci_covers_locked_checks_and_failure_artifacts():
                        if step.get('uses') == 'aws-actions/configure-aws-credentials@v4')
     assert credentials['with']['role-to-assume'] == '${{ vars.AWS_DEPLOY_ROLE_ARN }}'
     deploy_commands = [step.get('run', '') for step in deploy_steps]
-    assert any('docker push "$IMAGE_URI"' in command for command in deploy_commands)
-    assert any('aws cloudformation deploy' in command for command in deploy_commands)
+    assert any(
+        'aws ssm send-command' in command
+        and 'git fetch --depth=1 origin main' in command
+        and 'docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d --build' in command
+        for command in deploy_commands
+    )
+    assert not any('docker push' in command or 'aws ecr' in command or 'aws ecs' in command
+                   for command in deploy_commands)
     assert any('api/health' in command for command in deploy_commands)

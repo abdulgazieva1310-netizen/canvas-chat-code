@@ -30,7 +30,7 @@ services:
       SECURE_COOKIES: ${SECURE_COOKIES:-false}
       SEED_DEMO_ACCOUNT: ${SEED_DEMO_ACCOUNT:-true}
       PASSWORD_RESET_URL: ${PASSWORD_RESET_URL:-http://localhost:8100/reset-password}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8100}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:8100}
     ports:
       - "127.0.0.1:8100:8000"
     volumes:

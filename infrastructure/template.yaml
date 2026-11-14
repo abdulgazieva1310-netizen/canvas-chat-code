@@ -1,241 +1,61 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
-  Interview Mirror staging stack: ECR, public ECS Express Mode service, private
-  PostgreSQL database, and Secrets Manager values. No application resources are
-  created until this template is deployed.
+  Interview Mirror Free Plan demo: one t3.micro EC2 host running the app and
+  PostgreSQL with Docker Compose. No load balancer, NAT gateway, RDS, ECR, or
+  Secrets Manager resources are created.
 
 Parameters:
-  ServiceName:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-061e9b43ef1fb52cd
+    Description: Existing default VPC in eu-central-1.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-03c9e7718b285793f
+    Description: Existing public default subnet in eu-central-1a.
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 x86_64 image.
+  GitRepository:
     Type: String
-    Default: interview-mirror
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9-]{1,39}'
-  DatabaseName:
+    Default: https://github.com/abdulgazieva1310-netizen/canvas-chat-code.git
+  GitBranch:
     Type: String
-    Default: interviewmirror
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]{1,62}'
-  DatabaseUsername:
+    Default: infra/free-tier-ec2
+    AllowedPattern: '[A-Za-z0-9._/-]+'
+    Description: Public repository branch containing the Docker Compose deployment changes.
+  GroqApiKeyParameterName:
     Type: String
-    Default: interviewapp
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9_]{0,62}'
-  GroqApiKey:
-    Type: String
-    NoEcho: true
-    MinLength: 1
-    Description: Groq API key. Stored as a Secrets Manager secret.
-  ImageTag:
-    Type: String
-    Default: ''
-    AllowedPattern: '^$|[A-Za-z0-9_.-]{1,128}'
-    Description: >-
-      Leave empty for the infrastructure-only first deployment. After pushing
-      the image to ECR, update the stack with its immutable image tag.
-
-Conditions:
-  HasImageTag: !Not [!Equals [!Ref ImageTag, '']]
+    Default: /interview-mirror-ec2/groq-api-key
+    AllowedPattern: '/[A-Za-z0-9_./-]+'
+    Description: Optional standard SecureString Parameter Store parameter. Leave absent to use deterministic AI fallback.
 
 Resources:
-  Vpc:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.40.0.0/16
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      Tags:
-        - Key: Name
-          Value: !Sub '${ServiceName}-vpc'
-
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-
-  VpcGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId: !Ref Vpc
-      InternetGatewayId: !Ref InternetGateway
-
-  PublicSubnetA:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref Vpc
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: 10.40.0.0/24
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: !Sub '${ServiceName}-public-a'
-
-  PublicSubnetB:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref Vpc
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: 10.40.1.0/24
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: !Sub '${ServiceName}-public-b'
-
-  PrivateSubnetA:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref Vpc
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: 10.40.10.0/24
-      Tags:
-        - Key: Name
-          Value: !Sub '${ServiceName}-private-a'
-
-  PrivateSubnetB:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref Vpc
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: 10.40.11.0/24
-      Tags:
-        - Key: Name
-          Value: !Sub '${ServiceName}-private-b'
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref Vpc
-
-  PublicDefaultRoute:
-    Type: AWS::EC2::Route
-    DependsOn: VpcGatewayAttachment
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  PublicSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnetA
-      RouteTableId: !Ref PublicRouteTable
-
-  PublicSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnetB
-      RouteTableId: !Ref PublicRouteTable
-
-  PrivateRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref Vpc
-
-  PrivateSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetA
-      RouteTableId: !Ref PrivateRouteTable
-
-  PrivateSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetB
-      RouteTableId: !Ref PrivateRouteTable
-
-  AppSecurityGroup:
+  ApplicationSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow ECS Express load balancer traffic to the app port
-      VpcId: !Ref Vpc
+      GroupDescription: Public HTTPS application; administration uses Systems Manager.
+      VpcId: !Ref VpcId
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 8000
-          ToPort: 8000
-          CidrIp: 10.40.0.0/16
+        - Description: HTTP for redirect and ACME certificate validation
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - Description: HTTPS application traffic
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub '${ServiceName}-app'
+          Value: interview-mirror-app
 
-  DatabaseSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: PostgreSQL accepts connections only from the app tasks
-      VpcId: !Ref Vpc
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !Ref AppSecurityGroup
-      Tags:
-        - Key: Name
-          Value: !Sub '${ServiceName}-database'
-
-  DatabaseSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Private subnets for Interview Mirror PostgreSQL
-      SubnetIds:
-        - !Ref PrivateSubnetA
-        - !Ref PrivateSubnetB
-
-  DatabaseCredentials:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub '${ServiceName}/database-credentials'
-      GenerateSecretString:
-        SecretStringTemplate: !Sub '{"username":"${DatabaseUsername}"}'
-        GenerateStringKey: password
-        PasswordLength: 40
-        ExcludePunctuation: true
-
-  GroqApiKeySecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub '${ServiceName}/groq-api-key'
-      SecretString: !Ref GroqApiKey
-
-  Database:
-    Type: AWS::RDS::DBInstance
-    DeletionPolicy: Snapshot
-    UpdateReplacePolicy: Snapshot
-    Properties:
-      Engine: postgres
-      DBInstanceClass: db.t3.micro
-      AllocatedStorage: 20
-      StorageType: gp3
-      StorageEncrypted: true
-      DBName: !Ref DatabaseName
-      MasterUsername: !Ref DatabaseUsername
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:password}}'
-      DBSubnetGroupName: !Ref DatabaseSubnetGroup
-      VPCSecurityGroups:
-        - !GetAtt DatabaseSecurityGroup.GroupId
-      PubliclyAccessible: false
-      BackupRetentionPeriod: 1
-      AutoMinorVersionUpgrade: true
-      DeletionProtection: false
-
-  DatabaseUrlSecret:
-    Type: AWS::SecretsManager::Secret
-    DependsOn: Database
-    Properties:
-      Name: !Sub '${ServiceName}/database-url'
-      SecretString: !Sub
-        - 'postgresql+psycopg://${DatabaseUsername}:${DbPassword}@${DbHost}:5432/${DatabaseName}'
-        - DbPassword: !Sub '{{resolve:secretsmanager:${DatabaseCredentials}:SecretString:password}}'
-          DbHost: !GetAtt Database.Endpoint.Address
-
-  EcrRepository:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: !Ref ServiceName
-      ImageScanningConfiguration:
-        ScanOnPush: true
-      ImageTagMutability: IMMUTABLE
-      EncryptionConfiguration:
-        EncryptionType: AES256
-      LifecyclePolicy:
-        LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Keep latest 20 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":20},"action":{"type":"expire"}}]}'
-
-  EcsTaskExecutionRole:
+  ApplicationRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -243,91 +63,158 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com
+              Service: ec2.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
       Policies:
-        - PolicyName: ReadApplicationSecrets
+        - PolicyName: ReadOptionalGroqParameter
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action: secretsmanager:GetSecretValue
+                Action:
+                  - ssm:GetParameter
                 Resource:
-                  - !Ref DatabaseUrlSecret
-                  - !Ref GroqApiKeySecret
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GroqApiKeyParameterName}
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.${AWS::URLSuffix}
+              - Effect: Allow
+                Action:
+                  - cloudformation:SignalResource
+                Resource:
+                  - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*
 
-  EcsExpressInfrastructureRole:
-    Type: AWS::IAM::Role
+  ApplicationInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
     Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRoleforExpressGatewayServices
+      Roles:
+        - !Ref ApplicationRole
 
-  ApplicationCluster:
-    Type: AWS::ECS::Cluster
+  ApplicationInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT45M
     Properties:
-      ClusterName: !Sub '${ServiceName}-cluster'
+      ImageId: !Ref AmiId
+      InstanceType: t3.micro
+      CreditSpecification:
+        CPUCredits: standard
+      IamInstanceProfile: !Ref ApplicationInstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          SubnetId: !Ref SubnetId
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !Ref ApplicationSecurityGroup
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+      Monitoring: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: interview-mirror-app
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec > >(tee -a /var/log/interview-mirror-bootstrap.log | logger -t interview-mirror-bootstrap -s 2>/dev/console) 2>&1
 
-  EcsExpressService:
-    Type: AWS::ECS::ExpressGatewayService
-    Condition: HasImageTag
-    DependsOn:
-      - DatabaseUrlSecret
-      - GroqApiKeySecret
-    Properties:
-      Cluster: !Ref ApplicationCluster
-      ServiceName: !Ref ServiceName
-      InfrastructureRoleArn: !GetAtt EcsExpressInfrastructureRole.Arn
-      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
-      Cpu: '1024'
-      Memory: '2048'
-      HealthCheckPath: /api/health
-      NetworkConfiguration:
-        Subnets:
-          - !Ref PublicSubnetA
-          - !Ref PublicSubnetB
-        SecurityGroups:
-          - !Ref AppSecurityGroup
-      ScalingTarget:
-        MinTaskCount: 1
-        MaxTaskCount: 1
-      PrimaryContainer:
-        Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/${EcrRepository}:${ImageTag}'
-        ContainerPort: 8000
-        Environment:
-          - Name: SECURE_COOKIES
-            Value: 'true'
-          - Name: DATABASE_NAME
-            Value: !Ref DatabaseName
-          - Name: PASSWORD_RESET_URL
-            Value: !Sub 'https://${ServiceName}.ecs.${AWS::Region}.on.aws/reset-password'
-          - Name: EMAIL_ADAPTER
-            Value: auto
-        Secrets:
-          - Name: DATABASE_URL
-            ValueFrom: !Ref DatabaseUrlSecret
-          - Name: AI_API_KEY
-            ValueFrom: !Ref GroqApiKeySecret
+          dnf install -y docker git awscli-2 aws-cfn-bootstrap
+          install -d -m 0755 /usr/local/lib/docker/cli-plugins
+          curl --fail --silent --show-error --location \
+            https://github.com/docker/compose/releases/download/v5.7.0/docker-compose-linux-x86_64 \
+            --output /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+          curl --fail --silent --show-error --location \
+            https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-amd64 \
+            --output /usr/local/lib/docker/cli-plugins/docker-buildx
+          chmod 0755 /usr/local/lib/docker/cli-plugins/docker-buildx
+          install -d -m 0755 /etc/docker
+          cat > /etc/docker/daemon.json <<'DOCKER_CONFIG'
+          {"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}
+          DOCKER_CONFIG
+          systemctl enable --now docker
+          systemctl enable --now amazon-ssm-agent || true
+
+          # Keep the image build and small Compose stack from exhausting the 1 GiB host.
+          fallocate -l 2G /swapfile
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+          sysctl -w vm.swappiness=80
+
+          install -d -m 0750 /opt/interview-mirror
+          git clone --depth 1 --branch '${GitBranch}' '${GitRepository}' /opt/interview-mirror/repo
+
+          APP_TOKEN=$(curl --fail --silent --show-error -X PUT \
+            -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600' \
+            http://169.254.169.254/latest/api/token)
+          PUBLIC_IP=$(curl --fail --silent --show-error \
+            -H "X-aws-ec2-metadata-token: $APP_TOKEN" \
+            http://169.254.169.254/latest/meta-data/public-ipv4)
+          APP_DOMAIN="$PUBLIC_IP.nip.io"
+          POSTGRES_PASSWORD=$(openssl rand -hex 24)
+          GROQ_API_KEY=''
+          if aws ssm get-parameter --name '${GroqApiKeyParameterName}' --with-decryption \
+            --region '${AWS::Region}' --query Parameter.Value --output text >/tmp/groq-api-key 2>/dev/null; then
+            GROQ_API_KEY=$(cat /tmp/groq-api-key)
+            shred -u /tmp/groq-api-key || rm -f /tmp/groq-api-key
+          fi
+
+          cat > /opt/interview-mirror/runtime.env <<EOF
+          POSTGRES_USER=interviewapp
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          POSTGRES_DB=interviewmirror
+          AI_API_KEY=$GROQ_API_KEY
+          EMAIL_ADAPTER=local
+          SECURE_COOKIES=true
+          SEED_DEMO_ACCOUNT=false
+          APP_DOMAIN=$APP_DOMAIN
+          CORS_ORIGINS=https://$APP_DOMAIN
+          PASSWORD_RESET_URL=https://$APP_DOMAIN/reset-password
+          EOF
+          chmod 0600 /opt/interview-mirror/runtime.env
+
+          cd /opt/interview-mirror/repo
+          docker compose --env-file /opt/interview-mirror/runtime.env build app
+          docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d
+
+          for attempt in $(seq 1 60); do
+            if docker compose --env-file /opt/interview-mirror/runtime.env exec -T app \
+              python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8000/api/health', timeout=3).status == 200"; then
+              /opt/aws/bin/cfn-signal --exit-code 0 --stack '${AWS::StackName}' \
+                --resource ApplicationInstance --region '${AWS::Region}'
+              exit 0
+            fi
+            sleep 5
+          done
+          /opt/aws/bin/cfn-signal --exit-code 1 --stack '${AWS::StackName}' \
+            --resource ApplicationInstance --region '${AWS::Region}'
 
 Outputs:
-  EcrRepositoryUri:
-    Description: Push the built application image here before deploying the service.
-    Value: !GetAtt EcrRepository.RepositoryUri
   ApplicationUrl:
-    Condition: HasImageTag
-    Description: ECS Express Mode HTTPS endpoint.
-    Value: !GetAtt EcsExpressService.Endpoint
-  DatabaseEndpoint:
-    Description: Private RDS PostgreSQL endpoint.
-    Value: !GetAtt Database.Endpoint.Address
-  GroqSecretArn:
-    Description: Secrets Manager secret containing the configured Groq API key.
-    Value: !Ref GroqApiKeySecret
+    Description: HTTPS endpoint; allow a few minutes after stack creation for certificate issuance.
+    Value: !Sub https://${ApplicationInstance.PublicIp}.nip.io
+  ApplicationPublicIp:
+    Description: EC2 public IPv4 address.
+    Value: !GetAtt ApplicationInstance.PublicIp
+  ApplicationInstanceId:
+    Description: Instance administration is via AWS Systems Manager Session Manager.
+    Value: !Ref ApplicationInstance

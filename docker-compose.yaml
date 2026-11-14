@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sdip}
       POSTGRES_DB: ${POSTGRES_DB:-sdip}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,10 +25,40 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sdip}:${POSTGRES_PASSWORD:-sdip}@postgres:5432/${POSTGRES_DB:-sdip}
+      AI_API_KEY: ${AI_API_KEY:-}
+      EMAIL_ADAPTER: local
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      SEED_DEMO_ACCOUNT: ${SEED_DEMO_ACCOUNT:-true}
+      PASSWORD_RESET_URL: ${PASSWORD_RESET_URL:-http://localhost:8100/reset-password}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:8100}
     ports:
-      - "8100:8000"
+      - "127.0.0.1:8100:8000"
+    volumes:
+      - media_data:/app/backend/media-storage
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.11.9-alpine
+    profiles: [aws]
+    depends_on:
+      - app
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/ec2/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     restart: unless-stopped
 
 volumes:
   postgres_data:
     name: interview-canvas-pgdata
+  media_data:
+    name: interview-canvas-media
+  caddy_data:
+    name: interview-canvas-caddy-data
+  caddy_config:
+    name: interview-canvas-caddy-config

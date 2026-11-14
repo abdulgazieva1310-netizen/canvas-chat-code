@@ -47,7 +47,7 @@ Run the unit suites locally with `cd backend && uv run --locked pytest` and `cd 
 
 The workflow is `.github/workflows/checks.yml` (`Checks`). It runs for pull requests and pushes to `main`, grants read-only repository contents by default, and cancels an earlier run for the same workflow/ref when a newer one starts. Four checks run independently in parallel: backend, frontend, Compose integration/E2E, and full browser journeys. The jobs use Python 3.12, uv with the backend lockfile cache, and Node 22 with the frontend lockfile cache.
 
-Pull requests and pushes to `main` run checks only. AWS deployment is a separate manual CloudFormation operation; pushes do not create or update AWS resources. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
+Pull requests run checks only. On pushes to `main`, the workflow deploys to the Dev EC2 instance through Systems Manager only after backend, frontend, Compose, and browser journey jobs pass. Production is updated separately through Systems Manager. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
 
 ## Render deployment
 
@@ -61,12 +61,18 @@ The free plan is suitable for a trial environment, not a guarantee of production
 
 ## AWS EC2 deployment
 
-The current AWS design runs the application and PostgreSQL in Docker Compose on
-one `t3.micro` EC2 instance. It uses the existing default VPC, Caddy for HTTPS,
-and Systems Manager for host access. It does not create RDS, ECR, a load
-balancer, NAT, or Secrets Manager resources. Deployment and cleanup commands,
-Free Plan limits, and the public URL lookup are documented in
-[`docs/deployment.md`](docs/deployment.md). CI validates code but does not deploy.
+AWS has independent Dev and Production `t3.micro` EC2 hosts, each running its
+own app and PostgreSQL Compose services with separate local volumes. The Dev
+instance also runs Caddy as the shared HTTPS ingress: it serves
+`https://dev.35.157.122.141.nip.io/` locally and proxies
+`https://35.157.122.141.nip.io/` to the Production private address. Production
+accepts app traffic only from the Dev security group. The setup uses the
+existing default VPC and Systems Manager for host access; it creates no RDS,
+ECR, ECS, load balancer, NAT gateway, or Secrets Manager resources. The Dev
+stack is `interview-mirror-staging`; Production is `interview-mirror-production`.
+Deployment and cleanup commands and Free Plan limits are documented in
+[`docs/deployment.md`](docs/deployment.md). CI deploys passing `main` changes to
+Dev; Production is promoted separately.
 
 Run the frontend SSR server and FastAPI as separate services behind an HTTPS
 reverse proxy. Install Python 3.11+ with uv and a Node version compatible with the

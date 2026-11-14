@@ -1,6 +1,6 @@
 # DevOps Engineering
 
-This document describes the application's container architecture, verification strategy, automated delivery, Render setup, and deployment operations. The Deployment section below reproduces the existing `docs/deployment.md` guidance.
+This document describes the application's container architecture, verification strategy, automated delivery checks, Render alternative, and deployment operations. AWS uses the low-cost EC2 Compose setup in `docs/deployment.md`.
 
 ## Docker architecture
 
@@ -18,7 +18,8 @@ The FastAPI process listens on port 8000. It serves the built frontend through i
 `docker-compose.yaml` defines:
 
 - **postgres:** PostgreSQL 16 Alpine, with configurable database credentials, a persistent named volume (`interview-canvas-pgdata`), and a `pg_isready` health check.
-- **app:** the root Dockerfile image, started after PostgreSQL becomes healthy. The database URL points to the Compose `postgres` service; host port 8100 forwards to container port 8000.
+- **app:** the root Dockerfile image, started after PostgreSQL becomes healthy. The database URL points to the Compose `postgres` service; host port 8100 forwards to container port 8000 on loopback only.
+- **caddy:** an optional `aws` profile that serves HTTPS and proxies public traffic to the app. The database remains private; app, media, and Caddy data are persisted in local volumes.
 
 Start the stack with `docker compose up --build`. The named volume preserves the local database across container recreation. Remove it only when intentionally resetting local data (`docker compose down --volumes`). Compose is used for integration and browser E2E verification; Render uses its managed PostgreSQL service instead of running this Compose file.
 
@@ -44,11 +45,9 @@ Run the unit suites locally with `cd backend && uv run --locked pytest` and `cd 
 
 ## CI/CD pipeline
 
-The workflow is `.github/workflows/checks.yml` (`Checks and deploy`). It runs for pull requests and pushes to `main`, grants read-only repository contents by default, and cancels an earlier run for the same workflow/ref when a newer one starts. Four checks run independently in parallel: backend, frontend, Compose integration/E2E, and full browser journeys. The jobs use Python 3.12, uv with the backend lockfile cache, and Node 22 with the frontend lockfile cache.
+The workflow is `.github/workflows/checks.yml` (`Checks`). It runs for pull requests and pushes to `main`, grants read-only repository contents by default, and cancels an earlier run for the same workflow/ref when a newer one starts. Four checks run independently in parallel: backend, frontend, Compose integration/E2E, and full browser journeys. The jobs use Python 3.12, uv with the backend lockfile cache, and Node 22 with the frontend lockfile cache.
 
-On a pull request, CI reports the four checks and does not deploy. On a push to `main`, the deploy job waits for all four to pass. It obtains short-lived AWS credentials through GitHub OIDC, resolves the ECR URI from the `interview-mirror-staging` CloudFormation stack, builds a `linux/amd64` application image tagged with the commit SHA, pushes that immutable commit tag, updates the stack's `ImageTag`, then polls `/api/health` for up to six minutes. Failed checks block deployment; image publication, stack update, or health failure fails the deployment job.
-
-Configure the repository variable `AWS_DEPLOY_ROLE_ARN` and the AWS trust and permissions described in the Deployment section before merging to `main`. The pre-existing ECR repository and CloudFormation stack are prerequisites. Do not put long-lived AWS credentials in GitHub secrets; the workflow uses OIDC. Keep provider secrets in their deployment secret store, not in the repository or CI test environment.
+Pull requests and pushes to `main` run checks only. AWS deployment is a separate manual CloudFormation operation; pushes do not create or update AWS resources. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
 
 ## Render deployment
 
@@ -56,33 +55,18 @@ Configure the repository variable `AWS_DEPLOY_ROLE_ARN` and the AWS trust and pe
 
 The Blueprint configures `PORT=8000`, secure cookies, automatic email adapter selection, `openai/gpt-oss-120b` as the model, and disables Russian interviews. `AI_API_KEY` is marked `sync: false`, so supply it privately in the Render dashboard when AI features are wanted; leaving it unset enables the documented deterministic fallback. Review or set any required application variables and credentials in Render before allowing real users. Render's `autoDeployTrigger: checksPass` ties deployment to successful repository checks. The Blueprint provisions the managed database rather than starting `docker-compose.yaml`.
 
-The free plan is suitable for a trial environment, not a guarantee of production availability or durable operational capacity. Review current Render plan limits and persistence/backup behavior before selecting a production plan. Confirm database migrations complete, HTTPS and secure cookies work, and `/api/health` passes after deployment. The endpoint is a liveness check only; it does not prove database, AI provider, or email readiness. Follow the operational cautions in the Deployment section, including the current public demo account seeding restriction.
+The free plan is suitable for a trial environment, not a guarantee of production availability or durable operational capacity. Review current Render plan limits and persistence/backup behavior before selecting a production plan. Confirm database migrations complete, HTTPS and secure cookies work, and `/api/health` passes after deployment. The endpoint is a liveness check only; it does not prove database, AI provider, or email readiness. Public deployments must set `SEED_DEMO_ACCOUNT=false`.
 
 ## Deployment
 
-## GitHub Actions deployment
+## AWS EC2 deployment
 
-`.github/workflows/checks.yml` runs backend tests, frontend tests/build, the
-Docker Compose PostgreSQL/API integration tests, the Compose browser E2E test,
-and the full journey runner. The backend, frontend, Compose, and journey jobs run
-in parallel. A push to `main` deploys only after all four jobs pass.
-
-Configure the repository variable `AWS_DEPLOY_ROLE_ARN` with an IAM role that
-trusts GitHub's OIDC provider `token.actions.githubusercontent.com`. Restrict
-its trust policy to audience `sts.amazonaws.com` and subject
-`repo:abdulgazieva1310-netizen@332606930/canvas-chat-code@1423419216:ref:refs/heads/main`.
-GitHub is configured to use immutable OIDC subject claims, so the owner and
-repository IDs are part of the subject. The role needs ECR push access for
-`interview-mirror`, CloudFormation update access for
-`interview-mirror-staging`, and `iam:PassRole` for the stack's ECS task
-execution and Express infrastructure roles. The workflow assumes this role
-without long-lived AWS keys, tags images with the commit SHA, updates the stack
-parameter `ImageTag`, and checks `/api/health` before succeeding.
-
-The stack and ECR repository must already exist. Configure the AWS role and
-repository variable before merging a commit to `main`; otherwise the deploy job
-will fail at role assumption. The stack's Groq secret is separate from the
-workflow and is not overwritten during updates.
+The current AWS design runs the application and PostgreSQL in Docker Compose on
+one `t3.micro` EC2 instance. It uses the existing default VPC, Caddy for HTTPS,
+and Systems Manager for host access. It does not create RDS, ECR, a load
+balancer, NAT, or Secrets Manager resources. Deployment and cleanup commands,
+Free Plan limits, and the public URL lookup are documented in
+[`docs/deployment.md`](docs/deployment.md). CI validates code but does not deploy.
 
 Run the frontend SSR server and FastAPI as separate services behind an HTTPS
 reverse proxy. Install Python 3.11+ with uv and a Node version compatible with the
@@ -162,10 +146,9 @@ HttpOnly, SameSite=Lax, scoped to `/api`, and Secure when `SECURE_COOKIES=true`;
 use HTTPS for both services and a same-site deployment for cookie authentication.
 Allow only the trusted reverse proxy to reach application ports.
 
-The current application seeds a public demo account on startup. Restrict access
-to a private staging environment until demo seeding is made configurable and
-production account policy is established. This guide verifies deployment
-mechanics; it does not assert public release readiness.
+Set `SEED_DEMO_ACCOUNT=false` for public hosts. The default remains enabled for
+local development and deterministic demo tests. A public demo still needs
+appropriate account, data-retention, and operational policies before production.
 
 `GET /api/health` returns exactly `{"status":"ok"}` without authentication, with
 no-store caching. It is a process liveness check: it performs no database query,

@@ -25,7 +25,9 @@ from .store import Store
 from .services.email_service import email_delivery, password_reset_url
 
 
-def create_app(*, seed=True, secure_cookies=None, database_url=None, mailer=None):
+def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None):
+    if seed is None:
+        seed = os.getenv('SEED_DEMO_ACCOUNT', 'true').strip().lower() in {'1', 'true', 'yes', 'on'}
     store = Store(seed=seed, database_url=database_url)
     frontend_server_entry = os.getenv('FRONTEND_SERVER_ENTRY')
     frontend_server_host = os.getenv('FRONTEND_SERVER_HOST', '127.0.0.1')

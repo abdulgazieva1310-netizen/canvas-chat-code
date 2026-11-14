@@ -80,24 +80,12 @@ for application configuration.
 
 ## AWS Deployment
 
-The staging application is deployed in **eu-central-1**:
-
-- Application: [https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws](https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws)
-- Health endpoint: [https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws/api/health](https://in-c1bb18f9d10b4f6f8f8d17bd2d6bf303.ecs.eu-central-1.on.aws/api/health)
-
-Push changes to `main` to start the GitHub Actions pipeline. It runs backend
-and frontend tests, Docker Compose integration and browser E2E tests, and full
-browser journeys in parallel. Once they pass, the deploy job builds the Docker
-image, pushes it to the `interview-mirror` ECR repository, updates the
-`interview-mirror-staging` CloudFormation stack, and checks the health endpoint.
-
-The stack and ECR repository must already exist. In the GitHub repository,
-configure the `AWS_DEPLOY_ROLE_ARN` Actions variable with the deploy role ARN.
-The role must trust GitHub OIDC for this repository's `main` branch and have
-the deployment permissions described in [docs/deployment.md](docs/deployment.md).
-Do not add AWS access keys to GitHub; the workflow uses short-lived OIDC
-credentials. See the deployment guide for role setup, permissions, and manual
-CloudFormation deployment details.
+The planned deployment uses one Free Plan eligible `t3.micro` EC2 instance in
+`eu-central-1`. Docker Compose runs the application and PostgreSQL on the same
+host; Caddy provides HTTPS. PostgreSQL is persisted in a Docker volume and is
+not exposed to the public network. See [docs/deployment.md](docs/deployment.md)
+for the deployment steps and Free Plan limits. GitHub Actions runs CI checks;
+AWS deployment is not triggered by pushes to `main`.
 
 ## Docker Deployment
 

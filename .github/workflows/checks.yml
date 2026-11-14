@@ -1,4 +1,4 @@
-name: Checks and deploy
+name: Checks
 
 on:
   pull_request:
@@ -129,63 +129,3 @@ jobs:
             frontend/test-results/
             frontend/playwright-report/
             frontend/journey-servers.log
-
-  deploy:
-    name: Deploy to AWS
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [backend, frontend, compose, journeys]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: eu-central-1
-      - name: Resolve ECR repository from CloudFormation
-        id: stack
-        shell: bash
-        run: |
-          repository_uri="$(aws cloudformation describe-stacks \
-            --stack-name interview-mirror-staging \
-            --query "Stacks[0].Outputs[?OutputKey=='EcrRepositoryUri'].OutputValue | [0]" \
-            --output text)"
-          test -n "$repository_uri" && test "$repository_uri" != None
-          echo "repository_uri=$repository_uri" >> "$GITHUB_OUTPUT"
-      - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push immutable commit image
-        env:
-          IMAGE_URI: ${{ steps.stack.outputs.repository_uri }}:${{ github.sha }}
-        run: |
-          docker build --platform linux/amd64 -t "$IMAGE_URI" .
-          docker push "$IMAGE_URI"
-      - name: Deploy image with CloudFormation
-        run: >-
-          aws cloudformation deploy
-          --template-file infrastructure/template.yaml
-          --stack-name interview-mirror-staging
-          --capabilities CAPABILITY_IAM
-          --parameter-overrides ImageTag=${{ github.sha }}
-          --no-fail-on-empty-changeset
-      - name: Verify deployed health endpoint
-        shell: bash
-        run: |
-          app_url="$(aws cloudformation describe-stacks \
-            --stack-name interview-mirror-staging \
-            --query "Stacks[0].Outputs[?OutputKey=='ApplicationUrl'].OutputValue | [0]" \
-            --output text)"
-          test -n "$app_url" && test "$app_url" != None
-          for attempt in $(seq 1 36); do
-            if curl --fail --silent --show-error --max-time 10 "$app_url/api/health"; then
-              echo "Application health check passed at $app_url/api/health"
-              exit 0
-            fi
-            echo "Health check attempt $attempt/36 failed; retrying in 10 seconds"
-            sleep 10
-          done
-          echo "Deployment health check failed for $app_url/api/health" >&2
-          exit 1

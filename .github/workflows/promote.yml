@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   promote:
-    name: Promote currently deployed Dev revision
+    name: Promote currently deployed Dev image
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment:
@@ -31,7 +31,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Read the deployed Dev revision and promote it
+      - name: Read the deployed Dev image and promote it
         shell: bash
         run: |
           set -euo pipefail
@@ -111,20 +111,20 @@ jobs:
 
           dev_instance_id="$(get_instance_id "$DEV_STACK_NAME")"
           production_instance_id="$(get_instance_id "$PRODUCTION_STACK_NAME")"
-          dev_revision="$(run_ssm "$dev_instance_id" \
-            "Read deployed Dev revision for production promotion" \
-            'commands=["git -C /opt/interview-mirror/repo rev-parse HEAD"]')"
-          dev_revision="$(printf '%s' "$dev_revision" | tr -d '\r\n')"
-          if [[ ! "$dev_revision" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Dev instance returned an invalid Git revision: $dev_revision" >&2
+          dev_image="$(run_ssm "$dev_instance_id" \
+            "Read deployed Dev image for production promotion" \
+            'commands=["grep -e ^APP_IMAGE= /opt/interview-mirror/runtime.env | tail -n 1 | cut -d= -f2-"]')"
+          dev_image="$(printf '%s' "$dev_image" | tr -d '\r\n')"
+          if [[ ! "$dev_image" =~ ^[0-9]{12}\.dkr\.ecr\.eu-central-1\.amazonaws\.com/interview-mirror-app:[0-9]{8}-[0-9]{6}-[0-9a-f]{7}$ ]]; then
+            echo "Dev instance returned an invalid ECR image reference: $dev_image" >&2
             exit 1
           fi
-          echo "Promoting deployed Dev revision $dev_revision"
+          echo "Promoting deployed Dev image $dev_image"
 
-          production_commands="$(jq -cn --arg revision "$dev_revision" \
-            '{commands: ["set -e; cd /opt/interview-mirror/repo && git fetch --depth=1 origin " + $revision + " && git reset --hard FETCH_HEAD && docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d --build --remove-orphans"]}')"
+          production_commands="$(jq -cn --arg image "$dev_image" --arg registry "${dev_image%%:*}" --arg region "$AWS_REGION" \
+            '{commands: ["git -C /opt/interview-mirror/repo fetch --depth=1 origin main", "git -C /opt/interview-mirror/repo reset --hard FETCH_HEAD", "sed -i \\\"/^APP_IMAGE=/d\\\" /opt/interview-mirror/runtime.env", "printf \\\"APP_IMAGE=%s\\\\n\\\" " + $image + " >> /opt/interview-mirror/runtime.env", "aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry, "docker compose --env-file /opt/interview-mirror/runtime.env pull app", "docker compose --env-file /opt/interview-mirror/runtime.env up -d --no-build --pull never app"]}')"
           run_ssm "$production_instance_id" \
-            "Promote Dev revision $dev_revision to Production" \
+            "Promote Dev image $dev_image to Production" \
             "$production_commands"
 
       - name: Verify Production health

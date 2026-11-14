@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
 
   app:
+    image: ${APP_IMAGE:-interview-mirror-app:local}
     build:
       context: .
       dockerfile: Dockerfile

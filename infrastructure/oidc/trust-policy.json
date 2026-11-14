@@ -9,8 +9,14 @@
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:abdulgazieva1310-netizen@332606930/canvas-chat-code@1423419216:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": [
+            "repo:abdulgazieva1310-netizen@332606930/canvas-chat-code@1423419216:ref:refs/heads/main",
+            "repo:abdulgazieva1310-netizen@332606930/canvas-chat-code@1423419216:ref:refs/heads/dev",
+            "repo:abdulgazieva1310-netizen@332606930/canvas-chat-code@1423419216:environment:production"
+          ]
         }
       }
     }

@@ -61,4 +61,9 @@ def test_ci_covers_locked_checks_and_failure_artifacts():
     )
     assert not any('docker push' in command or 'aws ecr' in command or 'aws ecs' in command
                    for command in deploy_commands)
-    assert any('api/health' in command for command in deploy_commands)
+    assert any(
+        "OutputKey=='ApplicationPublicIp'" in command
+        and 'https://dev.${application_ip}.nip.io' in command
+        and 'api/health' in command
+        for command in deploy_commands
+    )

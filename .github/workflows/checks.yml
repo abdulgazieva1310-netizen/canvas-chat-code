@@ -222,10 +222,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          application_url="$(aws cloudformation describe-stacks \
+          application_ip="$(aws cloudformation describe-stacks \
             --stack-name "$AWS_STACK_NAME" \
             --region "$AWS_REGION" \
-            --query "Stacks[0].Outputs[?OutputKey=='ApplicationUrl'].OutputValue | [0]" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApplicationPublicIp'].OutputValue | [0]" \
             --output text)"
+          application_url="https://dev.${application_ip}.nip.io"
           curl --fail --show-error --retry 18 --retry-delay 10 --retry-connrefused \
             "$application_url/api/health"

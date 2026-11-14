@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Immutable application container images for Dev and Production deployments.
+
+Resources:
+  ApplicationRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: interview-mirror-app
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration:
+        ScanOnPush: false
+      LifecyclePolicy:
+        LifecyclePolicyText: !Sub |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep only the ten most recent tagged application images",
+                "selection": {
+                  "tagStatus": "tagged",
+                  "tagPrefixList": ["20"],
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": {"type": "expire"}
+              }
+            ]
+          }
+      Tags:
+        - Key: Application
+          Value: interview-mirror
+
+Outputs:
+  RepositoryName:
+    Value: !Ref ApplicationRepository
+  RepositoryUri:
+    Value: !GetAtt ApplicationRepository.RepositoryUri

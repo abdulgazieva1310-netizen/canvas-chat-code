@@ -18,7 +18,7 @@ The FastAPI process listens on port 8000. It serves the built frontend through i
 `docker-compose.yaml` defines:
 
 - **postgres:** PostgreSQL 16 Alpine, with configurable database credentials, a persistent named volume (`interview-canvas-pgdata`), and a `pg_isready` health check.
-- **app:** the root Dockerfile image, started after PostgreSQL becomes healthy. The database URL points to the Compose `postgres` service; host port 8100 forwards to container port 8000 on loopback only.
+- **app:** the root Dockerfile image, started after PostgreSQL becomes healthy. The database URL points to the Compose `postgres` service; host port 8100 forwards to container port 8000 on loopback only. Local runs build `interview-mirror-app:local`; EC2 deployments set `APP_IMAGE` to an immutable ECR URI and pull it without building.
 - **caddy:** an optional `aws` profile that serves HTTPS and proxies public traffic to the app. The database remains private; app, media, and Caddy data are persisted in local volumes.
 
 Start the stack with `docker compose up --build`. The named volume preserves the local database across container recreation. Remove it only when intentionally resetting local data (`docker compose down --volumes`). Compose is used for integration and browser E2E verification; Render uses its managed PostgreSQL service instead of running this Compose file.
@@ -45,9 +45,9 @@ Run the unit suites locally with `cd backend && uv run --locked pytest` and `cd 
 
 ## CI/CD pipeline
 
-The test workflow is `.github/workflows/ci.yml` (`CI`). It runs for pull requests and pushes to `dev` or `main`, grants read-only repository contents, and cancels an earlier pull request run for the same workflow/ref when a newer one starts. Four checks run independently in parallel: backend, frontend, Compose integration/E2E, and full browser journeys. The jobs use Python 3.12, uv with the backend lockfile cache, and Node 22 with the frontend lockfile cache. CI never deploys.
+The workflow is `.github/workflows/ci.yml` (`CI`). It runs backend, frontend, Compose integration/E2E, and full browser journeys for pull requests and pushes to `dev` or `main`. On pushes, after all four checks pass, it builds and publishes one immutable image to ECR. A push to `dev` then deploys that exact image to the Dev instance; a push to `main` publishes its image but does not deploy it.
 
-Production promotion is handled separately by `.github/workflows/promote.yml` (`Promote Dev to Production`), which is started manually from GitHub Actions. It reads the Git revision currently deployed on the Dev EC2 instance, deploys that exact revision to Production through Systems Manager, and verifies the Production health URL. The job uses the protected `production` GitHub Environment; configure required reviewers in repository settings to enforce approval before AWS credentials are issued. The OIDC deployment role must have access to both stacks and both EC2 instances. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
+After CI passes on a push, `.github/workflows/ci.yml` builds one `linux/amd64` container image, gives it a UTC `YYYYMMDD-HHMMSS-shortsha` tag, and publishes it to ECR. Pushes to `dev` then use SSM to pull and run that exact image on the Dev EC2 instance. Production promotion is handled separately by `.github/workflows/promote.yml` (`Promote Dev to Production`), which is started manually from GitHub Actions. It reads the `APP_IMAGE` currently deployed on Dev, pulls the same immutable ECR tag on Production through SSM, and verifies the Production health URL without building another image. The ECR lifecycle policy retains the ten most recent tagged images. The promotion job uses the protected `production` GitHub Environment; configure required reviewers in repository settings to enforce approval before AWS credentials are issued. The OIDC deployment role needs ECR push, stack read, and SSM command permissions; both EC2 instance roles need ECR pull permissions. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
 
 ## Render deployment
 
@@ -62,17 +62,19 @@ The free plan is suitable for a trial environment, not a guarantee of production
 ## AWS EC2 deployment
 
 AWS has independent Dev and Production `t3.micro` EC2 hosts, each running its
-own app and PostgreSQL Compose services with separate local volumes. The Dev
+own app and PostgreSQL Compose services with separate local volumes. The app
+image is stored in the shared immutable ECR repository; its lifecycle policy
+keeps the ten most recent tagged images. The Dev
 instance also runs Caddy as the shared HTTPS ingress: it serves
 `https://dev.35.157.122.141.nip.io/` locally and proxies
 `https://35.157.122.141.nip.io/` to the Production private address. Production
 accepts app traffic only from the Dev security group. The setup uses the
 existing default VPC and Systems Manager for host access; it creates no RDS,
-ECR, ECS, load balancer, NAT gateway, or Secrets Manager resources. The Dev
+ECS, load balancer, NAT gateway, or Secrets Manager resources. The Dev
 stack is `interview-mirror-staging`; Production is `interview-mirror-production`.
 Deployment and cleanup commands and Free Plan limits are documented in
-[`docs/deployment.md`](docs/deployment.md). CI deploys passing `main` changes to
-Dev; Production is promoted separately.
+[`docs/deployment.md`](docs/deployment.md). Dev deploys passing `dev` images;
+Production is promoted separately from the exact image currently running in Dev.
 
 Run the frontend SSR server and FastAPI as separate services behind an HTTPS
 reverse proxy. Install Python 3.11+ with uv and a Node version compatible with the

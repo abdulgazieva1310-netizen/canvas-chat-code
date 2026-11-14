@@ -2,7 +2,8 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Interview Mirror Production app and PostgreSQL on an independent t3.micro EC2
   host using Docker Compose. Traffic is accepted only from the Dev Caddy ingress.
-  No load balancer, NAT gateway, RDS, ECR, or Secrets Manager is created.
+  No load balancer, NAT gateway, RDS, or Secrets Manager is created. The
+  application image is pulled from the shared ECR repository after bootstrap.
 
 Parameters:
   VpcId:
@@ -98,6 +99,20 @@ Resources:
                   - cloudformation:SignalResource
                 Resource:
                   - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*
+        - PolicyName: PullApplicationImageFromECR
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                Resource: !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/interview-mirror-app
 
   ApplicationInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -186,6 +201,7 @@ Resources:
           POSTGRES_USER=interviewapp
           POSTGRES_PASSWORD=$POSTGRES_PASSWORD
           POSTGRES_DB=interviewmirror
+          APP_IMAGE=interview-mirror-app:local
           AI_API_KEY=$GROQ_API_KEY
           APP_BIND_ADDRESS=0.0.0.0
           EMAIL_ADAPTER=local

@@ -2,7 +2,9 @@
 
 The deployment has separate Dev and Production EC2 instances. Each instance runs the app and its own PostgreSQL container with Docker Compose and a host-local data volume. Both public hostnames resolve to the Dev instance's public IP; Caddy on that instance terminates HTTPS and routes the Production hostname to the Production instance over its private address. Production's port 8100 accepts traffic only from the Dev security group. Neither environment exposes SSH or PostgreSQL.
 
-The existing `interview-mirror-staging` stack is the Dev environment. The independent `interview-mirror-production` stack owns separate compute, PostgreSQL storage, app media storage, IAM role, and security group. Production has an auto-assigned public IPv4 for outbound bootstrap and updates, but its app port is not open to the internet. Both stacks use the existing VPC and public subnet. No RDS, ECR, NAT gateway, load balancer, ECS, or Secrets Manager resources are created.
+The existing `interview-mirror-staging` stack is the Dev environment. The independent `interview-mirror-production` stack owns separate compute, PostgreSQL storage, app media storage, IAM role, and security group. Production has an auto-assigned public IPv4 for outbound bootstrap and image pulls, but its app port is not open to the internet. Both stacks use the existing VPC and public subnet. A separate ECR repository stores immutable application images; no RDS, NAT gateway, load balancer, ECS, or Secrets Manager resources are created.
+
+The ECR lifecycle policy retains the ten most recent tagged images. ECR applies expiration asynchronously, so an image beyond the ten-image limit can remain stored briefly while the lifecycle policy runs. ECR storage beyond any applicable Free Tier allowance can incur charges.
 
 ## Free Plan limits
 
@@ -14,7 +16,16 @@ AWS Free Plans and offers can change. The deployed account was checked as `FREE`
 
 ## Deploy
 
-The repository branch named by each template's `GitBranch` parameter must be public and contain the deployment configuration. Each instance builds the application image locally. CloudFormation waits for its app's `/api/health` process check before completing.
+The repository branch named by each template's `GitBranch` parameter must be public and contain the deployment configuration. First create the image repository:
+
+```sh
+aws cloudformation deploy \
+  --template-file infrastructure/ecr-template.yaml \
+  --stack-name interview-mirror-ecr \
+  --region eu-central-1
+```
+
+The EC2 roles need read access to `interview-mirror-app`, and the GitHub OIDC role needs image push access. Policy documents are in `infrastructure/oidc/`; attach `ecr-push-policy.json` to `GitHubActionsInterviewMirrorDeploy` and update the role trust policy using `trust-policy.json`. The role trust allows the `dev` and `main` refs and the `production` environment. Each instance also keeps a local-build path for initial CloudFormation bootstrap; CI publishes immutable timestamp/short-SHA tags for ongoing deployments.
 
 Validate and deploy from the repository root:
 
@@ -69,15 +80,17 @@ Create or update the parameter through a hidden terminal prompt, using `aws ssm 
 
 ## Update the app
 
-The `ci.yml` workflow runs backend, frontend, Compose, and browser journey checks for pull requests and pushes to `dev` or `main`; it does not deploy. To promote the revision currently checked out on the Dev instance, run **Promote Dev to Production** from GitHub Actions. The `promote.yml` workflow reads the Dev instance's deployed Git revision, deploys that exact revision to Production through Systems Manager, and checks the Production health URL. It uses the protected GitHub `production` environment, so configure at least one required reviewer under **Settings → Environments → production**. The AWS OIDC role used by the workflow must be allowed to inspect both stacks and send SSM commands to both instances.
+The `ci.yml` workflow runs backend, frontend, Compose, and browser journey checks on pull requests and pushes to `dev` or `main`. After all checks pass on a push, it builds one `linux/amd64` image, tags it with UTC `YYYYMMDD-HHMMSS-shortsha`, and pushes it to ECR. A push to `dev` then deploys that exact ECR image to Dev through Systems Manager. To promote the currently deployed Dev image, run **Promote Dev to Production** from GitHub Actions. The `promote.yml` workflow reads Dev's `APP_IMAGE`, pulls that exact immutable tag on Production, and checks the Production health URL; it does not rebuild. It uses the protected GitHub `production` environment, so configure at least one required reviewer under **Settings → Environments → production**. The GitHub OIDC role must be allowed to inspect both stacks, send SSM commands to both instances, and push ECR images; the EC2 roles need ECR pull access.
 
 For a direct manual update through Session Manager instead of the promotion workflow, run:
 
 ```sh
 cd /opt/interview-mirror/repo
-git pull --ff-only
-docker compose --env-file /opt/interview-mirror/runtime.env build app
-docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d
+image="$(grep -e '^APP_IMAGE=' /opt/interview-mirror/runtime.env | tail -n 1 | cut -d= -f2-)"
+registry="${image%%:*}"
+aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin "$registry"
+docker compose --env-file /opt/interview-mirror/runtime.env pull app
+docker compose --env-file /opt/interview-mirror/runtime.env up -d --no-build --pull never app
 ```
 
 Each Compose installation stores PostgreSQL data and media in separate named Docker volumes on its EC2 root disk. The Dev instance also stores Caddy certificates. Back up database and recordings before replacing either instance. `docker compose down --volumes` deletes that instance's PostgreSQL and media volumes.

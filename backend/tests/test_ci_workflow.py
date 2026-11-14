@@ -6,12 +6,15 @@ import yaml
 
 def test_ci_and_manual_production_promotion_workflows():
     root = Path(__file__).resolve().parents[2]
+    ecr_template = (root / 'infrastructure/ecr-template.yaml').read_text()
+    assert '"countNumber": 10' in ecr_template
+    assert 'Keep only the ten most recent tagged application images' in ecr_template
     workflow = yaml.load((root / '.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
     assert 'pull_request' in workflow['on']
     assert workflow['on']['push']['branches'] == ['dev', 'main']
     assert workflow['permissions'] == {'contents': 'read'}
     jobs = workflow['jobs']
-    assert set(jobs) == {'backend', 'frontend', 'compose', 'journeys'}
+    assert set(jobs) == {'backend', 'frontend', 'compose', 'journeys', 'build-image', 'deploy-dev'}
     for name in ('backend', 'frontend', 'compose', 'journeys'):
         assert 0 < int(jobs[name]['timeout-minutes']) <= 35
     backend = jobs['backend']
@@ -44,7 +47,27 @@ def test_ci_and_manual_production_promotion_workflows():
     assert upload['if'] == 'failure()'
     assert all(path in upload['with']['path'] for path in ['test-results/', 'playwright-report/', 'journey-servers.log'])
 
-    assert not any('aws-actions/' in str(job) or 'aws ssm' in str(job) for job in jobs.values())
+    assert not any('aws-actions/' in str(jobs[name]) or 'aws ssm' in str(jobs[name])
+                   for name in ('backend', 'frontend', 'compose', 'journeys'))
+
+    build_image = jobs['build-image']
+    assert build_image['if'] == "github.event_name == 'push'"
+    assert build_image['needs'] == ['backend', 'frontend', 'compose', 'journeys']
+    assert build_image['permissions'] == {'contents': 'read', 'id-token': 'write'}
+    build_steps = build_image['steps']
+    build_commands = [step.get('run', '') for step in build_steps]
+    assert any(step.get('uses') == 'aws-actions/amazon-ecr-login@v2' for step in build_steps)
+    assert any('date -u +%Y%m%d-%H%M%S' in command and 'GITHUB_SHA:0:7' in command
+               and 'docker buildx build' in command and '--push' in command for command in build_commands)
+    assert build_image['outputs']['image_uri'] == '${{ steps.publish.outputs.image_uri }}'
+
+    deploy_dev = jobs['deploy-dev']
+    assert deploy_dev['if'] == "github.event_name == 'push' && github.ref == 'refs/heads/dev'"
+    assert deploy_dev['needs'] == ['build-image']
+    dev_commands = [step.get('run', '') for step in deploy_dev['steps']]
+    assert any('aws ssm send-command' in command and 'docker compose' in command
+               and 'pull app' in command and '--no-build' in command for command in dev_commands)
+    assert not any('docker build' in command or 'docker buildx' in command for command in dev_commands)
 
     promotion = yaml.load((root / '.github/workflows/promote.yml').read_text(), Loader=yaml.BaseLoader)
     assert 'workflow_dispatch' in promotion['on']
@@ -58,8 +81,10 @@ def test_ci_and_manual_production_promotion_workflows():
     assert promote['env']['DEV_STACK_NAME'] == 'interview-mirror-staging'
     assert promote['env']['PRODUCTION_STACK_NAME'] == 'interview-mirror-production'
     promote_commands = [step.get('run', '') for step in promote_steps]
-    assert any('git -C /opt/interview-mirror/repo rev-parse HEAD' in command for command in promote_commands)
-    assert any('git fetch --depth=1 origin ' in command and 'docker compose --env-file' in command
-               for command in promote_commands)
+    assert any('APP_IMAGE=' in command for command in promote_commands)
+    assert any('docker compose --env-file' in command and 'pull app' in command
+               and '--no-build' in command for command in promote_commands)
+    assert not any('docker build ' in command or ' up -d --build ' in command
+                   for command in promote_commands)
     assert any("OutputKey=='ApplicationUrl'" in command and 'api/health' in command
                for command in promote_commands)

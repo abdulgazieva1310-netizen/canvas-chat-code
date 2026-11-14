@@ -3,14 +3,14 @@ name: Checks
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [dev, main]
 
 permissions:
   contents: read
 
 concurrency:
   group: checks-${{ github.workflow }}-${{ github.ref }}
-  # Let an active main-branch deploy finish before a newer push queues.
+  # Let an active environment deploy finish before a newer push queues.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -132,17 +132,22 @@ jobs:
             frontend/journey-servers.log
 
   deploy:
-    name: Deploy to EC2 via SSM
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Deploy ${{ github.ref == 'refs/heads/main' && 'Production' || 'Dev' }} to EC2 via SSM
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
     needs: [backend, frontend, compose, journeys]
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Configure the GitHub "production" environment with required reviewers
+    # to pause main deployments for manual approval before AWS credentials are issued.
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     permissions:
       contents: read
       id-token: write
     env:
       AWS_REGION: eu-central-1
-      AWS_STACK_NAME: interview-mirror-staging
+      AWS_STACK_NAME: ${{ github.ref == 'refs/heads/main' && 'interview-mirror-production' || 'interview-mirror-staging' }}
+      DEPLOY_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -166,7 +171,7 @@ jobs:
           fi
           echo "instance_id=$instance_id" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy main on EC2 through Systems Manager
+      - name: Deploy selected branch on EC2 through Systems Manager
         env:
           INSTANCE_ID: ${{ steps.target.outputs.instance_id }}
         shell: bash
@@ -175,8 +180,8 @@ jobs:
           command_id="$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript \
-            --comment "Deploy ${GITHUB_SHA} from GitHub Actions" \
-            --parameters 'commands=["cd /opt/interview-mirror/repo && git fetch --depth=1 origin main && git reset --hard FETCH_HEAD && docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d --build --remove-orphans"]' \
+            --comment "Deploy ${GITHUB_SHA} from ${DEPLOY_BRANCH} via GitHub Actions" \
+            --parameters "commands=[\"cd /opt/interview-mirror/repo && git fetch --depth=1 origin ${DEPLOY_BRANCH} && git reset --hard FETCH_HEAD && docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d --build --remove-orphans\"]" \
             --region "$AWS_REGION" \
             --query 'Command.CommandId' \
             --output text)"
@@ -227,6 +232,14 @@ jobs:
             --region "$AWS_REGION" \
             --query "Stacks[0].Outputs[?OutputKey=='ApplicationPublicIp'].OutputValue | [0]" \
             --output text)"
-          application_url="https://dev.${application_ip}.nip.io"
+          if [[ "$DEPLOY_BRANCH" == "main" ]]; then
+            application_url="$(aws cloudformation describe-stacks \
+              --stack-name "$AWS_STACK_NAME" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='ApplicationUrl'].OutputValue | [0]" \
+              --output text)"
+          else
+            application_url="https://dev.${application_ip}.nip.io"
+          fi
           curl --fail --show-error --retry 18 --retry-delay 10 --retry-connrefused \
             "$application_url/api/health"

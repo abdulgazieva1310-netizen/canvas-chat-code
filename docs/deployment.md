@@ -69,7 +69,9 @@ Create or update the parameter through a hidden terminal prompt, using `aws ssm 
 
 ## Update the app
 
-The CI workflow updates the Dev instance over Systems Manager after all checks pass on pushes to `main`. To update Production separately, connect to its instance with Session Manager and run:
+The `ci.yml` workflow runs backend, frontend, Compose, and browser journey checks for pull requests and pushes to `dev` or `main`; it does not deploy. To promote the revision currently checked out on the Dev instance, run **Promote Dev to Production** from GitHub Actions. The `promote.yml` workflow reads the Dev instance's deployed Git revision, deploys that exact revision to Production through Systems Manager, and checks the Production health URL. It uses the protected GitHub `production` environment, so configure at least one required reviewer under **Settings → Environments → production**. The AWS OIDC role used by the workflow must be allowed to inspect both stacks and send SSM commands to both instances.
+
+For a direct manual update through Session Manager instead of the promotion workflow, run:
 
 ```sh
 cd /opt/interview-mirror/repo

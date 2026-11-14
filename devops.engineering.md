@@ -45,9 +45,9 @@ Run the unit suites locally with `cd backend && uv run --locked pytest` and `cd 
 
 ## CI/CD pipeline
 
-The workflow is `.github/workflows/checks.yml` (`Checks`). It runs for pull requests and pushes to `main`, grants read-only repository contents by default, and cancels an earlier run for the same workflow/ref when a newer one starts. Four checks run independently in parallel: backend, frontend, Compose integration/E2E, and full browser journeys. The jobs use Python 3.12, uv with the backend lockfile cache, and Node 22 with the frontend lockfile cache.
+The test workflow is `.github/workflows/ci.yml` (`CI`). It runs for pull requests and pushes to `dev` or `main`, grants read-only repository contents, and cancels an earlier pull request run for the same workflow/ref when a newer one starts. Four checks run independently in parallel: backend, frontend, Compose integration/E2E, and full browser journeys. The jobs use Python 3.12, uv with the backend lockfile cache, and Node 22 with the frontend lockfile cache. CI never deploys.
 
-Pull requests run checks only. On pushes to `main`, the workflow deploys to the Dev EC2 instance through Systems Manager only after backend, frontend, Compose, and browser journey jobs pass. Production is updated separately through Systems Manager. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
+Production promotion is handled separately by `.github/workflows/promote.yml` (`Promote Dev to Production`), which is started manually from GitHub Actions. It reads the Git revision currently deployed on the Dev EC2 instance, deploys that exact revision to Production through Systems Manager, and verifies the Production health URL. The job uses the protected `production` GitHub Environment; configure required reviewers in repository settings to enforce approval before AWS credentials are issued. The OIDC deployment role must have access to both stacks and both EC2 instances. Failed checks should be resolved before merging. Keep credentials out of CI and source control.
 
 ## Render deployment
 

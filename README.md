@@ -3,6 +3,8 @@
 Interview preparation with a FastAPI backend and React frontend. Product scope
 is in [docs/plan.md](docs/plan.md); the API contract is [openapi.yaml](openapi.yaml).
 
+Development work happens on `dev`; reviewed changes are promoted to `main`.
+
 ## Local setup
 
 Prerequisites: Python 3.11+, uv, Node.js 22+, npm, and Make. From a clean checkout,

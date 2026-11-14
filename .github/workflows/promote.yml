@@ -122,9 +122,9 @@ jobs:
           echo "Promoting deployed Dev image $dev_image"
 
           production_commands="$(jq -cn --arg image "$dev_image" --arg registry "${dev_image%%:*}" --arg region "$AWS_REGION" \
-            '{commands: ["git -C /opt/interview-mirror/repo fetch --depth=1 origin main", "git -C /opt/interview-mirror/repo reset --hard FETCH_HEAD", "sed -i \\\"/^APP_IMAGE=/d\\\" /opt/interview-mirror/runtime.env", "printf \\\"APP_IMAGE=%s\\\\n\\\" " + $image + " >> /opt/interview-mirror/runtime.env", "aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry, "docker compose --env-file /opt/interview-mirror/runtime.env pull app", "docker compose --env-file /opt/interview-mirror/runtime.env up -d --no-build --pull never app"]}')"
+            '{commands: ["git -C /opt/interview-mirror/repo fetch --depth=1 origin main", "git -C /opt/interview-mirror/repo reset --hard FETCH_HEAD", "sed -i \"/APP_IMAGE=/d\" /opt/interview-mirror/runtime.env", "printf \"APP_IMAGE=%s\\\\n\" " + $image + " >> /opt/interview-mirror/runtime.env", "aws ecr get-login-password --region " + $region + " | docker login --username AWS --password-stdin " + $registry, "docker compose --project-directory /opt/interview-mirror/repo --env-file /opt/interview-mirror/runtime.env pull app", "docker compose --project-directory /opt/interview-mirror/repo --env-file /opt/interview-mirror/runtime.env up -d --no-build --pull never app"]}')"
           run_ssm "$production_instance_id" \
-            "Promote Dev image $dev_image to Production" \
+            "Promote Dev image to Production" \
             "$production_commands"
 
       - name: Verify Production health

@@ -76,7 +76,7 @@ because sudo authentication was unavailable. This path is environment-specific.
 
 ## Continuous integration
 
-`.github/workflows/checks.yml` runs on pull requests and pushes to `main`.
+`.github/workflows/ci.yml` runs on pull requests and pushes to `dev` or `main`.
 Both jobs have a 15-minute timeout. uv caches use `backend/uv.lock`; npm caches
 use `frontend/package-lock.json`. The checks install locked dependencies and run
 these commands from the repository root:

@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded pull request checks, but let push checks finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --locked --project backend
+      - run: uv run --locked --project backend pytest backend/tests
+      - run: uv run --locked --project backend python -m pytest coding-runner/test_runner.py
+
+  frontend:
+    name: Frontend tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm test --prefix frontend
+      - run: npm run build --prefix frontend
+
+  compose:
+    name: Docker Compose integration and E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      AI_API_KEY: ''
+      EMAIL_ADAPTER: local
+      COMPOSE_APP_URL: http://localhost:8100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --locked --project backend
+      - run: npm ci --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Build and start Compose stack
+        run: docker compose up --build --detach
+      - name: Run PostgreSQL and API integration tests
+        env:
+          COMPOSE_INTEGRATION: '1'
+        run: uv run --locked --project backend pytest backend/tests/integration/test_compose_stack.py -q
+      - name: Run browser E2E against Compose
+        run: npm run test:e2e:compose --prefix frontend
+      - name: Upload browser artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-e2e-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+      - name: Stop Compose stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
+  journeys:
+    name: Full browser journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AI_API_KEY: ''
+      EMAIL_ADAPTER: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --locked --project backend
+      - run: npm ci --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: uv run --locked --project backend python scripts/journey.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-journey-failure-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+            frontend/journey-servers.log
+

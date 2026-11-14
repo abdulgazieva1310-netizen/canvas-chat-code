@@ -1,0 +1,144 @@
+name: Promote Dev to Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promote-production
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote currently deployed Dev revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: eu-central-1
+      DEV_STACK_NAME: interview-mirror-staging
+      PRODUCTION_STACK_NAME: interview-mirror-production
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Read the deployed Dev revision and promote it
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          get_instance_id() {
+            local stack_name="$1"
+            local instance_id
+            instance_id="$(aws cloudformation describe-stacks \
+              --stack-name "$stack_name" \
+              --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='ApplicationInstanceId'].OutputValue | [0]" \
+              --output text)"
+            if [[ -z "$instance_id" || "$instance_id" == "None" ]]; then
+              echo "Could not find ApplicationInstanceId in stack $stack_name" >&2
+              exit 1
+            fi
+            printf '%s' "$instance_id"
+          }
+
+          run_ssm() {
+            local instance_id="$1"
+            local comment="$2"
+            local parameters="$3"
+            local command_id
+            local status="Pending"
+            command_id="$(aws ssm send-command \
+              --instance-ids "$instance_id" \
+              --document-name AWS-RunShellScript \
+              --comment "$comment" \
+              --parameters "$parameters" \
+              --region "$AWS_REGION" \
+              --query 'Command.CommandId' \
+              --output text)"
+            echo "Started SSM command $command_id on $instance_id" >&2
+
+            for attempt in $(seq 1 180); do
+              status="$(aws ssm get-command-invocation \
+                --command-id "$command_id" \
+                --instance-id "$instance_id" \
+                --region "$AWS_REGION" \
+                --query Status \
+                --output text 2>/dev/null || true)"
+              case "$status" in
+                Success)
+                  break
+                  ;;
+                Failed|TimedOut|Cancelled|Cancelling)
+                  aws ssm get-command-invocation \
+                    --command-id "$command_id" \
+                    --instance-id "$instance_id" \
+                    --region "$AWS_REGION" \
+                    --query '[StandardOutputContent,StandardErrorContent]' \
+                    --output text || true
+                  return 1
+                  ;;
+                Pending|InProgress|Delayed|"")
+                  sleep 10
+                  ;;
+                *)
+                  echo "Unexpected SSM command status: $status" >&2
+                  return 1
+                  ;;
+              esac
+            done
+            if [[ "$status" != "Success" ]]; then
+              echo "Timed out waiting for SSM command $command_id (last status: $status)" >&2
+              return 1
+            fi
+
+            aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "$instance_id" \
+              --region "$AWS_REGION" \
+              --query StandardOutputContent \
+              --output text
+          }
+
+          dev_instance_id="$(get_instance_id "$DEV_STACK_NAME")"
+          production_instance_id="$(get_instance_id "$PRODUCTION_STACK_NAME")"
+          dev_revision="$(run_ssm "$dev_instance_id" \
+            "Read deployed Dev revision for production promotion" \
+            'commands=["git -C /opt/interview-mirror/repo rev-parse HEAD"]')"
+          dev_revision="$(printf '%s' "$dev_revision" | tr -d '\r\n')"
+          if [[ ! "$dev_revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Dev instance returned an invalid Git revision: $dev_revision" >&2
+            exit 1
+          fi
+          echo "Promoting deployed Dev revision $dev_revision"
+
+          production_commands="$(jq -cn --arg revision "$dev_revision" \
+            '{commands: ["set -e; cd /opt/interview-mirror/repo && git fetch --depth=1 origin " + $revision + " && git reset --hard FETCH_HEAD && docker compose --env-file /opt/interview-mirror/runtime.env --profile aws up -d --build --remove-orphans"]}')"
+          run_ssm "$production_instance_id" \
+            "Promote Dev revision $dev_revision to Production" \
+            "$production_commands"
+
+      - name: Verify Production health
+        shell: bash
+        run: |
+          set -euo pipefail
+          application_url="$(aws cloudformation describe-stacks \
+            --stack-name "$PRODUCTION_STACK_NAME" \
+            --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApplicationUrl'].OutputValue | [0]" \
+            --output text)"
+          if [[ -z "$application_url" || "$application_url" == "None" ]]; then
+            echo "Could not find ApplicationUrl in stack $PRODUCTION_STACK_NAME" >&2
+            exit 1
+          fi
+          curl --fail --show-error --retry 18 --retry-delay 10 --retry-connrefused \
+            "$application_url/api/health"

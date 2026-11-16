@@ -13,7 +13,7 @@ ROOT = deployment.ROOT
 
 
 def main():
-    backend_port, frontend_port = deployment.port(), deployment.port()
+    backend_port, frontend_port = deployment.ports()
     origin = f'http://127.0.0.1:{frontend_port}'
     api = f'http://127.0.0.1:{backend_port}/api'
     with tempfile.TemporaryDirectory(prefix='interview-journey-') as folder:

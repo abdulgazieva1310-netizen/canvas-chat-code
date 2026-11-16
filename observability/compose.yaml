@@ -64,8 +64,10 @@ services:
       - grafana-data:/var/lib/grafana
     ports:
       - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:3000:3000"
-    mem_limit: 128m
-    memswap_limit: 320m
+    # Grafana 13 uses about 120 MiB during first-start provisioning. Leave
+    # room for its startup peak on the existing 1 GiB Dev host.
+    mem_limit: 192m
+    memswap_limit: 384m
     depends_on:
       - prometheus
       - loki

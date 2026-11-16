@@ -87,6 +87,13 @@ interviews started, completed interviews with generated reports, and study
 plans generated. Its Environment selector filters the `dev` and `prod` metric
 labels. Use Grafana Explore to inspect traces and logs.
 
+The dashboard's Version selector uses the `version` metric label. In deployed
+Compose environments this is the tag parsed from `OTEL_SERVICE_VERSION`, which
+defaults to the full `APP_IMAGE` ECR reference. Local Compose builds show
+`local` unless overridden; direct backend runs use the backend release version.
+The selector defaults to **All**, so the dashboard remains usable before any
+metric samples are available.
+
 To stop the stack and preserve stored telemetry:
 
 ```sh

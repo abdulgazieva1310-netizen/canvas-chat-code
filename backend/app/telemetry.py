@@ -34,11 +34,23 @@ def _environment_label() -> str:
     return "prod" if value in {"prod", "production"} else "dev"
 
 
+def _version_label() -> str:
+    """Use an image tag as a bounded metric label, preserving local release versions."""
+    value = os.getenv("OTEL_SERVICE_VERSION", DEFAULT_VERSION).strip() or DEFAULT_VERSION
+    colon = value.rfind(":")
+    if colon > value.rfind("/") and colon < len(value) - 1:
+        return value[colon + 1:]
+    return value
+
+
 class BusinessMetrics:
     """Low-cardinality business counters exported through the configured OTLP collector."""
 
     def __init__(self, meter):
-        self._attributes = {"environment": _environment_label()}
+        self._attributes = {
+            "environment": _environment_label(),
+            "version": _version_label(),
+        }
         self._interviews_started = meter.create_counter(
             "interviews_started", description="Number of newly created interviews"
         )

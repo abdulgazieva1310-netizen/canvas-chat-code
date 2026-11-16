@@ -4,6 +4,7 @@ from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 from app.main import create_app
 from app.models import AnswerEvaluation, StudyPlanDraft, StudyPlanDraftItem
 from app.services import ai_service
+from app.telemetry import _version_label
 
 
 SETUP = {
@@ -39,6 +40,7 @@ def create_report(client, setup=SETUP):
 
 def test_interview_start_counter_uses_dev_prod_label_and_skips_idempotent_retry(tmp_path, monkeypatch):
     monkeypatch.setenv('OTEL_DEPLOYMENT_ENVIRONMENT', 'development')
+    monkeypatch.setenv('OTEL_SERVICE_VERSION', '123456789012.dkr.ecr.eu-central-1.amazonaws.com/interview-mirror-app:20261116-112233-abcdef0')
     monkeypatch.delenv('OTEL_EXPORTER_OTLP_ENDPOINT', raising=False)
     monkeypatch.setattr(ai_service, 'generate_question', lambda *args, **kwargs: 'Describe a test?')
     reader = InMemoryMetricReader()
@@ -61,11 +63,13 @@ def test_interview_start_counter_uses_dev_prod_label_and_skips_idempotent_retry(
 
         points = counter_points(reader, 'interviews_started')
         assert counter_value(reader, 'interviews_started', 'dev') == 2
-        assert all(point.attributes == {'environment': 'dev'} for point in points)
+        assert all(point.attributes == {'environment': 'dev', 'version': '20261116-112233-abcdef0'}
+                   for point in points)
 
 
 def test_completed_report_counter_counts_completion_once_and_ignores_incomplete(tmp_path, monkeypatch):
     monkeypatch.setenv('OTEL_DEPLOYMENT_ENVIRONMENT', 'production')
+    monkeypatch.setenv('OTEL_SERVICE_VERSION', '123456789012.dkr.ecr.eu-central-1.amazonaws.com/interview-mirror-app:20261116-112233-abcdef0')
     monkeypatch.delenv('OTEL_EXPORTER_OTLP_ENDPOINT', raising=False)
     monkeypatch.setattr(ai_service, 'generate_question', lambda *args, **kwargs: 'Describe a test?')
     evaluation = AnswerEvaluation(accuracy=7, completeness=7, clarity=7, structure=7,
@@ -90,7 +94,20 @@ def test_completed_report_counter_counts_completion_once_and_ignores_incomplete(
 
         points = counter_points(reader, 'interviews_completed')
         assert counter_value(reader, 'interviews_completed', 'prod') == 1
-        assert all(point.attributes == {'environment': 'prod'} for point in points)
+        assert all(point.attributes == {'environment': 'prod', 'version': '20261116-112233-abcdef0'}
+                   for point in points)
+
+
+def test_version_label_extracts_image_tag_and_preserves_release_versions(monkeypatch):
+    monkeypatch.setenv('OTEL_SERVICE_VERSION',
+        '123456789012.dkr.ecr.eu-central-1.amazonaws.com/interview-mirror-app:20261116-112233-abcdef0')
+    assert _version_label() == '20261116-112233-abcdef0'
+
+    monkeypatch.setenv('OTEL_SERVICE_VERSION', '0.1.0')
+    assert _version_label() == '0.1.0'
+
+    monkeypatch.delenv('OTEL_SERVICE_VERSION', raising=False)
+    assert _version_label() == '0.1.0'
 
 
 def test_study_plan_counter_only_counts_new_successfully_saved_plan(tmp_path, monkeypatch):

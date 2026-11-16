@@ -1,0 +1,155 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: interview-completion-health
+    folder: Interview Mirror
+    interval: 1m
+    rules:
+      - uid: interview-completion-error-rate
+        title: Interview completion shortfall above 5%
+        condition: D
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: |
+                (
+                  1 - clamp_max(
+                    (
+                      sum by (environment, version) (increase(interviews_completed_total[5m]))
+                      or on (environment, version)
+                      (sum by (environment, version) (increase(interviews_started_total[5m])) * 0)
+                    )
+                    /
+                    sum by (environment, version) (increase(interviews_started_total[5m])),
+                    1
+                  )
+                )
+                and on (environment, version)
+                (sum by (environment, version) (increase(interviews_started_total[5m])) >= 20)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: D
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.05]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: D
+              type: threshold
+        dashboardUid: interview-mirror-business-metrics
+        panelId: 2
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          service: interview-mirror
+          owner: Interview Mirror maintainers
+          severity: warning
+        annotations:
+          summary: Interview completion shortfall exceeded 5% for {{ $labels.environment }}
+          description: >-
+            Service: interview-mirror. Environment: {{ $labels.environment }}.
+            Deployed version (ECR tag): {{ $labels.version }}. Owner: Interview
+            Mirror maintainers. These starts and report completions are a
+            shortfall signal, not a direct exception count. First check recent
+            application errors and report generation for this environment and
+            image version. Dashboard: http://127.0.0.1:3000/d/interview-mirror-business-metrics/interview-mirror-business-metrics
+
+      - uid: interview-completions-stalled
+        title: Interviews starting with no completions
+        condition: D
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: |
+                (
+                  (
+                    (
+                      sum by (environment, version) (increase(interviews_completed_total[5m]))
+                      or on (environment, version)
+                      (sum by (environment, version) (increase(interviews_started_total[5m])) * 0)
+                    ) == 0
+                  )
+                  and on (environment, version)
+                  (sum by (environment, version) (increase(interviews_started_total[5m])) >= 5)
+                ) + 1
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: D
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: D
+              type: threshold
+        dashboardUid: interview-mirror-business-metrics
+        panelId: 2
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          service: interview-mirror
+          owner: Interview Mirror maintainers
+          severity: critical
+        annotations:
+          summary: Interviews have started without completions in {{ $labels.environment }}
+          description: >-
+            Service: interview-mirror. Environment: {{ $labels.environment }}.
+            Deployed version (ECR tag): {{ $labels.version }}. Owner: Interview
+            Mirror maintainers. At least five interviews started and none
+            completed in the last five minutes, sustained for five minutes.
+            This is a shortfall signal rather than a direct exception count.
+            First check recent application errors and report generation for
+            this environment and image version. Dashboard: http://127.0.0.1:3000/d/interview-mirror-business-metrics/interview-mirror-business-metrics

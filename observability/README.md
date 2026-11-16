@@ -52,6 +52,17 @@ Then open <http://127.0.0.1:3000>. The generated Grafana admin password is in
 Session Manager. The provisioned dashboard includes the business metrics,
 Environment and deployed Version selectors, and a combined Stat panel.
 
+Two provisioned rules appear in the **Interview Mirror** folder: a warning
+when at least 20 interviews start in five minutes and fewer than 95% complete,
+and a critical alert when at least five start with no completions in that
+window. Either condition must persist for five minutes. Each alert instance
+retains its `environment` and `version` labels and includes the service,
+maintainer owner, and dashboard link. These counters identify a completion
+shortfall; they do not distinguish a failed report from an interview that is
+still in progress. Check recent application errors and report generation for
+the matching environment and image tag. The rules are visible in Grafana
+Alerting, but no email, chat, or paging destination is configured.
+
 The protected promotion workflow installs
 `observability/application-otel.compose.yaml` outside the Production checkout
 and applies it to the app Compose project. This lets a Production host whose

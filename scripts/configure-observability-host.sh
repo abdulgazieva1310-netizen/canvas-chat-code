@@ -25,11 +25,12 @@ if ! grep -q '^GRAFANA_ADMIN_PASSWORD=' "$env_file"; then
 fi
 set_env OTEL_BIND_ADDRESS 0.0.0.0
 
-docker compose --project-directory "$repo_dir" --env-file "$env_file" \
+cd "$repo_dir"
+docker compose --env-file "$env_file" \
   -f "$compose_file" up -d --remove-orphans
 
 for attempt in $(seq 1 30); do
-  running="$(docker compose --project-directory "$repo_dir" --env-file "$env_file" \
+  running="$(docker compose --env-file "$env_file" \
     -f "$compose_file" ps --status running --services)"
   running_wrapped=$'\n'"$running"$'\n'
   if [[ "$running_wrapped" == *$'\notel-collector\n'* && \
@@ -42,7 +43,7 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 
-docker compose --project-directory "$repo_dir" --env-file "$env_file" \
+docker compose --env-file "$env_file" \
   -f "$compose_file" ps
 echo "One or more observability services did not become running" >&2
 exit 1

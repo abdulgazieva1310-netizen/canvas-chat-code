@@ -59,6 +59,7 @@ def fetch_alerts(grafana_url: str, token: str, timeout: int = DEFAULT_TIMEOUT_SE
             "active",
             "suppressed",
             "unprocessed",
+            "resolved",
         }:
             raise AlertApiError("Grafana alert API response contained an alert with invalid status")
     return payload
@@ -203,7 +204,12 @@ class AlertPoller:
             return False
 
         firing: dict[str, dict[str, Any]] = {}
+        present: set[str] = set()
         for alert in alerts:
+            fingerprint = alert_fingerprint(alert)
+            status = alert.get("status")
+            if isinstance(status, dict) and status.get("state") != "resolved":
+                present.add(fingerprint)
             if not is_firing(alert):
                 continue
             details = alert_details(alert)
@@ -211,9 +217,10 @@ class AlertPoller:
 
         try:
             seen = load_seen(self.state_file)
-            # Disappearance from a successful response is recovery. Do not clear
-            # state after a failed API call because recovery was not confirmed.
-            seen.intersection_update(firing)
+            # Keep suppressed/unprocessed instances deduplicated while they
+            # remain present. Only resolved or absent instances are recovery.
+            # A failed API call never clears state because recovery is unknown.
+            seen.intersection_update(present)
         except Exception as exc:
             LOGGER.error("Could not update alert state: %s", exc)
             return False

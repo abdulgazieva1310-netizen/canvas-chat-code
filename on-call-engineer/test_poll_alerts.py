@@ -90,6 +90,32 @@ class PollingTests(unittest.TestCase):
         self.assertIn("annotations", handoffs[0])
         self.assertIn("startsAt", handoffs[0])
 
+    def test_suppressed_instance_remains_deduplicated_until_recovery(self) -> None:
+        responses = [[alert()], [alert(state="suppressed")], [alert()]]
+        handoffs: list[dict] = []
+        with tempfile.TemporaryDirectory() as temp_dir:
+            poller = poll_alerts.AlertPoller(
+                fetch=lambda: responses.pop(0),
+                handoff=lambda details: handoffs.append(details) or True,
+                state_file=Path(temp_dir) / "seen.json",
+            )
+            for _ in range(3):
+                self.assertTrue(poller.poll_once())
+        self.assertEqual(len(handoffs), 1)
+
+    def test_explicit_resolved_state_clears_fingerprint(self) -> None:
+        responses = [[alert()], [alert(state="resolved")], [alert()]]
+        handoffs: list[dict] = []
+        with tempfile.TemporaryDirectory() as temp_dir:
+            poller = poll_alerts.AlertPoller(
+                fetch=lambda: responses.pop(0),
+                handoff=lambda details: handoffs.append(details) or True,
+                state_file=Path(temp_dir) / "seen.json",
+            )
+            for _ in range(3):
+                self.assertTrue(poller.poll_once())
+        self.assertEqual(len(handoffs), 2)
+
     def test_failed_handoff_retries_on_next_poll(self) -> None:
         results = [False, True]
         with tempfile.TemporaryDirectory() as temp_dir:

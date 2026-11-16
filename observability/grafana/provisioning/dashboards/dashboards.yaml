@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Interview Mirror
+    orgId: 1
+    folder: Interview Mirror
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

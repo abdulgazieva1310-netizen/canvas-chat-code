@@ -1,91 +1,91 @@
-# Local observability stack
+# Interview Mirror observability stack
 
-This directory is a separate Docker Compose project. It runs an OpenTelemetry
-Collector, Prometheus, Loki, Tempo, and Grafana without changing the application
-Compose project's services or lifecycle.
+This directory is a standalone Docker Compose project for the OpenTelemetry
+Collector, Prometheus, Loki, Tempo, and Grafana. It has its own Compose project
+name and persistent named volumes. The application Compose project remains
+independent.
 
-## Start and connect the backend
+## Deploy to Dev and connect Production
 
-From the repository root, start the stack:
+Run **Deploy Observability Stack** from GitHub Actions with `dev` selected after
+the deployment workflow and infrastructure files have been pushed to that
+branch. It resolves the current Dev and Production instances, creates or
+updates a small CloudFormation stack that allows OTLP/HTTP (TCP 4318) into the
+Dev security group only from those two instance security groups, starts this
+Compose project on the existing Dev host, and configures the Dev app to export
+to the Dev host's private address. It checks that the current Production image
+contains `app.telemetry` before changing its runtime configuration. If it does
+not, the workflow reports that Production must first be promoted through the
+protected **Promote Dev to Production** workflow. After that reviewer-approved
+promotion, run **Deploy Observability Stack** again to connect Production. The
+workflow does not bypass the production approval.
+
+The stack does not add an EC2 instance. Collector OTLP/HTTP is the only
+observability port published on the Dev host, and the security-group rules
+restrict it to Dev and Production. Grafana and Prometheus bind to loopback;
+Loki, Tempo, and internal Collector endpoints are not host-published. Docker's
+`unless-stopped` restart policy starts the services after reboot. Named volumes
+preserve Prometheus, Loki, Tempo, and Grafana data when containers are replaced.
+The services have individual memory and swap ceilings sized for the existing
+small Dev host; initial startup and queries can be slow under memory pressure.
+
+The workflow role needs permission to inspect the Dev and Production
+CloudFormation stacks and instances, create/update the
+`interview-mirror-observability-network` stack, and send/poll Systems Manager
+commands for both app instances.
+
+## Open Grafana
+
+Grafana is available only on the Dev host's loopback interface. Use an SSM
+port-forward session:
+
+```sh
+aws ssm start-session \
+  --target <DEV_INSTANCE_ID> \
+  --document-name AWS-StartPortForwardingSession \
+  --parameters '{"portNumber":["3000"],"localPortNumber":["3000"]}' \
+  --region eu-central-1
+```
+
+Then open <http://127.0.0.1:3000>. The generated Grafana admin password is in
+`/opt/interview-mirror/observability.env` on the Dev host; retrieve it through
+Session Manager. The provisioned dashboard includes the business metrics,
+Environment and deployed Version selectors, and a combined Stat panel.
+
+The protected promotion workflow installs
+`observability/application-otel.compose.yaml` outside the Production checkout
+and applies it to the app Compose project. This lets a Production host whose
+checkout remains on `main` receive the OpenTelemetry environment values while
+still running the independently promoted ECR image.
+
+## Local use
+
+Start the standalone stack from the repository root:
 
 ```sh
 docker compose -f observability/compose.yaml up -d
 ```
 
-The backend's OTLP exporter is already configured. For a backend process running
-on the host, set the endpoint before starting it:
+All host ports bind to `127.0.0.1` by default. For a backend process running on
+the host, configure and start it with:
 
 ```sh
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 uv run --project backend uvicorn app.main:app --reload --port 8000
 ```
 
-For a container in the separate application Compose project, put
-`OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318` in the repository
-root's `.env` (or the environment file used by the app), start both projects,
-then connect the Collector container to the application network with a DNS
-alias. Run these commands from the repository root:
+The Collector accepts OTLP over gRPC and HTTP inside its Compose network; only
+HTTP is published to the host. It sends traces to Tempo, exposes received
+application metrics for Prometheus to scrape, and exports logs to Loki.
+Prometheus also scrapes its own and the Collector's internal metrics endpoints.
 
-```sh
-docker compose up -d
-docker compose -f observability/compose.yaml up -d
-APP_CONTAINER="$(docker compose ps -q app)"
-APP_NETWORK="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project" }}_default' "$APP_CONTAINER")"
-COLLECTOR_CONTAINER="$(docker compose -f observability/compose.yaml ps -q otel-collector)"
-docker network connect --alias otel-collector "$APP_NETWORK" "$COLLECTOR_CONTAINER"
-```
+In deployed environments, the app's `OTEL_EXPORTER_OTLP_ENDPOINT` points at the
+Dev host's private address. The existing `deployment.environment` and
+`service.version` resource attributes remain sourced from each app's runtime
+environment and image tag. After replacing the Dev host, re-run the workflow so
+it resolves the new private address and reapplies the security-group rules.
 
-The projects remain separate; this command only joins their runtime networks.
-Reconnect the Collector after recreating either Compose project. Before
-stopping either project, disconnect the Collector from the application
-network:
-
-```sh
-docker network disconnect "$APP_NETWORK" "$COLLECTOR_CONTAINER"
-```
-
-Then stop the desired project with its own Compose command.
-
-For example, to stop the observability project, reconnect the variables and
-disconnect it from the app network before stopping it:
-
-```sh
-APP_CONTAINER="$(docker compose ps -q app)"
-APP_NETWORK="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project" }}_default' "$APP_CONTAINER")"
-COLLECTOR_CONTAINER="$(docker compose -f observability/compose.yaml ps -q otel-collector)"
-docker network disconnect "$APP_NETWORK" "$COLLECTOR_CONTAINER"
-docker compose -f observability/compose.yaml down
-```
-
-To stop the application project instead, use the same network-disconnect
-commands, then run `docker compose down` from the repository root. The
-observability project remains running.
-If using a host gateway instead, Docker Desktop commonly resolves
-`host.docker.internal`; on Linux, configure the host-gateway name in the app's
-runtime and set `OBSERVABILITY_BIND_ADDRESS=0.0.0.0` for this stack. Restrict
-host firewall access to trusted sources. Do not expose unauthenticated OTLP
-ports to the public internet.
-
-The Collector receives OTLP over gRPC (`4317`) and HTTP (`4318`), sends traces
-to Tempo, exposes received application metrics on `8889` for Prometheus to
-scrape, and sends received logs to Loki. Prometheus also scrapes its own and
-the Collector's internal metrics endpoints.
-
-## Open the tools
-
-All host ports bind to `127.0.0.1` by default:
-
-- Grafana: <http://127.0.0.1:3000> (default username `admin`; set
-  `GRAFANA_ADMIN_PASSWORD` before sharing the host)
-- Prometheus: <http://127.0.0.1:9090>
-- Collector OTLP/HTTP: <http://127.0.0.1:4318>
-- Collector OTLP/gRPC: `127.0.0.1:4317`
-
-Grafana's Prometheus, Loki, and Tempo data sources are provisioned on startup.
-Use Grafana Explore to inspect traces and logs. Prometheus only receives
-application metrics if an application SDK emits them.
-
-To stop the stack and preserve stored telemetry:
+To stop the project and preserve data:
 
 ```sh
 docker compose -f observability/compose.yaml down
@@ -96,4 +96,3 @@ To delete the stack and its stored metrics, logs, traces, and Grafana state:
 ```sh
 docker compose -f observability/compose.yaml down --volumes
 ```
-

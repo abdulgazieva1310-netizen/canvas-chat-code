@@ -7,11 +7,14 @@ services:
     volumes:
       - ./otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports:
-      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:4317:4317"
-      - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:4318:4318"
+      # Only OTLP/HTTP is published on the host. Deployed Dev security-group
+      # ingress restricts this port to the Dev and Production app hosts.
+      - "${OTEL_BIND_ADDRESS:-127.0.0.1}:4318:4318"
     depends_on:
       - loki
       - tempo
+    mem_limit: 96m
+    memswap_limit: 256m
     restart: unless-stopped
 
   prometheus:
@@ -25,6 +28,8 @@ services:
       - prometheus-data:/prometheus
     ports:
       - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:9090:9090"
+    mem_limit: 160m
+    memswap_limit: 320m
     restart: unless-stopped
 
   loki:
@@ -33,6 +38,8 @@ services:
     volumes:
       - ./loki/config.yaml:/etc/loki/config.yaml:ro
       - loki-data:/loki
+    mem_limit: 96m
+    memswap_limit: 256m
     restart: unless-stopped
 
   tempo:
@@ -41,6 +48,8 @@ services:
     volumes:
       - ./tempo/config.yaml:/etc/tempo/config.yaml:ro
       - tempo-data:/var/tempo
+    mem_limit: 96m
+    memswap_limit: 256m
     restart: unless-stopped
 
   grafana:
@@ -51,9 +60,14 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "${OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:3000:3000"
+    # Grafana 13 uses about 120 MiB during first-start provisioning. Leave
+    # room for its startup peak on the existing 1 GiB Dev host.
+    mem_limit: 192m
+    memswap_limit: 384m
     depends_on:
       - prometheus
       - loki

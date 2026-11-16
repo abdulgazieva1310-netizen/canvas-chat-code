@@ -147,7 +147,9 @@ def create(data: StudyPlanCreate, request: Request, user: CurrentUser):
             created_at=timestamp, updated_at=timestamp)
         store.session.add(record)
         store.session.flush()
-        return public(store, record)
+        result = public(store, record)
+    request.app.state.business_metrics.study_plan_generated()
+    return result
 
 
 @router.get('', response_model=StudyPlanList)

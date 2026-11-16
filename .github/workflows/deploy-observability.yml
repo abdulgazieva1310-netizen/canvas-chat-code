@@ -1,0 +1,131 @@
+name: Deploy Observability Stack
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-observability
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy shared Collector and connect Dev and Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: eu-central-1
+      DEV_STACK_NAME: interview-mirror-staging
+      PRODUCTION_STACK_NAME: interview-mirror-production
+      NETWORK_STACK_NAME: interview-mirror-observability-network
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve application hosts and install private Collector ingress
+        id: hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+          instance_id() {
+            local stack="$1"
+            local value
+            value="$(aws cloudformation describe-stacks --stack-name "$stack" --region "$AWS_REGION" \
+              --query "Stacks[0].Outputs[?OutputKey=='ApplicationInstanceId'].OutputValue | [0]" --output text)"
+            [[ -n "$value" && "$value" != None ]] || { echo "No application instance in $stack" >&2; exit 1; }
+            printf '%s' "$value"
+          }
+          dev_id="$(instance_id "$DEV_STACK_NAME")"
+          prod_id="$(instance_id "$PRODUCTION_STACK_NAME")"
+          details="$(aws ec2 describe-instances --instance-ids "$dev_id" "$prod_id" --region "$AWS_REGION" \
+            --query 'Reservations[].Instances[].{Id:InstanceId,Private:PrivateIpAddress,Group:SecurityGroups[0].GroupId}' --output json)"
+          dev_private="$(jq -r --arg id "$dev_id" '.[] | select(.Id==$id) | .Private' <<< "$details")"
+          dev_group="$(jq -r --arg id "$dev_id" '.[] | select(.Id==$id) | .Group' <<< "$details")"
+          prod_group="$(jq -r --arg id "$prod_id" '.[] | select(.Id==$id) | .Group' <<< "$details")"
+          [[ -n "$dev_private" && -n "$dev_group" && -n "$prod_group" ]] || { echo 'Could not resolve instance network details' >&2; exit 1; }
+          echo "dev_id=$dev_id" >> "$GITHUB_OUTPUT"
+          echo "prod_id=$prod_id" >> "$GITHUB_OUTPUT"
+          echo "dev_private=$dev_private" >> "$GITHUB_OUTPUT"
+          aws cloudformation deploy --template-file infrastructure/observability-network.yaml \
+            --stack-name "$NETWORK_STACK_NAME" --region "$AWS_REGION" \
+            --parameter-overrides "DevSecurityGroupId=$dev_group" "ProductionSecurityGroupId=$prod_group" \
+            --no-fail-on-empty-changeset
+
+      - name: Start the standalone observability project and connect Dev
+        env:
+          INSTANCE_ID: ${{ steps.hosts.outputs.dev_id }}
+          COLLECTOR_IP: ${{ steps.hosts.outputs.dev_private }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          commands=(
+            "git -C /opt/interview-mirror/repo fetch --depth=1 origin dev"
+            "git -C /opt/interview-mirror/repo reset --hard FETCH_HEAD"
+            "bash /opt/interview-mirror/repo/scripts/configure-observability-host.sh"
+            "sed -i /^OTEL_EXPORTER_OTLP_ENDPOINT=/d /opt/interview-mirror/runtime.env"
+            "echo OTEL_EXPORTER_OTLP_ENDPOINT=http://${COLLECTOR_IP}:4318 >> /opt/interview-mirror/runtime.env"
+            "chmod 0600 /opt/interview-mirror/runtime.env"
+            "docker compose --project-directory /opt/interview-mirror/repo --env-file /opt/interview-mirror/runtime.env up -d --no-build --pull never app"
+          )
+          parameters="$(jq -cn --args '{commands: $ARGS.positional}' -- "${commands[@]}")"
+          command_id="$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment 'Deploy standalone observability project' \
+            --parameters "$parameters" --region "$AWS_REGION" --query 'Command.CommandId' --output text)"
+          bash scripts/wait-for-ssm-command.sh "$command_id" "$INSTANCE_ID" "$AWS_REGION"
+
+      - name: Check whether the current Production image has OpenTelemetry instrumentation
+        id: production-check
+        env:
+          INSTANCE_ID: ${{ steps.hosts.outputs.prod_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          commands=(
+            "if docker compose --project-directory /opt/interview-mirror/repo --env-file /opt/interview-mirror/runtime.env exec -T app python -c 'import app.telemetry' >/dev/null 2>&1; then echo instrumented; else echo missing; fi"
+          )
+          parameters="$(jq -cn --args '{commands: $ARGS.positional}' -- "${commands[@]}")"
+          command_id="$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment 'Check Production OpenTelemetry instrumentation' \
+            --parameters "$parameters" --region "$AWS_REGION" --query 'Command.CommandId' --output text)"
+          result="$(bash scripts/wait-for-ssm-command.sh "$command_id" "$INSTANCE_ID" "$AWS_REGION")"
+          if [[ "$result" == *instrumented* ]]; then
+            echo "instrumented=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "instrumented=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Connect Production backend to the shared Collector
+        if: steps.production-check.outputs.instrumented == 'true'
+        env:
+          INSTANCE_ID: ${{ steps.hosts.outputs.prod_id }}
+          COLLECTOR_IP: ${{ steps.hosts.outputs.dev_private }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          commands=(
+            "git -C /opt/interview-mirror/repo fetch --depth=1 origin dev"
+            "git -C /opt/interview-mirror/repo show FETCH_HEAD:observability/application-otel.compose.yaml > /opt/interview-mirror/application-otel.compose.yaml"
+            "sed -i /^OTEL_EXPORTER_OTLP_ENDPOINT=/d /opt/interview-mirror/runtime.env"
+            "echo OTEL_EXPORTER_OTLP_ENDPOINT=http://${COLLECTOR_IP}:4318 >> /opt/interview-mirror/runtime.env"
+            "chmod 0600 /opt/interview-mirror/runtime.env"
+            "docker compose --project-directory /opt/interview-mirror/repo --file /opt/interview-mirror/repo/docker-compose.yaml --file /opt/interview-mirror/application-otel.compose.yaml --env-file /opt/interview-mirror/runtime.env up -d --no-build --pull never app"
+          )
+          parameters="$(jq -cn --args '{commands: $ARGS.positional}' -- "${commands[@]}")"
+          command_id="$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment 'Connect Production to shared Collector' \
+            --parameters "$parameters" --region "$AWS_REGION" --query 'Command.CommandId' --output text)"
+          bash scripts/wait-for-ssm-command.sh "$command_id" "$INSTANCE_ID" "$AWS_REGION"
+
+      - name: Report that Production needs the protected app promotion first
+        if: steps.production-check.outputs.instrumented != 'true'
+        run: |
+          echo '::warning::Dev observability is deployed. Current Production image does not include backend/app/telemetry.py, so Production cannot export telemetry yet. Run the protected Promote Dev to Production workflow, then run Deploy Observability Stack again to connect Production.'

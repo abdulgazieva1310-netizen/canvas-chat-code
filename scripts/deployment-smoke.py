@@ -14,10 +14,18 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def port():
-    with socket.socket() as sock:
-        sock.bind(('127.0.0.1', 0))
-        return sock.getsockname()[1]
+def ports(count=2):
+    """Select distinct localhost ports while keeping each reservation open."""
+    sockets = []
+    try:
+        for _ in range(count):
+            sock = socket.socket()
+            sockets.append(sock)
+            sock.bind(('127.0.0.1', 0))
+        return tuple(sock.getsockname()[1] for sock in sockets)
+    finally:
+        for sock in sockets:
+            sock.close()
 
 
 def ready(url, process):
@@ -34,7 +42,7 @@ def ready(url, process):
 
 
 def main():
-    backend_port, frontend_port = port(), port()
+    backend_port, frontend_port = ports()
     api = f'http://127.0.0.1:{backend_port}/api'
     origin = f'http://127.0.0.1:{frontend_port}'
     with tempfile.TemporaryDirectory(prefix='deployment-smoke-') as folder:

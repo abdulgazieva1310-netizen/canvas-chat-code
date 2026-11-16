@@ -312,7 +312,7 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
             if key:
                 repository.session.add(InterviewStartRecord(owner_id=user.id, key=key,
                     setup=data.model_dump(mode='json'), interview_id=interview.id))
-            return interview.model_copy(deep=True)
+            result = interview.model_copy(deep=True)
     except IntegrityError:
         if key:
             with store.transaction() as repository:
@@ -320,6 +320,8 @@ def start(data: InterviewSetup, request: Request, user: CurrentUser):
                 if existing is not None:
                     return existing
         raise
+    request.app.state.business_metrics.interview_started()
+    return result
 
 
 @router.get('', response_model=HistoryPage)
@@ -353,6 +355,7 @@ def delete(interviewId: str, request: Request, user: CurrentUser):
 @router.post('/{interviewId}/messages', response_model=Interview)
 def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
     store = request.app.state.store
+    completed_report_generated = False
     with store.transaction() as store:
         interview = store.find(user.id, interviewId)
         current_question_message = next(m for m in reversed(interview.messages) if m.sender == 'ai')
@@ -390,39 +393,49 @@ def answer(interviewId: str, data: Answer, request: Request, user: CurrentUser):
             coding_judge = judge_code(judge_language, data.text, judge_key)
         if setup.language == 'Russian':
             # Commit scores before the next-question provider request can fail.
-            return store.answer(interview, data.text, evaluation=evaluation, coding_judge=coding_judge,
-                                defer_next_question=True).model_copy(deep=True)
-        current_level = interview.effectiveLevel or setup.level
-        is_main_answer = current_question_message.kind == 'main'
-        already_adjusted = any(
-            decision.questionId == main_question_id for decision in interview.difficultyDecisions)
-        next_level = current_level if already_adjusted or not is_main_answer else difficulty_transition(
-            current_level, evaluation)[0]
-        next_question = None
-        answered_after = interview.answeredCount + int(is_main_answer)
-        if answered_after < setup.questionCount:
-            conversation = [item for item in interview.messages
-                            if item.sender == 'ai' and item.kind == 'main']
-            used_questions = [item.text for item in conversation]
-            question_options = {'interview_language': setup.language} if setup.language != 'English' else {}
-            next_question = ai_service.generate_question(setup.role, next_level, conversation,
-                interview_type=setup.type, job_description=setup.jobDescription,
-                practice_topic=setup.practiceTopic, used_questions=used_questions, **question_options)
-            if ai_service.question_was_used(next_question, used_questions):
+            result = store.answer(interview, data.text, evaluation=evaluation, coding_judge=coding_judge,
+                                  defer_next_question=True).model_copy(deep=True)
+        else:
+            current_level = interview.effectiveLevel or setup.level
+            is_main_answer = current_question_message.kind == 'main'
+            already_adjusted = any(
+                decision.questionId == main_question_id for decision in interview.difficultyDecisions)
+            next_level = current_level if already_adjusted or not is_main_answer else difficulty_transition(
+                current_level, evaluation)[0]
+            next_question = None
+            answered_after = interview.answeredCount + int(is_main_answer)
+            if answered_after < setup.questionCount:
+                conversation = [item for item in interview.messages
+                                if item.sender == 'ai' and item.kind == 'main']
+                used_questions = [item.text for item in conversation]
+                question_options = {'interview_language': setup.language} if setup.language != 'English' else {}
                 next_question = ai_service.generate_question(setup.role, next_level, conversation,
                     interview_type=setup.type, job_description=setup.jobDescription,
-                    practice_topic=setup.practiceTopic,
-                    used_questions=[*used_questions, next_question], **question_options)
-            if ai_service.question_was_used(next_question, used_questions):
-                next_question = None
-            if setup.language == 'Russian' and not next_question:
-                raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Your answer was not saved; retry or select English.')
-        return store.answer(interview, data.text, next_question=next_question,
-            coding_judge=coding_judge, evaluation=evaluation).model_copy(deep=True)
+                    practice_topic=setup.practiceTopic, used_questions=used_questions, **question_options)
+                if ai_service.question_was_used(next_question, used_questions):
+                    next_question = ai_service.generate_question(setup.role, next_level, conversation,
+                        interview_type=setup.type, job_description=setup.jobDescription,
+                        practice_topic=setup.practiceTopic,
+                        used_questions=[*used_questions, next_question], **question_options)
+                if ai_service.question_was_used(next_question, used_questions):
+                    next_question = None
+                if setup.language == 'Russian' and not next_question:
+                    raise HTTPException(503, 'The Russian question provider is temporarily unavailable. Your answer was not saved; retry or select English.')
+            result = store.answer(interview, data.text, next_question=next_question,
+                coding_judge=coding_judge, evaluation=evaluation).model_copy(deep=True)
+        if result.status == 'complete':
+            # Generate a completed report once, at the status transition. Later reads
+            # and exports do not count the same interview again.
+            store.report(result)
+            completed_report_generated = True
+    if completed_report_generated:
+        request.app.state.business_metrics.interview_completed()
+    return result
 
 
 @router.post('/{interviewId}/next-question', response_model=Interview)
 def next_question(interviewId: str, request: Request, user: CurrentUser):
+    completed_report_generated = False
     with request.app.state.store.transaction() as store:
         interview = store.find(user.id, interviewId)
         if (interview.status != 'active' or not interview.messages
@@ -435,43 +448,49 @@ def next_question(interviewId: str, request: Request, user: CurrentUser):
             interview.status = 'complete'
             interview.endedAt = now()
             store.save(interview)
-            return interview.model_copy(deep=True)
-        level = interview.effectiveLevel or setup.level
-        used_questions = [m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main']
-        generated = ai_service.generate_question(setup.role, level, interview.messages,
-            interview_type=setup.type, job_description=setup.jobDescription,
-            practice_topic=setup.practiceTopic, interview_language='Russian',
-            used_questions=used_questions)
-        if ai_service.question_was_used(generated, used_questions):
+            result = interview.model_copy(deep=True)
+            store.report(result)
+            completed_report_generated = True
+        else:
+            level = interview.effectiveLevel or setup.level
+            used_questions = [m.text for m in interview.messages if m.sender == 'ai' and m.kind == 'main']
             generated = ai_service.generate_question(setup.role, level, interview.messages,
                 interview_type=setup.type, job_description=setup.jobDescription,
                 practice_topic=setup.practiceTopic, interview_language='Russian',
-                used_questions=[*used_questions, generated])
-        if ai_service.question_was_used(generated, used_questions):
-            generated = None
-        if not generated:
-            english_question = ai_service.generate_question(setup.role, level, interview.messages,
-                interview_type=setup.type, job_description=setup.jobDescription,
-                practice_topic=setup.practiceTopic, interview_language='English',
                 used_questions=used_questions)
-            if (ai_service.question_was_used(english_question, used_questions)
-                    or (english_question and ai_service.has_russian_text(english_question))):
-                english_question = None
-            if not english_question:
-                english_setup = setup.model_copy(update={'language': 'English'})
-                english_question = curated_question(english_setup, interview.answeredCount, level,
-                    used_questions, interview.id)
-            if english_question.startswith('No matching curated questions'):
-                english_question = english_question.split('\n\n', 1)[1]
-            translated = ai_service.translate_question_to_russian(english_question)
-            if translated:
-                generated = f'{translated}\n\nОригинал вопроса на английском:\n{english_question}'
-            else:
-                generated = ('Перевод вопроса временно недоступен. Вопрос на английском:\n'
-                             f'{english_question}\n\nПожалуйста, ответьте на него по-русски.')
-        interview.messages.append(message(interview.id, 'ai', generated))
-        store.save(interview)
-        return interview.model_copy(deep=True)
+            if ai_service.question_was_used(generated, used_questions):
+                generated = ai_service.generate_question(setup.role, level, interview.messages,
+                    interview_type=setup.type, job_description=setup.jobDescription,
+                    practice_topic=setup.practiceTopic, interview_language='Russian',
+                    used_questions=[*used_questions, generated])
+            if ai_service.question_was_used(generated, used_questions):
+                generated = None
+            if not generated:
+                english_question = ai_service.generate_question(setup.role, level, interview.messages,
+                    interview_type=setup.type, job_description=setup.jobDescription,
+                    practice_topic=setup.practiceTopic, interview_language='English',
+                    used_questions=used_questions)
+                if (ai_service.question_was_used(english_question, used_questions)
+                        or (english_question and ai_service.has_russian_text(english_question))):
+                    english_question = None
+                if not english_question:
+                    english_setup = setup.model_copy(update={'language': 'English'})
+                    english_question = curated_question(english_setup, interview.answeredCount, level,
+                        used_questions, interview.id)
+                if english_question.startswith('No matching curated questions'):
+                    english_question = english_question.split('\n\n', 1)[1]
+                translated = ai_service.translate_question_to_russian(english_question)
+                if translated:
+                    generated = f'{translated}\n\nОригинал вопроса на английском:\n{english_question}'
+                else:
+                    generated = ('Перевод вопроса временно недоступен. Вопрос на английском:\n'
+                                 f'{english_question}\n\nПожалуйста, ответьте на него по-русски.')
+            interview.messages.append(message(interview.id, 'ai', generated))
+            store.save(interview)
+            result = interview.model_copy(deep=True)
+    if completed_report_generated:
+        request.app.state.business_metrics.interview_completed()
+    return result
 
 
 @router.post('/{interviewId}/hint', response_model=Interview)

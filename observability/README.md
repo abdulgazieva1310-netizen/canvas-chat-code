@@ -81,9 +81,11 @@ All host ports bind to `127.0.0.1` by default:
 - Collector OTLP/HTTP: <http://127.0.0.1:4318>
 - Collector OTLP/gRPC: `127.0.0.1:4317`
 
-Grafana's Prometheus, Loki, and Tempo data sources are provisioned on startup.
-Use Grafana Explore to inspect traces and logs. Prometheus only receives
-application metrics if an application SDK emits them.
+Grafana's Prometheus, Loki, and Tempo data sources and the **Interview Mirror
+Business Metrics** dashboard are provisioned on startup. The dashboard plots
+interviews started, completed interviews with generated reports, and study
+plans generated. Its Environment selector filters the `dev` and `prod` metric
+labels. Use Grafana Explore to inspect traces and logs.
 
 To stop the stack and preserve stored telemetry:
 

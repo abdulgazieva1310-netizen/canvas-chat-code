@@ -23,10 +23,10 @@ import httpx
 from .routers import auth, dashboard, evaluation_feedback, interviews, job_targets, languages, setup_presets, study, study_plans
 from .store import Store
 from .services.email_service import email_delivery, password_reset_url
-from .telemetry import instrument_app
+from .telemetry import create_business_metrics, instrument_app
 
 
-def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None):
+def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None, metric_reader=None):
     if seed is None:
         seed = os.getenv('SEED_DEMO_ACCOUNT', 'true').strip().lower() in {'1', 'true', 'yes', 'on'}
     store = Store(seed=seed, database_url=database_url)
@@ -37,6 +37,7 @@ def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None
     frontend_process = None
     frontend_client = None
     tracer_provider = None
+    meter_provider = None
 
     async def media_reaper():
         while True:
@@ -104,11 +105,16 @@ def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None
                     await frontend_process.wait()
             if tracer_provider is not None:
                 tracer_provider.shutdown()
+            if meter_provider is not None:
+                meter_provider.shutdown()
             store.engine.dispose()
 
     app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
     tracer_provider = instrument_app(app)
+    meter_provider, business_metrics = create_business_metrics(metric_reader=metric_reader)
     app.state.tracer_provider = tracer_provider
+    app.state.meter_provider = meter_provider
+    app.state.business_metrics = business_metrics
     @app.get('/api/health', tags=['health'])
     def health():
         return JSONResponse({'status': 'ok'}, headers={'Cache-Control': 'no-store'})

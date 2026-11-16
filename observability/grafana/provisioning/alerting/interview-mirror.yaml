@@ -1,5 +1,9 @@
 apiVersion: 1
 
+deleteRules:
+  - orgId: 1
+    uid: interview-completion-alert-drill
+
 groups:
   - orgId: 1
     name: interview-completion-health
@@ -153,65 +157,3 @@ groups:
             This is a shortfall signal rather than a direct exception count.
             First check recent application errors and report generation for
             this environment and image version. Dashboard: http://127.0.0.1:3000/d/interview-mirror-business-metrics/interview-mirror-business-metrics
-
-      - uid: interview-completion-alert-drill
-        title: "TEST ONLY - Grafana alert drill (synthetic)"
-        condition: D
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 60
-              to: 0
-            datasourceUid: prometheus
-            model:
-              datasource:
-                type: prometheus
-                uid: prometheus
-              editorMode: code
-              expr: vector(1)
-              instant: true
-              intervalMs: 1000
-              maxDataPoints: 43200
-              range: false
-              refId: A
-          - refId: D
-            datasourceUid: __expr__
-            model:
-              conditions:
-                - evaluator:
-                    params: [0.5]
-                    type: gt
-                  operator:
-                    type: and
-                  query:
-                    params: [A]
-                  reducer:
-                    type: last
-                  type: query
-              datasource:
-                type: __expr__
-                uid: __expr__
-              expression: A
-              intervalMs: 1000
-              maxDataPoints: 43200
-              refId: D
-              type: threshold
-        dashboardUid: interview-mirror-business-metrics
-        panelId: 2
-        for: 1m
-        noDataState: OK
-        execErrState: Error
-        labels:
-          service: interview-mirror
-          environment: dev
-          version: alert-drill
-          owner: Interview Mirror maintainers
-          severity: info
-          alert_drill: test
-        annotations:
-          summary: "TEST ONLY: synthetic Grafana alert drill is firing in dev"
-          description: >-
-            TEST ONLY - synthetic alert rule using vector(1); no interview
-            metrics or report generation are affected. Service: interview-mirror.
-            Environment: dev. Deployed version: not applicable (synthetic drill).
-            Owner: Interview Mirror maintainers. Dashboard: http://127.0.0.1:3000/d/interview-mirror-business-metrics/interview-mirror-business-metrics

@@ -84,8 +84,9 @@ All host ports bind to `127.0.0.1` by default:
 Grafana's Prometheus, Loki, and Tempo data sources and the **Interview Mirror
 Business Metrics** dashboard are provisioned on startup. The dashboard plots
 interviews started, completed interviews with generated reports, and study
-plans generated. Its Environment selector filters the `dev` and `prod` metric
-labels. Use Grafana Explore to inspect traces and logs.
+plans generated. A combined stat panel shows all three counts for the selected
+time range. Its Environment selector filters the `dev` and `prod` metric labels.
+Use Grafana Explore to inspect traces and logs.
 
 The dashboard's Version selector uses the `version` metric label. In deployed
 Compose environments this is the tag parsed from `OTEL_SERVICE_VERSION`, which

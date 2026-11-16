@@ -35,6 +35,61 @@
       "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "editorMode": "code", "expr": "sum by (environment) (increase(study_plans_generated_total{environment=~\"$environment\", version=~\"$version\"}[$__rate_interval]))", "legendFormat": "{{environment}}", "refId": "A"}],
       "title": "Study plans generated (rolling)",
       "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 24, "x": 0, "y": 9},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "editorMode": "code",
+          "expr": "sum(increase(interviews_started_total{environment=~\"$environment\", version=~\"$version\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "Interviews started",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "editorMode": "code",
+          "expr": "sum(increase(interviews_completed_total{environment=~\"$environment\", version=~\"$version\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "Completed interviews with reports",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "editorMode": "code",
+          "expr": "sum(increase(study_plans_generated_total{environment=~\"$environment\", version=~\"$version\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "Study plans generated",
+          "range": false,
+          "refId": "C"
+        }
+      ],
+      "title": "Business events (selected time range)",
+      "type": "stat"
     }
   ],
   "refresh": "30s",

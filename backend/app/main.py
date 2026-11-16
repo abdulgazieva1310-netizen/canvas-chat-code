@@ -23,6 +23,7 @@ import httpx
 from .routers import auth, dashboard, evaluation_feedback, interviews, job_targets, languages, setup_presets, study, study_plans
 from .store import Store
 from .services.email_service import email_delivery, password_reset_url
+from .telemetry import instrument_app
 
 
 def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None):
@@ -35,6 +36,7 @@ def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None
     frontend_server_base_url = f'http://{frontend_server_host}:{frontend_server_port}'
     frontend_process = None
     frontend_client = None
+    tracer_provider = None
 
     async def media_reaper():
         while True:
@@ -100,9 +102,13 @@ def create_app(*, seed=None, secure_cookies=None, database_url=None, mailer=None
                 except asyncio.TimeoutError:
                     frontend_process.kill()
                     await frontend_process.wait()
+            if tracer_provider is not None:
+                tracer_provider.shutdown()
             store.engine.dispose()
 
     app = FastAPI(lifespan=lifespan, title='Interview Mirror API', version='1.0.0')
+    tracer_provider = instrument_app(app)
+    app.state.tracer_provider = tracer_provider
     @app.get('/api/health', tags=['health'])
     def health():
         return JSONResponse({'status': 'ok'}, headers={'Cache-Control': 'no-store'})

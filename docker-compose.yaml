@@ -32,6 +32,10 @@ services:
       SEED_DEMO_ACCOUNT: ${SEED_DEMO_ACCOUNT:-true}
       PASSWORD_RESET_URL: ${PASSWORD_RESET_URL:-http://localhost:8100/reset-password}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:8100}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-interview-mirror-api}
+      OTEL_DEPLOYMENT_ENVIRONMENT: ${OTEL_DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-${APP_IMAGE:-local}}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "${APP_BIND_ADDRESS:-127.0.0.1}:8100:8000"
     volumes:

@@ -82,6 +82,12 @@ Create or update the parameter through a hidden terminal prompt, using `aws ssm 
 
 The `ci.yml` workflow runs backend, frontend, Compose, and browser journey checks on pull requests and pushes to `dev` or `main`. After all checks pass on a push, it builds one `linux/amd64` image, tags it with UTC `YYYYMMDD-HHMMSS-shortsha`, and pushes it to ECR. A push to `dev` then deploys that exact ECR image to Dev through Systems Manager. To promote the currently deployed Dev image, run **Promote Dev to Production** from GitHub Actions. The `promote.yml` workflow reads Dev's `APP_IMAGE`, pulls that exact immutable tag on Production, and checks the Production health URL; it does not rebuild. It uses the protected GitHub `production` environment, so configure at least one required reviewer under **Settings → Environments → production**. The GitHub OIDC role must be allowed to inspect both stacks, send SSM commands to both instances, and push ECR images; the EC2 roles need ECR pull access.
 
+## OpenTelemetry
+
+The FastAPI backend creates OpenTelemetry request spans. Set `OTEL_EXPORTER_OTLP_ENDPOINT` to a collector's OTLP/HTTP base URL (for example, `http://otel-collector:4318`) to export traces; without it, the app still starts and instruments requests but does not attempt to contact a collector. The collector must accept OTLP over HTTP. Optional standard exporter settings such as `OTEL_EXPORTER_OTLP_HEADERS` can be used for collector authentication.
+
+Every span resource includes `service.name`, `deployment.environment`, and `service.version`. `OTEL_SERVICE_NAME` defaults to `interview-mirror-api`. Local Compose defaults the environment to `development` and version to the configured image name; direct local runs default to backend release version `0.1.0`. The Dev and Production bootstrap configurations set the environment to `development` and `production`; deployed version defaults to the immutable `APP_IMAGE` reference. You can override the service name or version with `OTEL_SERVICE_NAME` and `OTEL_SERVICE_VERSION` in the Compose environment file.
+
 For a direct manual update through Session Manager instead of the promotion workflow, run:
 
 ```sh

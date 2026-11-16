@@ -208,6 +208,7 @@ Resources:
           AI_API_KEY=$GROQ_API_KEY
           EMAIL_ADAPTER=local
           SECURE_COOKIES=true
+          OTEL_DEPLOYMENT_ENVIRONMENT=development
           SEED_DEMO_ACCOUNT=false
           APP_DOMAIN=$APP_DOMAIN
           CORS_ORIGINS=https://$APP_DOMAIN

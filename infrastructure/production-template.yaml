@@ -206,6 +206,7 @@ Resources:
           APP_BIND_ADDRESS=0.0.0.0
           EMAIL_ADAPTER=local
           SECURE_COOKIES=true
+          OTEL_DEPLOYMENT_ENVIRONMENT=production
           SEED_DEMO_ACCOUNT=false
           CORS_ORIGINS=https://${ProdDomain}
           PASSWORD_RESET_URL=https://${ProdDomain}/reset-password

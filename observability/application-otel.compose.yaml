@@ -1,0 +1,9 @@
+# Compose override for Production while its app Compose checkout may still be
+# on main. The application image remains the independently promoted ECR image.
+services:
+  app:
+    environment:
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-interview-mirror-api}
+      OTEL_DEPLOYMENT_ENVIRONMENT: ${OTEL_DEPLOYMENT_ENVIRONMENT:-production}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-${APP_IMAGE:-local}}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}

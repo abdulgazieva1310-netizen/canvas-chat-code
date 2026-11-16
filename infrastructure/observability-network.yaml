@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private OTLP/HTTP ingress to the Dev-hosted Collector from app hosts.
+
+Parameters:
+  DevSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group attached to the Dev application and observability host.
+  ProductionSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group attached to the Production application host.
+
+Resources:
+  DevOtlpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: OTLP/HTTP from Dev
+      GroupId: !Ref DevSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 4318
+      ToPort: 4318
+      SourceSecurityGroupId: !Ref DevSecurityGroupId
+
+  ProductionOtlpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: OTLP/HTTP from Production
+      GroupId: !Ref DevSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 4318
+      ToPort: 4318
+      SourceSecurityGroupId: !Ref ProductionSecurityGroupId
